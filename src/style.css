@@ -522,6 +522,54 @@
     font-weight: 500;
     color: var(--color-text-primary);
   }
+
+  /* Login/Subtitle Text (lighter in dark mode) */
+  .login-subtitle,
+  p.login-subtitle {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .login-subtitle,
+    p.login-subtitle {
+      color: var(--color-text-primary);
+      opacity: 0.9;
+    }
+  }
+
+  /* Form Labels */
+  label {
+    color: var(--color-text-primary);
+  }
+
+  /* Error Message */
+  .error-message {
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #dc2626;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .error-message {
+      background-color: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
+  }
+
+  /* Login Logo (white SVG - inverted in light mode, normal in dark mode) */
+  .pokapal-login-logo {
+    transition: filter 0.2s;
+    filter: brightness(0); /* Makes white SVG black in light mode */
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .pokapal-login-logo {
+      filter: none; /* White SVG stays white in dark mode */
+    }
+  }
 }
 
 /* ============================================

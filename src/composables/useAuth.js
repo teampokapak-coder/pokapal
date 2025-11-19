@@ -5,7 +5,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail
 } from 'firebase/auth'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../config/firebase'
@@ -80,13 +81,26 @@ export const useAuth = () => {
     }
   }
 
+  // Send password reset email
+  const resetPassword = async (email) => {
+    try {
+      error.value = null
+      await sendPasswordResetEmail(auth, email)
+      return { success: true }
+    } catch (err) {
+      error.value = err.message
+      return { success: false, error: err.message }
+    }
+  }
+
   return {
     user,
     loading,
     error,
     register,
     login,
-    logout
+    logout,
+    resetPassword
   }
 }
 

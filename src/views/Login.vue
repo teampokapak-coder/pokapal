@@ -2,14 +2,18 @@
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style="background-color: var(--color-bg-primary);">
     <div class="max-w-md w-full">
       <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 mb-2">Pokapal</h1>
-        <p class="text-gray-600">Sign in to your account</p>
+        <img 
+          src="/pokapal_white.svg" 
+          alt="Pokapal" 
+          class="pokapal-login-logo mx-auto mb-4 h-12 w-auto"
+        />
+        <p class="login-subtitle">Sign in to your account</p>
       </div>
 
       <div class="card">
         <div class="card-body">
           <!-- Tabs -->
-          <div class="flex gap-2 mb-6 border-b border-gray-200">
+          <div class="flex gap-2 mb-6 border-b" style="border-color: var(--color-border);">
             <button 
               @click="isLogin = true"
               :class="['btn btn-h5 flex-1', isLogin ? 'btn-primary' : 'btn-ghost']"
@@ -25,29 +29,43 @@
           </div>
 
           <!-- Error Message -->
-          <div v-if="authError" class="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+          <div v-if="authError" class="error-message mb-4 p-3 rounded text-sm">
             {{ authError }}
           </div>
 
           <!-- Login Form -->
           <form v-if="isLogin" @submit.prevent="handleLogin" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <label class="block text-sm font-medium mb-1">Email *</label>
               <input 
                 v-model="loginEmail"
                 type="email"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
+                style="border-color: var(--color-border);"
                 placeholder="your@email.com"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium">Password *</label>
+                <button
+                  type="button"
+                  @click="handleForgotPassword"
+                  class="text-sm transition-colors"
+                  style="color: var(--color-text-secondary);"
+                  @mouseenter="$event.target.style.color = 'var(--color-text-primary)'"
+                  @mouseleave="$event.target.style.color = 'var(--color-text-secondary)'"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <input 
                 v-model="loginPassword"
                 type="password"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
+                style="border-color: var(--color-border);"
                 placeholder="••••••••"
               />
             </div>
@@ -63,35 +81,38 @@
           <!-- Register Form -->
           <form v-else @submit.prevent="handleRegister" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+              <label class="block text-sm font-medium mb-1">Display Name</label>
               <input 
                 v-model="registerName"
                 type="text"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
+                style="border-color: var(--color-border);"
                 placeholder="Your Name"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <label class="block text-sm font-medium mb-1">Email *</label>
               <input 
                 v-model="registerEmail"
                 type="email"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
+                style="border-color: var(--color-border);"
                 placeholder="your@email.com"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+              <label class="block text-sm font-medium mb-1">Password *</label>
               <input 
                 v-model="registerPassword"
                 type="password"
                 required
                 minlength="6"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
+                style="border-color: var(--color-border);"
                 placeholder="••••••••"
               />
-              <p class="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
+              <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">Must be at least 6 characters</p>
             </div>
             <button 
               type="submit"
@@ -127,7 +148,7 @@ import { useAuth } from '../composables/useAuth'
 
 const router = useRouter()
 const route = useRoute()
-const { login, register, error: authError, user } = useAuth()
+const { login, register, resetPassword, error: authError, user } = useAuth()
 
 const isLogin = ref(true)
 const isSubmitting = ref(false)
@@ -164,6 +185,22 @@ const handleRegister = async () => {
   if (result.success) {
     // Redirect to original destination or home
     router.push(route.query.redirect || '/')
+  }
+}
+
+const handleForgotPassword = async () => {
+  if (!loginEmail.value) {
+    authError.value = 'Please enter your email address first'
+    return
+  }
+  
+  isSubmitting.value = true
+  const result = await resetPassword(loginEmail.value)
+  isSubmitting.value = false
+  
+  if (result.success) {
+    authError.value = null
+    alert('Password reset email sent! Please check your inbox.')
   }
 }
 </script>

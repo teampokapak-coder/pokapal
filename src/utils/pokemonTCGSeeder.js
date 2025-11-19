@@ -259,8 +259,17 @@ export const seedCardsFromSets = async (setApiIds = []) => {
     console.log(`Set ${apiId}: ${result.added || 0} added, ${result.skipped || 0} skipped`)
     
     // Delay between sets to avoid rate limits
+    // Increase delay if we encountered errors (might be rate limited)
     if (i < setApiIds.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 500))
+      const baseDelay = 2000 // 2 seconds base delay between sets
+      const errorDelay = result.error && result.error.includes('rate limit') ? 10000 : 0 // Extra 10s if rate limited
+      const delay = baseDelay + errorDelay
+      
+      if (errorDelay > 0) {
+        console.log(`⏸️ Rate limit detected, waiting ${delay / 1000}s before next set...`)
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, delay))
     }
   }
   

@@ -30,19 +30,51 @@ We're now using the [Pokemon TCG API](https://pokemontcg.io/) to fetch card data
 
 ### 1. API Key
 
-Your API key is already configured in `src/utils/pokemonTCGAPI.js`:
-```
-API_KEY: '34317d16-2f3e-47d5-93e3-6b631dde821f'
+**Option A: Environment Variable (Recommended)**
+
+Create a `.env` file in the project root:
+```env
+VITE_POKEMON_TCG_API_KEY=your-api-key-here
 ```
 
-### 2. Seed Sets
+Get your free API key from: https://pokemontcg.io/
+
+**Option B: Default Key**
+
+If you don't set an environment variable, the app will use a default key (which may have rate limits or be slower).
+
+**Why use your own API key?**
+- Higher rate limits
+- Better performance
+- More reliable access
+- Free tier available
+
+### 2. Troubleshooting API Issues
+
+**504 Gateway Timeout Errors:**
+- The Pokemon TCG API can be slow, especially during peak times
+- Timeouts have been increased to 3 minutes
+- Try again later if you see timeouts
+- Consider using your own API key for better performance
+
+**404 Not Found Errors:**
+- Some sets may not exist in the API
+- Check the set ID is correct
+- Some newer sets may not be available yet
+
+**401/403 Authentication Errors:**
+- Your API key may be invalid or expired
+- Check your `VITE_POKEMON_TCG_API_KEY` environment variable
+- Get a new key from https://pokemontcg.io/
+
+### 3. Seed Sets
 
 1. Go to `/admin`
 2. Click **"Fetch All Sets from API"**
 3. This fetches all sets from Base Set through current releases
 4. Only new sets are added (skips duplicates)
 
-### 3. Seed Cards
+### 4. Seed Cards
 
 1. Go to `/admin`
 2. Click **"Seed Popular Sets"** to fetch Base Set, Jungle, and Fossil
@@ -188,10 +220,39 @@ const setsResult = await seedSetsFromAPI()
 
 ## Rate Limits
 
-The API has rate limits. The seeder includes delays to respect these:
-- 100ms delay between card batches
-- 500ms delay between sets
-- Automatic pagination handling
+The API has rate limits. The seeder includes intelligent rate limit handling:
+
+### Automatic Rate Limit Handling
+
+**429 Too Many Requests Detection:**
+- Automatically detects rate limit responses (429 status code)
+- Reads `Retry-After` header if provided by the API
+- Waits the specified time before retrying
+- Defaults to 60 seconds if no `Retry-After` header
+
+**Exponential Backoff:**
+- Retries failed requests with exponential backoff
+- Starts at 1 second, doubles each retry (up to 30 seconds max)
+- Adds random jitter to avoid thundering herd problem
+- Up to 5 retries per request
+
+**Progressive Delays:**
+- 500ms base delay between page requests (increases gradually)
+- 2 seconds delay between sets
+- 10 seconds extra delay if rate limit detected
+- Small delays when writing to Firestore (every 10 cards)
+
+**Timeout Handling:**
+- 120 second timeout per request
+- 3 minute proxy timeout
+- Automatic retry on timeouts with exponential backoff
+
+### Best Practices
+
+1. **Use Your Own API Key**: Free tier keys have higher rate limits
+2. **Seed Sets Gradually**: Don't seed too many sets at once
+3. **Monitor Console**: Watch for rate limit warnings
+4. **Be Patient**: Large sets can take several minutes to fetch
 
 ## Manual Entry
 

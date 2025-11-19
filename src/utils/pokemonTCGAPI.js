@@ -5,7 +5,7 @@
 const API_BASE_URL = import.meta.env.DEV 
   ? '/api/pokemontcg' 
   : 'https://api.pokemontcg.io/v2'
-const API_KEY = '34317d16-2f3e-47d5-93e3-6b631dde821f'
+const API_KEY = import.meta.env.VITE_POKEMON_TCG_API_KEY || '34317d16-2f3e-47d5-93e3-6b631dde821f'
 
 // Fetch all sets from Pokemon TCG API
 export const fetchAllSets = async () => {
@@ -93,7 +93,7 @@ export const fetchCardsBySet = async (setId, page = 1, pageSize = 50) => {
       : { 'X-Api-Key': API_KEY }
     
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 90000) // 90 second timeout per request (API can be slow)
+    const timeoutId = setTimeout(() => controller.abort(), 120000) // 120 second timeout per request (API can be very slow)
     
     try {
       const response = await fetch(
@@ -116,6 +116,20 @@ export const fetchCardsBySet = async (setId, page = 1, pageSize = 50) => {
             return { success: false, error: `Set '${setId}' not found or has no cards` }
           }
           return { success: false, error: 'NO_MORE_PAGES' }
+        }
+        // 429 Too Many Requests - Rate limit hit
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After')
+          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 60000 // Default to 60 seconds
+          throw new Error(`RATE_LIMIT:${waitTime}`) // Special format for retry logic
+        }
+        // 504 Gateway Timeout - API is slow or overloaded
+        if (response.status === 504) {
+          throw new Error(`API Gateway Timeout (504) - The Pokemon TCG API is taking too long to respond. This may be due to API slowness or rate limiting. Please try again later.`)
+        }
+        // 401/403 - API key issues
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(`API Authentication Error (${response.status}) - Your API key may be invalid or expired. Please check your VITE_POKEMON_TCG_API_KEY environment variable.`)
         }
         throw new Error(`API Error: ${response.status} ${response.statusText}`)
       }
@@ -148,11 +162,13 @@ export const fetchCardsBySet = async (setId, page = 1, pageSize = 50) => {
 
 // Fetch all cards from a set (handles pagination)
 // Based on Pokemon TCG API v2 documentation: https://docs.pokemontcg.io/api-reference/cards/search-cards
-export const fetchAllCardsBySet = async (setId, retries = 3) => {
+export const fetchAllCardsBySet = async (setId, retries = 5) => {
   const allCards = []
   let page = 1
   const pageSize = 50 // Using smaller page size to avoid timeouts (API max is 250)
   let totalCount = null // Will be set from first response
+  const baseDelay = 500 // Base delay between requests (ms) to avoid rate limits
+  const maxDelay = 30000 // Maximum delay (30 seconds)
   
   while (true) {
     let result
@@ -178,11 +194,30 @@ export const fetchAllCardsBySet = async (setId, retries = 3) => {
         break
       }
       
+      // Handle rate limiting with exponential backoff
+      if (result.error && result.error.startsWith('RATE_LIMIT:')) {
+        const waitTime = parseInt(result.error.split(':')[1]) || 60000
+        console.warn(`⏸️ Rate limit hit! Waiting ${Math.round(waitTime / 1000)} seconds before retry...`)
+        await new Promise(resolve => setTimeout(resolve, waitTime))
+        attempt++
+        continue
+      }
+      
       attempt++
       if (attempt < retries) {
-        // Log retry as info, not error - this is normal for slow API
-        console.log(`⏳ API slow, retrying page ${page} (${attempt}/${retries})...`)
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)) // Exponential backoff
+        // Exponential backoff with jitter to avoid thundering herd
+        const exponentialDelay = Math.min(1000 * Math.pow(2, attempt - 1), maxDelay)
+        const jitter = Math.random() * 1000 // Add random jitter (0-1 second)
+        const delay = exponentialDelay + jitter
+        
+        if (result.error && result.error.includes('timeout')) {
+          console.log(`⏳ API timeout, retrying page ${page} in ${Math.round(delay / 1000)}s (${attempt}/${retries})...`)
+        } else if (result.error && result.error.includes('504')) {
+          console.log(`⏳ API gateway timeout, retrying page ${page} in ${Math.round(delay / 1000)}s (${attempt}/${retries})...`)
+        } else {
+          console.log(`⏳ API error, retrying page ${page} in ${Math.round(delay / 1000)}s (${attempt}/${retries})...`)
+        }
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
     }
     
@@ -248,7 +283,11 @@ export const fetchAllCardsBySet = async (setId, retries = 3) => {
     
     // More pages available, continue to next page
     page++
-    await new Promise(resolve => setTimeout(resolve, 200)) // Small delay between pages
+    
+    // Add delay between page requests to avoid rate limiting
+    // Increase delay as we progress to be more conservative
+    const pageDelay = Math.min(baseDelay * (1 + page * 0.1), 2000) // Gradually increase delay, max 2 seconds
+    await new Promise(resolve => setTimeout(resolve, pageDelay))
   }
   
   console.log(`Completed fetching cards: ${allCards.length} total cards from set ${setId}`)
