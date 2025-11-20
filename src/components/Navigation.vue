@@ -7,7 +7,7 @@
           <img 
             src="/pokapal_black.svg" 
             alt="Pokapal" 
-            class="h-7 w-auto hidden sm:block pokapal-logo-text"
+            class="h-6 sm:h-7 w-auto pokapal-logo-text"
           />
         </router-link>
         
@@ -85,7 +85,7 @@
           <div class="flex items-center justify-between p-4" style="border-bottom: 1px solid var(--color-border);">
             <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
               <img src="/pokapal.png" alt="Pokapal" class="h-8 w-auto" />
-              <img src="/pokapal_black.svg" alt="Pokapal" class="h-7 w-auto pokapal-logo-text" />
+              <img src="/pokapal_black.svg" alt="Pokapal" class="h-6 w-auto pokapal-logo-text" />
             </router-link>
             <button 
               @click="mobileMenuOpen = false"

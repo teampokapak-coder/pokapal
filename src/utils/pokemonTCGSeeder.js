@@ -133,36 +133,57 @@ export const seedCardsFromSet = async (setId, setApiId = null) => {
     }
     
     const firestoreSetId = setDoc.id // Firestore document ID
-    console.log(`Found set document: ${firestoreSetId} (API ID: ${apiSetId})`)
+    const setData = setDoc.data()
+    console.log(`Found set document: ${firestoreSetId} (API ID: ${apiSetId}, Name: ${setData.name})`)
     
-    // Verify set exists in API first (optional, non-blocking)
-    // Use a shorter timeout since this is just for verification
+    // Verify set exists in API first (strict verification - no auto-matching)
     const { fetchSetById } = await import('./pokemonTCGAPI.js')
+    let setVerified = false
+    
     try {
-      // Don't wait too long for verification - it's optional
+      // Try to verify the set exists with exact ID match
       const verifyPromise = fetchSetById(apiSetId)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Verification timeout')), 20000)
+        setTimeout(() => reject(new Error('Verification timeout')), 30000)
       )
       
       const setVerify = await Promise.race([verifyPromise, timeoutPromise])
       if (setVerify.success) {
-        console.log(`✓ Verified set: ${setVerify.data.name}`)
+        console.log(`✓ Verified set: ${setVerify.data.name} (ID: ${apiSetId})`)
+        setVerified = true
+      } else {
+        // Set ID doesn't exist in API
+        return { 
+          success: false, 
+          error: `Set ID '${apiSetId}' not found in Pokemon TCG API. The set may not exist, the ID may be incorrect, or the API may not have this set yet. Please verify the set ID is correct or refresh sets from the API.` 
+        }
       }
     } catch (verifyError) {
-      // Silently skip verification if it times out - we'll try fetching cards anyway
-      console.log(`⏳ Skipping set verification (API slow), fetching cards directly...`)
+      // Verification failed - could be timeout or set doesn't exist
+      if (verifyError.message.includes('timeout')) {
+        console.warn(`⚠️ Set verification timed out for '${apiSetId}'. Proceeding with caution...`)
+        // Continue but warn user
+      } else {
+        // Set not found
+        return { 
+          success: false, 
+          error: `Set ID '${apiSetId}' not found in Pokemon TCG API. The set may not exist, the ID may be incorrect, or the API may not have this set yet. Please verify the set ID is correct or refresh sets from the API.` 
+        }
+      }
     }
     
-    // Fetch cards from API
+    // Fetch cards from API using the exact set ID (no substitutions)
     const cardsResult = await fetchAllCardsBySet(apiSetId)
     
     if (!cardsResult.success) {
       // Provide more helpful error message
-      const errorMsg = cardsResult.error.includes('not found') 
-        ? `Set '${apiSetId}' not found in API. Verify the set ID is correct.`
-        : cardsResult.error
-      return { success: false, error: errorMsg }
+      if (cardsResult.error.includes('not found')) {
+        const errorMsg = setVerified 
+          ? `Set '${apiSetId}' verified but has no cards in API. This may be a new set or the API may not have card data yet.`
+          : `Set '${apiSetId}' not found in API. The set ID may be incorrect or the set may not exist in the API. Please verify the set ID is correct or refresh sets from the API.`
+        return { success: false, error: errorMsg }
+      }
+      return { success: false, error: cardsResult.error }
     }
     
     const apiCards = cardsResult.data

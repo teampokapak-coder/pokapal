@@ -92,7 +92,7 @@
       <main class="flex-1 overflow-y-auto">
         <!-- Hero Banner -->
         <div class="relative bg-cover bg-center bg-no-repeat overflow-hidden" style="background-image: url('/pokabanner.png');">
-          <div class="relative section-container py-8 md:py-12">
+          <div class="relative section-container py-6 sm:py-8 md:py-12">
             <div class="max-w-3xl">
               <img src="/pokapal_white.svg" alt="Pokapal" class="h-8 md:h-12 w-auto mb-4" />
               <p class="text-base md:text-lg text-white mb-6 max-w-xl md:max-w-2xl" style="text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);">
@@ -119,7 +119,7 @@
         </div>
 
         <!-- Featured Sets Grid -->
-        <div class="section-container py-8">
+        <div class="section-container py-4 sm:py-6 md:py-8">
           <!-- Section Header -->
           <div class="section-header flex justify-between items-center">
             <div>
@@ -132,17 +132,17 @@
           </div>
 
           <!-- Sets Grid -->
-          <div v-if="isLoadingSets" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div v-if="isLoadingSets" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
             <div v-for="i in 8" :key="i" class="card animate-pulse">
               <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
-              <div class="card-body">
+              <div class="card-body p-2 sm:p-4">
                 <div class="h-4 bg-gray-200 rounded mb-2"></div>
                 <div class="h-3 bg-gray-200 rounded w-2/3"></div>
               </div>
             </div>
           </div>
 
-          <div v-else-if="displaySets.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div v-else-if="displaySets.length > 0" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
             <div
               v-for="set in displaySets"
               :key="set.id"
@@ -159,10 +159,10 @@
                 </div>
               </div>
               
-              <div class="card-body">
-                <h3 class="card-title mb-1">{{ set.name }}</h3>
+              <div class="card-body p-2 sm:p-4">
+                <h3 class="card-title mb-1 text-sm sm:text-base">{{ set.name }}</h3>
                 <p class="text-xs mb-2" style="color: var(--color-text-tertiary);">{{ set.series }}</p>
-                <div class="flex justify-between items-center text-sm">
+                <div class="flex justify-between items-center text-xs sm:text-sm">
                   <span style="color: var(--color-text-secondary);">{{ set.totalCards || 0 }} cards</span>
                   <span v-if="set.releaseDate" style="color: var(--color-text-tertiary);">
                     {{ formatDate(set.releaseDate) }}
@@ -180,7 +180,7 @@
         </div>
 
         <!-- Featured Pokemon -->
-        <div class="section-container py-8" style="border-top: 1px solid var(--color-border);">
+        <div class="section-container py-4 sm:py-6 md:py-8" style="border-top: 1px solid var(--color-border);">
           <!-- Section Header -->
           <div class="section-header flex justify-between items-center">
             <div>
@@ -193,17 +193,17 @@
           </div>
 
           <!-- Pokemon Grid -->
-          <div v-if="isLoadingPokemon" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div v-if="isLoadingPokemon" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
             <div v-for="i in 10" :key="i" class="card animate-pulse">
               <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
-              <div class="card-body p-3">
+              <div class="card-body p-2 sm:p-3">
                 <div class="h-3 bg-gray-200 rounded mb-1"></div>
                 <div class="h-2 bg-gray-200 rounded w-2/3"></div>
               </div>
             </div>
           </div>
 
-          <div v-else-if="featuredPokemon.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div v-else-if="featuredPokemon.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
             <div
               v-for="pokemon in featuredPokemon"
               :key="pokemon.name + (pokemon.nationalDexNumber || '')"
@@ -224,15 +224,15 @@
                 </div>
               </div>
               
-              <div class="card-body p-3">
-                <h6 class="mb-1 truncate">
+              <div class="card-body p-2 sm:p-3">
+                <h6 class="mb-1 truncate text-xs sm:text-sm">
                   {{ pokemon.displayName || pokemon.name }}
                 </h6>
                 <div class="flex items-center gap-1 flex-wrap">
                   <span 
                     v-for="type in pokemon.types?.slice(0, 2)" 
                     :key="type"
-                    class="text-xs px-1.5 py-0.5 rounded"
+                    class="text-xs px-1 py-0.5 rounded"
                     style="background-color: var(--color-bg-tertiary); color: var(--color-text-primary);"
                   >
                     {{ type }}
