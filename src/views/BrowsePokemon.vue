@@ -3,8 +3,8 @@
     <section class="section section-spacing-md">
       <div class="section-container">
         <div class="section-header">
-          <h2>Browse Cards</h2>
-          <p class="section-subtitle">Search and explore Pokemon cards</p>
+          <h2>Browse Pokemon</h2>
+          <p class="section-subtitle">Search and explore Pokemon</p>
         </div>
 
         <!-- Mobile Filter Toggle Button -->
@@ -62,29 +62,11 @@
                   <input
                     v-model="filters.search"
                     type="text"
-                    placeholder="Card name..."
+                    placeholder="Pokemon name..."
                     class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
                     style="border-color: var(--color-border);"
                     @input="debouncedSearch"
                   />
-                </div>
-
-                <!-- Set Filter -->
-                <div>
-                  <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
-                    Set
-                  </label>
-                  <select
-                    v-model="filters.set"
-                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
-                    style="border-color: var(--color-border);"
-                    @change="applyFilters"
-                  >
-                    <option value="">All Sets</option>
-                    <option v-for="set in availableSets" :key="set.id" :value="set.name">
-                      {{ set.name }}
-                    </option>
-                  </select>
                 </div>
 
                 <!-- Type Filter -->
@@ -113,42 +95,50 @@
                   </select>
                 </div>
 
-                <!-- Rarity Filter -->
+                <!-- National Dex Number Filter -->
                 <div>
                   <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
-                    Rarity
+                    National Dex #
                   </label>
-                  <select
-                    v-model="filters.rarity"
+                  <input
+                    v-model.number="filters.dexNumber"
+                    type="number"
+                    placeholder="e.g. 25"
                     class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
                     style="border-color: var(--color-border);"
-                    @change="applyFilters"
-                  >
-                    <option value="">All Rarities</option>
-                    <option value="Common">Common</option>
-                    <option value="Uncommon">Uncommon</option>
-                    <option value="Rare">Rare</option>
-                    <option value="Rare Holo">Rare Holo</option>
-                    <option value="Rare Holo EX">Rare Holo EX</option>
-                    <option value="Ultra Rare">Ultra Rare</option>
-                  </select>
+                    @input="applyFilters"
+                  />
                 </div>
 
-                <!-- Card Type Filter -->
+                <!-- Card Count Filter -->
                 <div>
                   <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
-                    Card Type
+                    Min Cards
+                  </label>
+                  <input
+                    v-model.number="filters.minCards"
+                    type="number"
+                    placeholder="e.g. 5"
+                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+                    style="border-color: var(--color-border);"
+                    @input="applyFilters"
+                  />
+                </div>
+
+                <!-- Sort By -->
+                <div>
+                  <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
+                    Sort By
                   </label>
                   <select
-                    v-model="filters.cardType"
+                    v-model="filters.sortBy"
                     class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
                     style="border-color: var(--color-border);"
                     @change="applyFilters"
                   >
-                    <option value="">All</option>
-                    <option value="Pokemon">Pokemon</option>
-                    <option value="Trainer">Trainer</option>
-                    <option value="Energy">Energy</option>
+                    <option value="dex">National Dex #</option>
+                    <option value="name">Name (A-Z)</option>
+                    <option value="cards">Most Cards</option>
                   </select>
                 </div>
 
@@ -163,40 +153,38 @@
             </div>
           </aside>
 
-          <!-- Cards Grid -->
+          <!-- Pokemon Grid -->
           <main class="flex-1 min-w-0">
             <!-- Results Count -->
             <div class="mb-3 sm:mb-4">
               <p class="text-xs sm:text-sm" style="color: var(--color-text-secondary);">
-                Showing {{ filteredCards.length }} of {{ cards.length }} cards
+                Showing {{ filteredPokemon.length }} of {{ pokemon.length }} Pokemon
+                <span v-if="pokemon.length > 0" class="text-xs" style="color: var(--color-text-tertiary);">
+                  ({{ pokemon.filter(p => p.cardCount > 0).length }} with cards)
+                </span>
               </p>
             </div>
 
             <!-- Loading State -->
-            <div v-if="isLoading" class="text-center py-12">
-              <p style="color: var(--color-text-secondary);">Loading cards...</p>
+            <div v-if="isLoading" class="w-full">
+              <LoadingSpinner />
             </div>
 
-            <!-- Cards Grid -->
-            <div v-else-if="filteredCards.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-1.5 sm:gap-2 md:gap-3">
-              <PokemonCard
-                v-for="card in filteredCards"
-                :key="card.id"
-                :card="card"
-                :is-collected="collectedCards.has(card.id)"
-                :show-collection-icon="true"
-                :show-types="true"
-                :compact="true"
-                icon-size="w-6 h-6 sm:w-8 sm:h-8"
-                @click="selectCard"
-                @toggle-collected="(card) => toggleCollected(card.id)"
+            <!-- Pokemon Grid -->
+            <div v-else-if="filteredPokemon.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-1.5 sm:gap-2 md:gap-3">
+              <PokemonListItem
+                v-for="p in filteredPokemon"
+                :key="p.id || p.name"
+                :pokemon="p"
+                mode="card"
+                @click="handlePokemonClick"
               />
             </div>
 
             <!-- Empty State -->
             <div v-else class="card">
               <div class="card-body text-center py-12">
-                <p>No cards found matching your filters.</p>
+                <p style="color: var(--color-text-secondary);">No Pokemon found matching your filters.</p>
                 <button
                   @click="clearFilters"
                   class="btn btn-h4 btn-primary mt-4"
@@ -209,133 +197,99 @@
         </div>
       </div>
     </section>
-
-    <!-- Card Detail Modal -->
-    <CardModal
-      :card="selectedCard"
-      :is-collected="selectedCard ? collectedCards.has(selectedCard.id) : false"
-      @close="selectedCard = null"
-      @toggle-collected="selectedCard ? toggleCollected(selectedCard.id) : null"
-    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { getAllPokemonCards } from '../utils/firebasePokemon'
-import { getAllSets } from '../utils/firebasePokemon'
-import { useAuth } from '../composables/useAuth'
-import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
-import PokemonCard from '../components/PokemonCard.vue'
-import CardModal from '../components/CardModal.vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore'
+import { db } from '../config/firebase'
+import { groupPokemonByBase, generatePokemonListDocId } from '../utils/pokemonGrouping'
+import PokemonListItem from '../components/PokemonListItem.vue'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
 
-const { user } = useAuth()
-const cards = ref([])
-const availableSets = ref([])
+const router = useRouter()
+const pokemon = ref([])
 const isLoading = ref(false)
-const selectedCard = ref(null)
 const searchTimeout = ref(null)
-const collectedCards = ref(new Set())
-
 const showMobileFilters = ref(false)
 
 const filters = ref({
   search: '',
-  set: '',
   type: '',
-  rarity: '',
-  cardType: ''
+  dexNumber: null,
+  minCards: null,
+  sortBy: 'dex'
 })
 
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
-  return !!(filters.value.search || filters.value.set || filters.value.type || filters.value.rarity || filters.value.cardType)
+  return !!(filters.value.search || filters.value.type || filters.value.dexNumber || filters.value.minCards)
 })
 
 // Count active filters
 const activeFilterCount = computed(() => {
   let count = 0
   if (filters.value.search) count++
-  if (filters.value.set) count++
   if (filters.value.type) count++
-  if (filters.value.rarity) count++
-  if (filters.value.cardType) count++
+  if (filters.value.dexNumber) count++
+  if (filters.value.minCards) count++
   return count
 })
 
-const filteredCards = computed(() => {
-  let filtered = cards.value
+const filteredPokemon = computed(() => {
+  let filtered = pokemon.value
 
   // Search filter
   if (filters.value.search) {
     const search = filters.value.search.toLowerCase()
-    filtered = filtered.filter(card =>
-      card.name?.toLowerCase().includes(search) ||
-      card.setNumber?.toLowerCase().includes(search)
+    filtered = filtered.filter(p =>
+      (p.displayName || p.name)?.toLowerCase().includes(search) ||
+      p.nationalDexNumber?.toString().includes(search)
     )
-  }
-
-  // Set filter
-  if (filters.value.set) {
-    filtered = filtered.filter(card => card.set === filters.value.set)
   }
 
   // Type filter
   if (filters.value.type) {
-    filtered = filtered.filter(card =>
-      card.types && card.types.includes(filters.value.type)
+    filtered = filtered.filter(p =>
+      p.types && p.types.includes(filters.value.type)
     )
   }
 
-  // Rarity filter
-  if (filters.value.rarity) {
-    filtered = filtered.filter(card =>
-      card.rarity?.includes(filters.value.rarity)
+  // Dex number filter
+  if (filters.value.dexNumber) {
+    filtered = filtered.filter(p =>
+      p.nationalDexNumber === filters.value.dexNumber
     )
   }
 
-  // Card type filter
-  if (filters.value.cardType) {
-    filtered = filtered.filter(card => card.cardType === filters.value.cardType)
+  // Min cards filter
+  if (filters.value.minCards) {
+    filtered = filtered.filter(p =>
+      (p.cardCount || 0) >= filters.value.minCards
+    )
   }
+
+  // Sort
+  filtered = [...filtered].sort((a, b) => {
+    if (filters.value.sortBy === 'dex') {
+      if (a.nationalDexNumber && b.nationalDexNumber) {
+        return a.nationalDexNumber - b.nationalDexNumber
+      }
+      if (a.nationalDexNumber) return -1
+      if (b.nationalDexNumber) return 1
+      return (a.displayName || a.name).localeCompare(b.displayName || b.name)
+    } else if (filters.value.sortBy === 'name') {
+      return (a.displayName || a.name).localeCompare(b.displayName || b.name)
+    } else if (filters.value.sortBy === 'cards') {
+      return (b.cardCount || 0) - (a.cardCount || 0)
+    }
+    return 0
+  })
 
   return filtered
 })
-
-const toggleCollected = async (cardId) => {
-  if (!user.value) {
-    alert('Please log in to mark cards as collected')
-    return
-  }
-  
-  try {
-    const result = await toggleCardCollected(user.value.uid, cardId)
-    if (result.success) {
-      if (result.isCollected) {
-        collectedCards.value.add(cardId)
-      } else {
-        collectedCards.value.delete(cardId)
-      }
-    } else {
-      alert('Error: ' + result.error)
-    }
-  } catch (error) {
-    console.error('Error toggling collected status:', error)
-    alert('Error updating collection status')
-  }
-}
-
-const loadCollectedCards = async () => {
-  if (!user.value || cards.value.length === 0) return
-  
-  try {
-    const cardIds = cards.value.map(card => card.id)
-    const collectedSet = await getCollectedCardIds(user.value.uid, cardIds)
-    collectedCards.value = collectedSet
-  } catch (error) {
-    console.error('Error loading collected cards:', error)
-  }
-}
 
 const debouncedSearch = () => {
   clearTimeout(searchTimeout.value)
@@ -351,63 +305,70 @@ const applyFilters = () => {
 const clearFilters = () => {
   filters.value = {
     search: '',
-    set: '',
     type: '',
-    rarity: '',
-    cardType: ''
+    dexNumber: null,
+    minCards: null,
+    sortBy: 'dex'
   }
   // Close mobile filters after clearing
   showMobileFilters.value = false
 }
 
-const selectCard = (card) => {
-  selectedCard.value = card
+const handlePokemonClick = (pokemon) => {
+  // If Pokemon has an ID from pokemonList collection, use it
+  if (pokemon.id) {
+    router.push(`/pokemon/${pokemon.id}`)
+  } else if (pokemon.nationalDexNumber) {
+    // Otherwise, try to navigate by national dex number
+    // The PokemonDetail page should handle looking up by dex number
+    router.push(`/pokemon/${pokemon.nationalDexNumber}`)
+  }
 }
 
-const loadCards = async () => {
+
+const loadPokemon = async () => {
   isLoading.value = true
   try {
-    // Load initial batch of cards (500 at a time for better performance)
-    const result = await getAllPokemonCards({ limit: 500 })
-    if (result.success) {
-      cards.value = result.data
-      // Load collected cards after cards are loaded
-      if (user.value) {
-        await loadCollectedCards()
-      }
-    } else {
-      console.error('Failed to load cards:', result.error)
+    // Load enriched data from pokemonList collection (card counts, sprites, etc.)
+    const pokemonListRef = collection(db, 'pokemonList')
+    let q
+    try {
+      q = query(pokemonListRef, orderBy('nationalDexNumber', 'asc'))
+    } catch (e) {
+      q = query(pokemonListRef)
     }
+    
+    const snapshot = await getDocs(q)
+    const enrichedPokemon = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    
+    // Use the grouping utility to get only base Pokemon (no variations like "Erika's Pikachu")
+    // This groups by nationalDexNumber, aggregates card counts/types/sets, and uses base names from pokemonList.json
+    const allPokemon = groupPokemonByBase(enrichedPokemon)
+    
+    // Sort by national dex number
+    allPokemon.sort((a, b) => {
+      if (a.nationalDexNumber && b.nationalDexNumber) {
+        return a.nationalDexNumber - b.nationalDexNumber
+      }
+      if (a.nationalDexNumber) return -1
+      if (b.nationalDexNumber) return 1
+      return (a.displayName || a.name).localeCompare(b.displayName || a.name)
+    })
+
+    pokemon.value = allPokemon
+    console.log(`Loaded ${allPokemon.length} Pokemon (${enrichedPokemon.length} documents from Firestore)`)
   } catch (error) {
-    console.error('Error loading cards:', error)
+    console.error('Error loading Pokemon:', error)
   } finally {
     isLoading.value = false
   }
 }
 
-const loadSets = async () => {
-  try {
-    const result = await getAllSets()
-    if (result.success) {
-      availableSets.value = result.data
-    }
-  } catch (error) {
-    console.error('Error loading sets:', error)
-  }
-}
-
-// Watch for user changes to reload collected cards
-watch(() => user.value?.uid, async (newUid) => {
-  if (newUid && cards.value.length > 0) {
-    await loadCollectedCards()
-  } else {
-    collectedCards.value.clear()
-  }
-})
-
 onMounted(() => {
-  loadCards()
-  loadSets()
+  loadPokemon()
 })
 </script>
 

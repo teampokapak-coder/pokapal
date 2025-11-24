@@ -694,13 +694,43 @@ const loadCollection = async () => {
         try {
           const cardDoc = await getDoc(doc(db, 'pokemon', userCard.cardId))
           if (cardDoc.exists()) {
-            return {
-              ...cardDoc.data(),
+            const cardData = cardDoc.data()
+            const enrichedCard = {
+              ...cardData,
               id: cardDoc.id,
               collectedAt: userCard.collectedAt,
               quantity: userCard.quantity,
               notes: userCard.notes
             }
+            
+            // If card has nationalDexNumber, try to enrich with sprite from pokemonList
+            if (cardData.nationalDexNumber && !enrichedCard.spriteUrl) {
+              try {
+                const pokemonListRef = collection(db, 'pokemonList')
+                const pokemonQuery = query(
+                  pokemonListRef,
+                  where('nationalDexNumber', '==', cardData.nationalDexNumber)
+                )
+                const pokemonSnapshot = await getDocs(pokemonQuery)
+                
+                // Find the best entry with a sprite
+                for (const pokemonDoc of pokemonSnapshot.docs) {
+                  const pokemonData = pokemonDoc.data()
+                  const spriteUrl = pokemonData.spriteUrl || pokemonData.spriteUrls?.spriteUrl || pokemonData.spriteUrls?.normal
+                  
+                  if (spriteUrl) {
+                    enrichedCard.spriteUrl = spriteUrl
+                    enrichedCard.spriteUrls = pokemonData.spriteUrls
+                    break // Use first one with sprite
+                  }
+                }
+              } catch (error) {
+                // Silently fail - sprite enrichment is optional
+                console.debug(`Could not enrich sprite for card ${cardDoc.id}:`, error)
+              }
+            }
+            
+            return enrichedCard
           }
           return null
         } catch (error) {

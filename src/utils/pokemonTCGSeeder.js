@@ -14,6 +14,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   getCountFromServer
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
@@ -30,6 +31,9 @@ import {
 import { getAllPokemonCards } from './firebasePokemon'
 import pokemonListData from '../data/pokemonList.json'
 import { getPokemonSprites } from './pokesprite'
+import { getPokemonDBSprites, getPokemonDBGifs, DEFAULT_GENERATION } from './pokemondb'
+import { getPokeAPISprites } from './pokeapiSprites'
+import { validateSpriteUrlFormat, getRecommendedGeneration, cleanSpriteUrls } from './spriteValidator'
 
 // Seed all sets from Pokemon TCG API
 export const seedSetsFromAPI = async () => {
@@ -193,22 +197,85 @@ export const seedCardsFromSet = async (setId, setApiId = null) => {
       return { success: true, message: `No cards found for set ${setId}`, added: 0, skipped: 0 }
     }
     
-    // Check existing cards
+    // Check existing cards - check by apiId AND by name+setNumber combination for better duplicate detection
     const pokemonRef = collection(db, 'pokemon')
     const existingSnapshot = await getDocs(query(pokemonRef, where('apiSetId', '==', apiSetId)))
+    const existingCards = existingSnapshot.docs.map(doc => ({
+      id: doc.id,
+      apiId: doc.data().apiId,
+      name: doc.data().name,
+      setNumber: doc.data().setNumber
+    }))
+    
+    // Create sets for quick lookup
     const existingApiIds = new Set(
-      existingSnapshot.docs.map(doc => doc.data().apiId).filter(Boolean)
+      existingCards.map(card => card.apiId).filter(Boolean)
+    )
+    // Also check by name + setNumber combination (in case apiId is missing)
+    const existingNameSetNumber = new Set(
+      existingCards
+        .filter(card => card.name && card.setNumber)
+        .map(card => `${card.name}|${card.setNumber}`)
     )
     
-    console.log(`Found ${existingApiIds.size} existing cards, ${apiCards.length} total from API`)
+    console.log(`Found ${existingCards.length} existing cards, ${apiCards.length} total from API`)
     
     let added = 0
     let skipped = 0
     let errors = 0
+    let duplicatesRemoved = 0
+    
+    // First, identify and remove any duplicate cards that already exist
+    const duplicateGroups = new Map()
+    existingCards.forEach(card => {
+      const key = card.apiId || `${card.name}|${card.setNumber}`
+      if (!duplicateGroups.has(key)) {
+        duplicateGroups.set(key, [])
+      }
+      duplicateGroups.get(key).push(card)
+    })
+    
+    // Remove duplicates (keep the first one, delete the rest)
+    for (const [key, cards] of duplicateGroups.entries()) {
+      if (cards.length > 1) {
+        console.log(`Found ${cards.length} duplicate cards for ${key}, removing ${cards.length - 1} duplicates...`)
+        // Keep the first card, delete the rest
+        for (let i = 1; i < cards.length; i++) {
+          try {
+            await deleteDoc(doc(db, 'pokemon', cards[i].id))
+            duplicatesRemoved++
+          } catch (error) {
+            console.error(`Error removing duplicate card ${cards[i].id}:`, error)
+          }
+        }
+      }
+    }
+    
+    if (duplicatesRemoved > 0) {
+      console.log(`Removed ${duplicatesRemoved} duplicate cards`)
+    }
+    
+    // Refresh existing cards after cleanup
+    const refreshedSnapshot = await getDocs(query(pokemonRef, where('apiSetId', '==', apiSetId)))
+    const refreshedApiIds = new Set(
+      refreshedSnapshot.docs.map(doc => doc.data().apiId).filter(Boolean)
+    )
+    const refreshedNameSetNumber = new Set(
+      refreshedSnapshot.docs
+        .map(doc => {
+          const data = doc.data()
+          return data.name && data.setNumber ? `${data.name}|${data.setNumber}` : null
+        })
+        .filter(Boolean)
+    )
     
     for (const apiCard of apiCards) {
-      // Skip if already exists
-      if (existingApiIds.has(apiCard.id)) {
+      // Skip if already exists (check by apiId first, then by name+setNumber)
+      // Use the mapped card data to get the correct field names
+      const mappedCard = mapAPICardToSchema(apiCard)
+      const cardNameSetNumber = mappedCard.name && mappedCard.setNumber ? `${mappedCard.name}|${mappedCard.setNumber}` : null
+      
+      if (refreshedApiIds.has(apiCard.id) || (cardNameSetNumber && refreshedNameSetNumber.has(cardNameSetNumber))) {
         skipped++
         continue
       }
@@ -240,21 +307,24 @@ export const seedCardsFromSet = async (setId, setApiId = null) => {
     }
     
     // Update the set document with the actual count of fetched cards
-    const totalFetchedCards = existingApiIds.size + added
+    // Recalculate after cleanup and additions
+    const finalSnapshot = await getDocs(query(pokemonRef, where('apiSetId', '==', apiSetId)))
+    const totalFetchedCards = finalSnapshot.size
     const setDocRef = doc(db, 'sets', firestoreSetId)
     await updateDoc(setDocRef, {
       fetchedCardsCount: totalFetchedCards,
       updatedAt: serverTimestamp()
     })
     
-    console.log(`Seeded ${added} new cards, skipped ${skipped} existing, ${errors} errors`)
+    console.log(`Seeded ${added} new cards, skipped ${skipped} existing, removed ${duplicatesRemoved} duplicates, ${errors} errors`)
     console.log(`Updated set document with fetchedCardsCount: ${totalFetchedCards}`)
     
     return { 
       success: true, 
-      message: `Seeded ${added} cards from ${setId} (${skipped} already existed${errors > 0 ? `, ${errors} errors` : ''})`,
+      message: `Seeded ${added} cards from ${setId} (${skipped} already existed${duplicatesRemoved > 0 ? `, removed ${duplicatesRemoved} duplicates` : ''}${errors > 0 ? `, ${errors} errors` : ''})`,
       added,
       skipped,
+      duplicatesRemoved,
       errors,
       totalFetched: totalFetchedCards
     }
@@ -576,7 +646,9 @@ export const buildPokemonList = async () => {
       const isNew = !existingDocSnap.exists()
       
       // Generate sprite URLs from PokéSprite
-      const sprites = getPokemonSprites(pokemon.displayName || pokemon.name, pokemon.nationalDexNumber)
+      // Use normalized name (without variants) for sprite lookup
+      const spriteName = normalizePokemonName(pokemon.displayName || pokemon.name)
+      const sprites = getPokemonSprites(spriteName, pokemon.nationalDexNumber)
       
       // Build the document data - only include createdAt for new documents
       const docData = {
@@ -634,7 +706,9 @@ export const seedPokemonListFromJSON = async () => {
       const isNew = !existingDocSnap.exists()
       
       // Generate sprite URLs from PokéSprite
-      const sprites = getPokemonSprites(pokemon.name, pokemon.nationalDexNumber)
+      // Use normalized name (without variants) for sprite lookup
+      const spriteName = normalizePokemonName(pokemon.name)
+      const sprites = getPokemonSprites(spriteName, pokemon.nationalDexNumber)
       
       // Build the document data - only include createdAt for new documents
       const docData = {
@@ -686,7 +760,7 @@ export const seedPokemonListFromJSON = async () => {
 }
 
 // Update existing pokemonList entries with PokéSprite sprite URLs
-export const updatePokemonSprites = async () => {
+export const updatePokemonSprites = async (forceUpdate = false) => {
   try {
     console.log('Updating Pokemon sprites from PokéSprite...')
     
@@ -699,22 +773,24 @@ export const updatePokemonSprites = async () => {
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data()
       
-      // Skip if already has spriteUrl
-      if (data.spriteUrl) {
+      // Skip if already has spriteUrl (unless force update)
+      if (!forceUpdate && data.spriteUrl) {
         skipped++
         continue
       }
       
       // Generate sprite URLs
-      const sprites = getPokemonSprites(
-        data.displayName || data.name, 
-        data.nationalDexNumber
-      )
+      // Use normalized name (without variants) for sprite lookup
+      const spriteName = normalizePokemonName(data.displayName || data.name)
+      const sprites = getPokemonSprites(spriteName, data.nationalDexNumber)
       
       // Update document with sprite URLs
       await setDoc(docSnap.ref, {
         spriteUrl: sprites.spriteUrl,
-        spriteUrls: sprites,
+        spriteUrls: {
+          ...sprites,
+          source: 'pokesprite'
+        },
         // Use sprite as fallback image if no TCG image exists
         imageUrl: data.imageUrl || sprites.spriteUrl,
         updatedAt: serverTimestamp()
@@ -738,6 +814,325 @@ export const updatePokemonSprites = async () => {
     }
   } catch (error) {
     console.error('Error updating Pokemon sprites:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Update existing pokemonList entries with PokemonDB sprite URLs
+export const updatePokemonSpritesFromDB = async (generation = null, forceUpdate = false, useRecommendedGeneration = true) => {
+  try {
+    // If no generation specified and useRecommendedGeneration is true, we'll use per-Pokemon recommendations
+    const fixedGeneration = generation || DEFAULT_GENERATION
+    
+    console.log(`Updating Pokemon sprites from PokemonDB (${useRecommendedGeneration ? 'using recommended generations' : `generation: ${fixedGeneration}`})...`)
+    
+    const pokemonListRef = collection(db, 'pokemonList')
+    const snapshot = await getDocs(pokemonListRef)
+    
+    let updated = 0
+    let skipped = 0
+    let errors = 0
+    let invalidUrls = 0
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data()
+      
+      // Skip if already has spriteUrl from PokemonDB (unless force update)
+      if (!forceUpdate && data.spriteUrls?.source === 'pokemondb') {
+        skipped++
+        continue
+      }
+      
+      // Need name for PokemonDB
+      const pokemonName = data.displayName || data.name
+      if (!pokemonName) {
+        errors++
+        continue
+      }
+      
+      // Determine generation to use
+      const genToUse = useRecommendedGeneration && data.nationalDexNumber
+        ? getRecommendedGeneration(data.nationalDexNumber)
+        : fixedGeneration
+      
+      // Generate sprite URLs from PokemonDB
+      const sprites = getPokemonDBSprites(pokemonName, data.nationalDexNumber, genToUse)
+      
+      // Validate the primary sprite URL format
+      const validation = validateSpriteUrlFormat(sprites.spriteUrl, 'pokemondb')
+      if (!validation.valid) {
+        console.warn(`Invalid sprite URL format for ${pokemonName}: ${sprites.spriteUrl}`)
+        invalidUrls++
+        errors++
+        continue
+      }
+      
+      // Update document with sprite URLs
+      await setDoc(docSnap.ref, {
+        spriteUrl: sprites.spriteUrl,
+        spriteUrls: {
+          ...sprites,
+          source: 'pokemondb',
+          generation: genToUse
+        },
+        // Use sprite as fallback image if no TCG image exists
+        imageUrl: data.imageUrl || sprites.spriteUrl,
+        updatedAt: serverTimestamp()
+      }, { merge: true })
+      
+      updated++
+      
+      // Small delay to avoid overwhelming Firestore
+      if (updated % 50 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+    
+    console.log(`✓ Updated ${updated} Pokemon with PokemonDB sprites (${skipped} skipped, ${errors} errors, ${invalidUrls} invalid URLs)`)
+    
+    return {
+      success: true,
+      message: `Updated ${updated} Pokemon with PokemonDB sprites`,
+      updated,
+      skipped,
+      errors,
+      invalidUrls
+    }
+  } catch (error) {
+    console.error('Error updating Pokemon sprites from PokemonDB:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Update existing pokemonList entries with PokemonDB animated GIF URLs
+export const updatePokemonGifsFromDB = async (generation = 'black-white', forceUpdate = false) => {
+  try {
+    console.log(`Updating Pokemon animated GIFs from PokemonDB (generation: ${generation})...`)
+    
+    const pokemonListRef = collection(db, 'pokemonList')
+    const snapshot = await getDocs(pokemonListRef)
+    
+    let updated = 0
+    let skipped = 0
+    let errors = 0
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data()
+      
+      // Skip if already has gifUrl (unless force update)
+      if (!forceUpdate && data.gifUrl) {
+        skipped++
+        continue
+      }
+      
+      // Need name for PokemonDB
+      const pokemonName = data.displayName || data.name
+      if (!pokemonName) {
+        errors++
+        continue
+      }
+      
+      // Generate GIF URLs from PokemonDB
+      const gifs = getPokemonDBGifs(pokemonName, data.nationalDexNumber, generation)
+      
+      // Update document with GIF URLs
+      await setDoc(docSnap.ref, {
+        gifUrl: gifs.gifUrl,
+        gifUrls: {
+          ...gifs,
+          source: 'pokemondb',
+          generation: generation
+        },
+        updatedAt: serverTimestamp()
+      }, { merge: true })
+      
+      updated++
+      
+      // Small delay to avoid overwhelming Firestore
+      if (updated % 50 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+    
+    console.log(`✓ Updated ${updated} Pokemon with PokemonDB animated GIFs (${skipped} skipped, ${errors} errors)`)
+    
+    return {
+      success: true,
+      message: `Updated ${updated} Pokemon with animated GIFs`,
+      updated,
+      skipped,
+      errors
+    }
+  } catch (error) {
+    console.error('Error updating Pokemon GIFs from PokemonDB:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Update existing pokemonList entries with PokeAPI sprite URLs
+export const updatePokemonSpritesFromPokeAPI = async (forceUpdate = false) => {
+  try {
+    console.log('Updating Pokemon sprites from PokeAPI...')
+    
+    const pokemonListRef = collection(db, 'pokemonList')
+    const snapshot = await getDocs(pokemonListRef)
+    
+    let updated = 0
+    let skipped = 0
+    let errors = 0
+    let invalidUrls = 0
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data()
+      
+      // Skip if already has spriteUrl from PokeAPI (unless force update)
+      if (!forceUpdate && data.spriteUrls?.source === 'pokeapi') {
+        skipped++
+        continue
+      }
+      
+      // PokeAPI requires national dex number
+      if (!data.nationalDexNumber || typeof data.nationalDexNumber !== 'number') {
+        errors++
+        continue
+      }
+      
+      // Generate sprite URLs from PokeAPI
+      const pokemonName = data.displayName || data.name
+      const sprites = getPokeAPISprites(data.nationalDexNumber, pokemonName)
+      
+      if (sprites.error || !sprites.spriteUrl) {
+        errors++
+        continue
+      }
+      
+      // Validate the primary sprite URL format
+      const validation = validateSpriteUrlFormat(sprites.spriteUrl, 'pokeapi')
+      if (!validation.valid) {
+        console.warn(`Invalid sprite URL format for ${pokemonName}: ${sprites.spriteUrl}`)
+        invalidUrls++
+        errors++
+        continue
+      }
+      
+      // Update document with sprite URLs
+      await setDoc(docSnap.ref, {
+        spriteUrl: sprites.spriteUrl,
+        spriteUrls: sprites,
+        // Use sprite as fallback image if no TCG image exists
+        imageUrl: data.imageUrl || sprites.spriteUrl,
+        updatedAt: serverTimestamp()
+      }, { merge: true })
+      
+      updated++
+      
+      // Small delay to avoid overwhelming Firestore
+      if (updated % 50 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+    
+    console.log(`✓ Updated ${updated} Pokemon with PokeAPI sprites (${skipped} skipped, ${errors} errors, ${invalidUrls} invalid URLs)`)
+    
+    return {
+      success: true,
+      message: `Updated ${updated} Pokemon with PokeAPI sprites`,
+      updated,
+      skipped,
+      errors,
+      invalidUrls
+    }
+  } catch (error) {
+    console.error('Error updating Pokemon sprites from PokeAPI:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Clean up invalid sprite URLs from pokemonList collection
+export const cleanupInvalidSpriteUrls = async () => {
+  try {
+    console.log('Cleaning up invalid sprite URLs...')
+    
+    const pokemonListRef = collection(db, 'pokemonList')
+    const snapshot = await getDocs(pokemonListRef)
+    
+    let cleaned = 0
+    let removed = 0
+    let errors = 0
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data()
+      const updates = {}
+      let needsUpdate = false
+      
+      // Clean spriteUrls object
+      if (data.spriteUrls && typeof data.spriteUrls === 'object') {
+        const cleanedUrls = cleanSpriteUrls(data.spriteUrls)
+        if (cleanedUrls && Object.keys(cleanedUrls).length > 0) {
+          // Check if primary spriteUrl is still valid
+          const primaryUrl = data.spriteUrl
+          if (primaryUrl) {
+            const validation = validateSpriteUrlFormat(primaryUrl, cleanedUrls.source)
+            if (!validation.valid || !cleanedUrls[Object.keys(cleanedUrls).find(k => cleanedUrls[k] === primaryUrl)]) {
+              // Primary URL is invalid, use the spriteUrl from cleaned object if available
+              if (cleanedUrls.spriteUrl) {
+                updates.spriteUrl = cleanedUrls.spriteUrl
+                needsUpdate = true
+              } else {
+                // No valid spriteUrl found, remove it
+                updates.spriteUrl = null
+                needsUpdate = true
+                removed++
+              }
+            }
+          }
+          
+          updates.spriteUrls = cleanedUrls
+          needsUpdate = true
+          cleaned++
+        } else {
+          // All URLs were invalid, remove spriteUrls
+          updates.spriteUrls = null
+          updates.spriteUrl = null
+          needsUpdate = true
+          removed++
+        }
+      }
+      
+      // Validate primary spriteUrl
+      if (data.spriteUrl && !updates.spriteUrl) {
+        const validation = validateSpriteUrlFormat(data.spriteUrl)
+        if (!validation.valid) {
+          updates.spriteUrl = null
+          needsUpdate = true
+          removed++
+        }
+      }
+      
+      if (needsUpdate) {
+        await setDoc(docSnap.ref, {
+          ...updates,
+          updatedAt: serverTimestamp()
+        }, { merge: true })
+      }
+      
+      // Small delay to avoid overwhelming Firestore
+      if ((cleaned + removed) % 50 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+    
+    console.log(`✓ Cleaned ${cleaned} Pokemon entries, removed ${removed} invalid URLs`)
+    
+    return {
+      success: true,
+      message: `Cleaned up sprite URLs: ${cleaned} entries cleaned, ${removed} invalid URLs removed`,
+      cleaned,
+      removed,
+      errors
+    }
+  } catch (error) {
+    console.error('Error cleaning up sprite URLs:', error)
     return { success: false, error: error.message }
   }
 }

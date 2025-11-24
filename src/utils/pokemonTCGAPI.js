@@ -32,6 +32,32 @@ export const fetchAllSets = async () => {
   }
 }
 
+// Search for sets by name or ID (helper function to verify set IDs)
+export const searchSets = async (query) => {
+  try {
+    const headers = import.meta.env.DEV 
+      ? {} // Proxy adds the header
+      : { 'X-Api-Key': API_KEY }
+    
+    // Search sets by name or ID
+    const response = await fetch(`${API_BASE_URL}/sets?q=name:"${query}" OR id:"${query}"`, {
+      method: 'GET',
+      headers,
+      mode: 'cors'
+    })
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    return { success: true, data: data.data, totalCount: data.totalCount }
+  } catch (error) {
+    console.error('Error searching sets:', error)
+    return { success: false, error: error.message }
+  }
+}
+
 // Fetch a single card by ID
 // Based on Pokemon TCG API v2 documentation: https://docs.pokemontcg.io/api-reference/cards/get-a-card
 export const fetchCardById = async (cardId, selectFields = null) => {

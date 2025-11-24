@@ -6,11 +6,29 @@
  * Normalize Pokemon name for sprite URL
  * Converts names like "Charizard" -> "charizard"
  * Handles special cases like "Nidoran♀" -> "nidoran-f", "Mr. Mime" -> "mr-mime"
+ * Also removes card variants like "EX", "GX", "Mega", etc.
  */
 export const normalizeSpriteName = (name) => {
   if (!name) return ''
   
-  let normalized = name.toLowerCase()
+  // First, remove card variants (EX, GX, V, Mega, etc.) - these won't be in sprite names
+  let cleaned = name
+    .replace(/^Mega\s+/i, '')
+    .replace(/\s+EX$/i, '')
+    .replace(/\s+GX$/i, '')
+    .replace(/\s+V$/i, '')
+    .replace(/\s+VMAX$/i, '')
+    .replace(/\s+VSTAR$/i, '')
+    .replace(/\s+Prime$/i, '')
+    .replace(/\s+LV\.?\s*X$/i, '')
+    .replace(/\s+LV\.?\s*\d+$/i, '')
+    .replace(/\s+Break$/i, '')
+    .replace(/\s+Tag Team$/i, '')
+    .replace(/\s+&.*$/i, '')
+    .replace(/\s+\(.*\)$/i, '')
+    .trim()
+  
+  let normalized = cleaned.toLowerCase()
   
   // Handle special characters and forms
   normalized = normalized

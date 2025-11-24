@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Stack+Sans+Headline:wght@400;500;600;700;800&display=swap');
+@import './colors/light.css';
+@import './colors/dark.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,17 +12,17 @@
 
 @layer base {
   :root {
-    /* Color Variables - Vintage Gray Theme */
-    --color-bg-primary: #fafafa;
-    --color-bg-secondary: #ffffff;
-    --color-bg-tertiary: #f5f5f5;
-    --color-text-primary: #171717;
-    --color-text-secondary: #525252;
-    --color-text-tertiary: #737373;
-    --color-border: #e5e5e5;
-    --color-border-hover: #d4d4d4;
-    --color-accent: #404040;
-    --color-accent-hover: #262626;
+    /* Material Design 3 Color Mapping - Light Mode */
+    --color-bg-primary: var(--md-sys-color-background);
+    --color-bg-secondary: var(--md-sys-color-surface);
+    --color-bg-tertiary: var(--md-sys-color-surface-container);
+    --color-text-primary: var(--md-sys-color-on-background);
+    --color-text-secondary: var(--md-sys-color-on-surface-variant);
+    --color-text-tertiary: var(--md-sys-color-on-surface-variant);
+    --color-border: var(--md-sys-color-outline-variant);
+    --color-border-hover: var(--md-sys-color-outline);
+    --color-accent: var(--md-sys-color-primary);
+    --color-accent-hover: var(--md-sys-color-primary-container);
     --color-sidebar: #ed3535;
     --color-sidebar-hover: #c44a48;
     
@@ -73,13 +75,19 @@
   }
 
   h2 {
-    @apply text-3xl font-semibold tracking-tight;
+    @apply text-2xl sm:text-3xl font-semibold tracking-tight;
     font-family: 'Stack Sans Headline', system-ui, -apple-system, sans-serif;
-    font-size: 1.875rem;
+    font-size: 1.5rem;
     line-height: 1.3;
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--color-text-primary);
+  }
+  
+  @media (min-width: 640px) {
+    h2 {
+      font-size: 1.875rem;
+    }
   }
 
   h3 {
@@ -122,6 +130,14 @@
     @apply text-base;
     line-height: 1.6;
     color: var(--color-text-secondary);
+  }
+
+  /* Hero Banner Subtitle (white text for image overlays) */
+  .hero-subtitle {
+    @apply text-sm md:text-base;
+    line-height: 1.6;
+    color: #ffffff !important; /* Explicit white for image overlays */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
   /* ============================================
@@ -338,12 +354,124 @@
   }
 
   .section-subtitle {
-    @apply text-lg;
+    @apply text-sm;
     color: var(--color-text-secondary);
   }
 
   .section-content {
     @apply space-y-6;
+  }
+
+  /* ============================================
+     POKEMON TYPE COLORS (Global)
+     ============================================ */
+  
+  .pokemon-type {
+    @apply px-2 py-1 rounded-full text-xs font-medium;
+  }
+
+  .pokemon-type-fire {
+    background-color: #dc2626;
+    color: #ffffff;
+  }
+
+  .pokemon-type-water {
+    background-color: #2563eb;
+    color: #ffffff;
+  }
+
+  .pokemon-type-grass {
+    background-color: #16a34a;
+    color: #ffffff;
+  }
+
+  .pokemon-type-electric {
+    background-color: #fbbf24;
+    color: #000000;
+  }
+
+  .pokemon-type-psychic {
+    background-color: #9333ea;
+    color: #ffffff;
+  }
+
+  .pokemon-type-fighting {
+    background-color: #ea580c;
+    color: #ffffff;
+  }
+
+  .pokemon-type-darkness {
+    background-color: #1f2937;
+    color: #ffffff;
+  }
+
+  .pokemon-type-metal {
+    background-color: #6b7280;
+    color: #ffffff;
+  }
+
+  .pokemon-type-fairy {
+    background-color: #ec4899;
+    color: #ffffff;
+  }
+
+  .pokemon-type-dragon {
+    background-color: #6366f1;
+    color: #ffffff;
+  }
+
+  .pokemon-type-colorless {
+    background-color: #9ca3af;
+    color: #ffffff;
+  }
+
+  /* Dark mode adjustments for better contrast */
+  @media (prefers-color-scheme: dark) {
+    .pokemon-type-fire {
+      background-color: #ef4444;
+    }
+
+    .pokemon-type-water {
+      background-color: #3b82f6;
+    }
+
+    .pokemon-type-grass {
+      background-color: #22c55e;
+    }
+
+    .pokemon-type-electric {
+      background-color: #ca8a04;
+      color: #000000;
+    }
+
+    .pokemon-type-psychic {
+      background-color: #a855f7;
+    }
+
+    .pokemon-type-fighting {
+      background-color: #f97316;
+    }
+
+    .pokemon-type-darkness {
+      background-color: #374151;
+    }
+
+    .pokemon-type-metal {
+      background-color: #9ca3af;
+    }
+
+    .pokemon-type-fairy {
+      background-color: #f472b6;
+    }
+
+    .pokemon-type-dragon {
+      background-color: #818cf8;
+    }
+
+    .pokemon-type-colorless {
+      background-color: #d1d5db;
+      color: #000000;
+    }
   }
 
   /* Section spacing variants */
@@ -443,6 +571,13 @@
   /* ============================================
      POKEMON/SET IMAGE BACKGROUND GRADIENT
      ============================================ */
+
+  /* Pokemon animated GIF styling */
+  .pokemon-gif {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
 
   .pokemon-image-bg {
     background: linear-gradient(to bottom right, var(--color-bg-tertiary), var(--color-bg-secondary));
@@ -570,6 +705,24 @@
       filter: none; /* White SVG stays white in dark mode */
     }
   }
+
+  /* Global Filter Input Styles */
+  .filter-input {
+    @apply px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2;
+    border-color: var(--color-border);
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+  }
+
+  .filter-input:focus {
+    border-color: var(--color-accent);
+    ring-color: var(--color-accent);
+  }
+
+  .filter-input option {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+  }
 }
 
 /* ============================================
@@ -578,17 +731,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Dark Mode Colors */
-    --color-bg-primary: #0a0a0a;
-    --color-bg-secondary: #1a1a1a;
-    --color-bg-tertiary: #2a2a2a;
-    --color-text-primary: #fafafa;
-    --color-text-secondary: #a3a3a3;
-    --color-text-tertiary: #737373;
-    --color-border: #404040;
-    --color-border-hover: #525252;
-    --color-accent: #d4d4d4;
-    --color-accent-hover: #e5e5e5;
+    /* Material Design 3 Color Mapping - Dark Mode */
+    --color-bg-primary: var(--md-sys-color-background);
+    --color-bg-secondary: var(--md-sys-color-surface);
+    --color-bg-tertiary: var(--md-sys-color-surface-container);
+    --color-text-primary: var(--md-sys-color-on-background);
+    --color-text-secondary: var(--md-sys-color-on-surface-variant);
+    --color-text-tertiary: var(--md-sys-color-on-surface-variant);
+    --color-border: var(--md-sys-color-outline-variant);
+    --color-border-hover: var(--md-sys-color-outline);
+    --color-accent: var(--md-sys-color-primary);
+    --color-accent-hover: var(--md-sys-color-primary-container);
     /* Keep sidebar colors the same in dark mode */
     --color-sidebar: #ed3535;
     --color-sidebar-hover: #c44a48;
@@ -601,6 +754,6 @@
   
   /* Card image background gradient for dark mode */
   .card-image-bg {
-    background: linear-gradient(to bottom right, #2a2a2a, #1a1a1a);
+    background: linear-gradient(to bottom right, var(--md-sys-color-surface-container-high), var(--md-sys-color-surface));
   }
 }

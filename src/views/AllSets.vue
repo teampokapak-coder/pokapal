@@ -16,7 +16,8 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search sets..."
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                class="w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-md focus:outline-none focus:ring-2"
+                style="border-color: var(--color-border);"
                 @input="debouncedSearch"
               />
             </div>
@@ -24,7 +25,8 @@
             <!-- Series Filter -->
             <select
               v-model="filterSeries"
-              class="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+              class="px-3 md:px-4 py-2 text-sm md:text-base border rounded-md focus:outline-none focus:ring-2"
+              style="border-color: var(--color-border);"
               @change="applyFilters"
             >
               <option value="">All Series</option>
@@ -36,17 +38,17 @@
         </div>
 
         <!-- Sets Grid -->
-        <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-4">
           <div v-for="i in 12" :key="i" class="card animate-pulse">
             <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
-            <div class="card-body">
-              <div class="h-4 bg-gray-200 rounded mb-2"></div>
-              <div class="h-3 bg-gray-200 rounded w-2/3"></div>
+            <div class="card-body p-2 md:p-4">
+              <div class="h-3 md:h-4 bg-gray-200 rounded mb-1 md:mb-2"></div>
+              <div class="h-2 md:h-3 bg-gray-200 rounded w-2/3"></div>
             </div>
           </div>
         </div>
 
-        <div v-else-if="filteredSets.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div v-else-if="filteredSets.length > 0" class="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-4">
           <div
             v-for="set in filteredSets"
             :key="set.id"
@@ -54,21 +56,21 @@
             @click="handleSetClick(set)"
           >
             <!-- Set Image -->
-            <div class="aspect-square bg-gradient-to-br from-gray-200 to-gray-300 rounded-t-lg flex items-center justify-center overflow-hidden">
-              <div v-if="set.logo" class="w-full h-full flex items-center justify-center">
+            <div class="aspect-square rounded-t-lg flex items-center justify-center overflow-hidden" style="background-color: var(--color-bg-secondary);">
+              <div v-if="set.logo" class="w-full h-full flex items-center justify-center p-2 md:p-4">
                 <img :src="set.logo" :alt="set.name" class="max-w-full max-h-full object-contain" />
               </div>
-              <div v-else class="text-6xl font-bold text-gray-400">
+              <div v-else class="text-2xl md:text-6xl font-bold" style="color: var(--color-text-tertiary);">
                 {{ set.code?.substring(0, 2).toUpperCase() || '?' }}
               </div>
             </div>
             
-            <div class="card-body">
-              <h3 class="card-title mb-1 group-hover:text-gray-900">{{ set.name }}</h3>
-              <p class="text-xs text-gray-500 mb-2">{{ set.series }}</p>
-              <div class="flex justify-between items-center text-sm">
-                <span class="text-gray-600">{{ set.totalCards || 0 }} cards</span>
-                <span v-if="set.releaseDate" class="text-gray-500">
+            <div class="card-body p-2 md:p-4">
+              <h3 class="card-title mb-0.5 md:mb-1 text-xs md:text-base truncate">{{ set.name }}</h3>
+              <p class="text-[10px] md:text-xs mb-1 md:mb-2 truncate" style="color: var(--color-text-tertiary);">{{ set.series }}</p>
+              <div class="flex justify-between items-center text-[10px] md:text-sm">
+                <span style="color: var(--color-text-secondary);">{{ set.totalCards || 0 }} cards</span>
+                <span v-if="set.releaseDate" style="color: var(--color-text-tertiary);">
                   {{ formatDate(set.releaseDate) }}
                 </span>
               </div>
@@ -78,8 +80,8 @@
 
         <!-- Empty State -->
         <div v-else class="text-center py-12">
-          <p class="text-gray-600">No sets found.</p>
-          <p class="text-sm text-gray-500 mt-2">Try adjusting your search or filters.</p>
+          <p style="color: var(--color-text-secondary);">No sets found.</p>
+          <p class="text-sm mt-2" style="color: var(--color-text-tertiary);">Try adjusting your search or filters.</p>
         </div>
       </div>
     </section>

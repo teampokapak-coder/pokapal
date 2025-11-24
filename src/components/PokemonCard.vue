@@ -46,12 +46,12 @@
   <!-- Standard Mode -->
   <div
     v-else
-    class="card hover:shadow-lg transition-all cursor-pointer relative"
+    class="card hover:shadow-lg transition-all cursor-pointer"
     :class="cardClasses"
     @click="handleCardClick"
   >
     <!-- Card Image -->
-    <div class="aspect-square rounded-t-lg flex items-center justify-center overflow-hidden p-2 card-image-bg" style="background: linear-gradient(to bottom right, var(--color-bg-tertiary), var(--color-bg-secondary));">
+    <div class="aspect-square rounded-t-lg flex items-center justify-center overflow-hidden p-1.5 sm:p-2 card-image-bg" style="background: linear-gradient(to bottom right, var(--color-bg-tertiary), var(--color-bg-secondary));">
       <img 
         v-if="card.imageUrl || card.thumbnailUrl" 
         :src="card.imageUrl || card.thumbnailUrl" 
@@ -59,53 +59,67 @@
         class="w-full h-full object-contain"
         @error="handleImageError"
       />
-      <div v-else class="text-2xl font-bold text-gray-400">
+      <div v-else class="text-xl sm:text-2xl font-bold" style="color: var(--color-text-tertiary);">
         {{ getCardInitial(card.name) }}
       </div>
     </div>
 
-    <!-- Card Body -->
-    <div class="card-body p-3 relative" style="z-index: 1;">
-      <h6 class="mb-1 truncate">
+    <!-- Card Body - Clean Compact Info Section -->
+    <div class="card-body p-2 sm:p-2.5 relative">
+      <!-- Pokemon Name -->
+      <h6 class="text-xs sm:text-sm font-medium truncate mb-1" style="color: var(--color-text-primary);">
         {{ card.name }}
       </h6>
-      <p v-if="card.set" class="text-xs" style="color: var(--color-text-secondary);">{{ card.set }}</p>
-      <p v-if="card.setNumber" class="text-xs" style="color: var(--color-text-tertiary);">{{ card.setNumber }}</p>
       
-      <!-- Type Badges (optional) -->
-      <div v-if="showTypes && card.types && card.types.length > 0" class="flex gap-1 mt-1">
-        <span
-          v-for="type in card.types.slice(0, 2)"
-          :key="type"
-          :class="getTypeColor(type)"
-          class="px-1.5 py-0.5 rounded text-xs"
-        >
-          {{ type }}
-        </span>
+      <!-- Set Collection Name and Set Number (on one line) -->
+      <div class="mb-1 flex items-center gap-1.5 flex-wrap">
+        <p v-if="card.set" class="text-[10px] sm:text-xs truncate flex-1 min-w-0" style="color: var(--color-text-secondary);">
+          {{ card.set }}
+        </p>
+        <p v-if="card.setNumber" class="text-[10px] sm:text-xs flex-shrink-0" style="color: var(--color-text-tertiary);">
+          #{{ card.setNumber }}
+        </p>
       </div>
-    </div>
-
-    <!-- Poké Ball Icon - Bottom Right (if collection enabled) - Outside card-body for proper z-index -->
-    <div
-      v-if="showCollectionIcon && !compact"
-      class="pokeball-icon-container absolute bottom-2 right-2 cursor-pointer hover:scale-110 transition-transform z-50"
-      @click.stop="handleToggleCollected"
-      @mousedown.stop
-      @mouseup.stop
-      :title="isCollected ? 'Collected - Click to remove' : 'Click to collect'"
-    >
-      <img
-        :src="currentPokeballIcon"
-        alt="Poké Ball"
-        :class="iconSize"
-        draggable="false"
-      />
+      
+      <!-- Bottom Row: Pokemon Type + Collection Button -->
+      <div class="flex items-center justify-between gap-1.5 mt-1.5">
+        <!-- Type Badges -->
+        <div v-if="showTypes && card.types && card.types.length > 0" class="flex gap-1 flex-1 min-w-0">
+          <span
+            v-for="type in card.types.slice(0, 2)"
+            :key="type"
+            :class="getTypeColor(type)"
+            class="px-1 py-0.5 rounded text-[10px] sm:text-xs whitespace-nowrap"
+          >
+            {{ type }}
+          </span>
+        </div>
+        <div v-else class="flex-1"></div>
+        
+        <!-- Collection Icon SVG -->
+        <div
+          v-if="showCollectionIcon"
+          class="pokeball-icon-container flex-shrink-0 cursor-pointer hover:scale-110 transition-transform"
+          @click.stop="handleToggleCollected"
+          @mousedown.stop
+          @mouseup.stop
+          :title="isCollected ? 'Collected - Click to remove' : 'Click to collect'"
+        >
+          <img
+            :src="currentPokeballIcon"
+            alt="Poké Ball"
+            :class="iconSize"
+            draggable="false"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { getTypeColorClass } from '../utils/pokemonTypes'
 
 // Poké Ball icon paths (static assets from public folder)
 const pokeballIconPath = '/pokeball.svg'
@@ -176,20 +190,7 @@ const getCardInitial = (name) => {
 }
 
 const getTypeColor = (type) => {
-  const colors = {
-    Fire: 'bg-red-100 text-red-800',
-    Water: 'bg-blue-100 text-blue-800',
-    Grass: 'bg-green-100 text-green-800',
-    Electric: 'bg-yellow-100 text-yellow-800',
-    Psychic: 'bg-purple-100 text-purple-800',
-    Fighting: 'bg-orange-100 text-orange-800',
-    Darkness: 'bg-gray-800 text-white',
-    Metal: 'bg-gray-300 text-gray-800',
-    Fairy: 'bg-pink-100 text-pink-800',
-    Dragon: 'bg-indigo-100 text-indigo-800',
-    Colorless: 'bg-gray-100 text-gray-800'
-  }
-  return colors[type] || 'bg-gray-100 text-gray-800'
+  return getTypeColorClass(type)
 }
 
 const handleImageError = (event) => {

@@ -3,11 +3,8 @@
     <section class="section section-spacing-md">
       <div class="section-container">
         <!-- Loading State -->
-        <div v-if="isLoading" class="text-center py-12">
-          <div class="animate-pulse space-y-4">
-            <div class="h-12 bg-gray-200 rounded w-1/3 mx-auto"></div>
-            <div class="h-64 bg-gray-200 rounded w-1/4 mx-auto"></div>
-          </div>
+        <div v-if="isLoading" class="w-full">
+          <LoadingSpinner />
         </div>
 
         <!-- Set Not Found -->
@@ -20,7 +17,7 @@
         <!-- Set Detail -->
         <div v-else>
           <!-- Header -->
-          <div class="mb-8">
+          <div class="mb-6 md:mb-8">
             <router-link 
               to="/" 
               class="text-sm mb-4 inline-block transition-colors"
@@ -30,7 +27,66 @@
             >
               ← Back to Home
             </router-link>
-            <div class="flex items-start gap-6">
+            
+            <!-- Mobile Layout: Side by Side -->
+            <div class="md:hidden">
+              <div class="flex items-start gap-4 mb-4">
+                <!-- Set Logo/Image -->
+                <div class="w-24 h-24 flex-shrink-0 pokemon-image-bg rounded-lg flex items-center justify-center overflow-hidden">
+                  <img 
+                    v-if="set.logo" 
+                    :src="set.logo" 
+                    :alt="set.name"
+                    class="w-full h-full object-contain p-2"
+                  />
+                  <div v-else class="text-center">
+                    <div class="text-2xl font-bold mb-0.5" style="color: var(--color-text-tertiary);">
+                      {{ set.code?.substring(0, 2).toUpperCase() || '?' }}
+                    </div>
+                    <div class="text-[10px]" style="color: var(--color-text-tertiary);">{{ set.code }}</div>
+                  </div>
+                </div>
+
+                <!-- Set Name and Series -->
+                <div class="flex-1 min-w-0">
+                  <h1 class="text-xl mb-1 leading-tight">{{ set.name }}</h1>
+                  <div v-if="set.series">
+                    <span class="text-xs" style="color: var(--color-text-secondary);">{{ set.series }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stats - All in one row below image/name -->
+              <div class="grid grid-cols-3 gap-1.5">
+                <div class="card">
+                  <div class="card-body p-2">
+                    <p class="text-[9px] uppercase tracking-wide mb-0.5" style="color: var(--color-text-tertiary);">Cards</p>
+                    <p class="text-base font-bold leading-tight" style="color: var(--color-text-primary);">{{ set.totalCards || cards.length }}</p>
+                  </div>
+                </div>
+                <div v-if="set.releaseDate" class="card">
+                  <div class="card-body p-2">
+                    <p class="text-[9px] uppercase tracking-wide mb-0.5" style="color: var(--color-text-tertiary);">Release</p>
+                    <p class="text-xs font-bold leading-tight" style="color: var(--color-text-primary);">{{ formatDate(set.releaseDate) }}</p>
+                  </div>
+                </div>
+                <div v-else-if="set.releaseYear" class="card">
+                  <div class="card-body p-2">
+                    <p class="text-[9px] uppercase tracking-wide mb-0.5" style="color: var(--color-text-tertiary);">Year</p>
+                    <p class="text-base font-bold leading-tight" style="color: var(--color-text-primary);">{{ set.releaseYear }}</p>
+                  </div>
+                </div>
+                <div v-if="set.code" class="card">
+                  <div class="card-body p-2">
+                    <p class="text-[9px] uppercase tracking-wide mb-0.5" style="color: var(--color-text-tertiary);">Code</p>
+                    <p class="text-xs font-bold leading-tight" style="color: var(--color-text-primary);">{{ set.code }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Desktop Layout: Side by Side -->
+            <div class="hidden md:flex items-start gap-6">
               <!-- Set Logo/Image -->
               <div class="w-48 h-48 pokemon-image-bg rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                 <img 
@@ -58,7 +114,7 @@
                 </div>
 
                 <!-- Stats -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
                   <div class="card">
                     <div class="card-body p-4">
                       <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--color-text-tertiary);">Total Cards</p>
@@ -98,10 +154,10 @@
             </div>
 
             <!-- Filters -->
-            <div class="mb-6 flex gap-4 flex-wrap">
+            <div class="mb-4 md:mb-6 flex flex-wrap gap-2 md:gap-4">
               <select
                 v-model="filterType"
-                class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                class="filter-input flex-1 md:flex-none min-w-[calc(50%-0.25rem)] md:min-w-0"
               >
                 <option value="">All Types</option>
                 <option v-for="type in uniqueTypes" :key="type" :value="type">
@@ -110,7 +166,7 @@
               </select>
               <select
                 v-model="filterRarity"
-                class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                class="filter-input flex-1 md:flex-none min-w-[calc(50%-0.25rem)] md:min-w-0"
               >
                 <option value="">All Rarities</option>
                 <option v-for="rarity in uniqueRarities" :key="rarity" :value="rarity">
@@ -119,7 +175,7 @@
               </select>
               <select
                 v-model="filterCardType"
-                class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                class="filter-input flex-1 md:flex-none min-w-[calc(50%-0.25rem)] md:min-w-0"
               >
                 <option value="">All Card Types</option>
                 <option value="Pokemon">Pokemon</option>
@@ -182,6 +238,7 @@ import { useAuth } from '../composables/useAuth'
 import { toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
 import CardModal from '../components/CardModal.vue'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 const route = useRoute()
 const { user } = useAuth()
