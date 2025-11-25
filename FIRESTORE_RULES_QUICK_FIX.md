@@ -36,7 +36,25 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
     
+    // Japanese sets collection
+    match /setJA/{setId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
     match /pokemon/{cardId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Japanese cards collection
+    match /pokemon_ja/{cardId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Pokemon list collection (aggregated data)
+    match /pokemonList/{pokemonId} {
       allow read: if true;
       allow write: if request.auth != null;
     }

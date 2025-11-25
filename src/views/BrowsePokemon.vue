@@ -203,8 +203,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore'
-import { db } from '../config/firebase'
+import { getAllPokemon, getAllPokemonCards } from '../utils/firebasePokemon'
 import { groupPokemonByBase, generatePokemonListDocId } from '../utils/pokemonGrouping'
 import PokemonListItem from '../components/PokemonListItem.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
@@ -315,13 +314,12 @@ const clearFilters = () => {
 }
 
 const handlePokemonClick = (pokemon) => {
-  // If Pokemon has an ID from pokemonList collection, use it
-  if (pokemon.id) {
-    router.push(`/pokemon/${pokemon.id}`)
-  } else if (pokemon.nationalDexNumber) {
-    // Otherwise, try to navigate by national dex number
-    // The PokemonDetail page should handle looking up by dex number
+  // Navigate to Pokemon detail page using nationalDexNumber (preferred)
+  if (pokemon.nationalDexNumber) {
     router.push(`/pokemon/${pokemon.nationalDexNumber}`)
+  } else if (pokemon.id) {
+    // Fallback: use document ID if no nationalDexNumber
+    router.push(`/pokemon/${pokemon.id}`)
   }
 }
 
@@ -329,23 +327,30 @@ const handlePokemonClick = (pokemon) => {
 const loadPokemon = async () => {
   isLoading.value = true
   try {
-    // Load enriched data from pokemonList collection (card counts, sprites, etc.)
-    const pokemonListRef = collection(db, 'pokemonList')
-    let q
-    try {
-      q = query(pokemonListRef, orderBy('nationalDexNumber', 'asc'))
-    } catch (e) {
-      q = query(pokemonListRef)
+    // Load Pokemon from pokemon collection
+    const result = await getAllPokemon()
+    if (!result.success) {
+      console.error('Failed to load Pokemon:', result.error)
+      return
     }
     
-    const snapshot = await getDocs(q)
-    const enrichedPokemon = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
+    const allPokemonRaw = result.data || []
+    
+    // Get card counts for each Pokemon
+    const enrichedPokemon = await Promise.all(
+      allPokemonRaw.map(async (pokemon) => {
+        const cardsResult = await getAllPokemonCards({ 
+          nationalDexNumber: pokemon.nationalDexNumber,
+          language: 'all'
+        })
+        return {
+          ...pokemon,
+          cardCount: cardsResult.success ? cardsResult.data.length : 0
+        }
+      })
+    )
     
     // Use the grouping utility to get only base Pokemon (no variations like "Erika's Pikachu")
-    // This groups by nationalDexNumber, aggregates card counts/types/sets, and uses base names from pokemonList.json
     const allPokemon = groupPokemonByBase(enrichedPokemon)
     
     // Sort by national dex number

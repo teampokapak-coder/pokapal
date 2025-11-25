@@ -1,4 +1,5 @@
 // Firebase Pokemon Data Management Utilities
+// Updated for simplified collection structure
 
 import { 
   collection, 
@@ -17,111 +18,198 @@ import {
 import { db } from '../config/firebase'
 
 // ============================================
-// POKEMON CARDS
+// POKEMON (Base Pokemon Data)
 // ============================================
 
-export const addPokemonCard = async (pokemonData) => {
+export const getPokemon = async (pokemonId) => {
   try {
-    const pokemonRef = collection(db, 'pokemon')
-    const docRef = await addDoc(pokemonRef, {
-      ...pokemonData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    })
-    return { success: true, id: docRef.id }
-  } catch (error) {
-    console.error('Error adding Pokemon card:', error)
-    return { success: false, error: error.message }
-  }
-}
-
-export const updatePokemonCard = async (pokemonId, updates) => {
-  try {
-    const pokemonRef = doc(db, 'pokemon', pokemonId)
-    await updateDoc(pokemonRef, {
-      ...updates,
-      updatedAt: serverTimestamp()
-    })
-    return { success: true }
-  } catch (error) {
-    console.error('Error updating Pokemon card:', error)
-    return { success: false, error: error.message }
-  }
-}
-
-export const deletePokemonCard = async (pokemonId) => {
-  try {
-    const pokemonRef = doc(db, 'pokemon', pokemonId)
-    await deleteDoc(pokemonRef)
-    return { success: true }
-  } catch (error) {
-    console.error('Error deleting Pokemon card:', error)
-    return { success: false, error: error.message }
-  }
-}
-
-export const getPokemonCard = async (pokemonId) => {
-  try {
+    // First try as document ID
     const pokemonRef = doc(db, 'pokemon', pokemonId)
     const docSnap = await getDoc(pokemonRef)
+    if (docSnap.exists()) {
+      return { success: true, data: { id: docSnap.id, ...docSnap.data() } }
+    }
+    
+    // If not found, try as nationalDexNumber
+    const dexNumber = parseInt(pokemonId)
+    if (!isNaN(dexNumber)) {
+      const pokemonQuery = query(collection(db, 'pokemon'), where('nationalDexNumber', '==', dexNumber))
+      const querySnapshot = await getDocs(pokemonQuery)
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0]
+        return { success: true, data: { id: doc.id, ...doc.data() } }
+      }
+    }
+    
+    return { success: false, error: 'Pokemon not found' }
+  } catch (error) {
+    console.error('Error getting Pokemon:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+export const getPokemonByDexNumber = async (nationalDexNumber) => {
+  try {
+    const pokemonQuery = query(collection(db, 'pokemon'), where('nationalDexNumber', '==', nationalDexNumber))
+    const querySnapshot = await getDocs(pokemonQuery)
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0]
+      return { success: true, data: { id: doc.id, ...doc.data() } }
+    }
+    return { success: false, error: 'Pokemon not found' }
+  } catch (error) {
+    console.error('Error getting Pokemon by dex number:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+export const getAllPokemon = async (filters = {}) => {
+  try {
+    const pokemonRef = collection(db, 'pokemon')
+    let q = query(pokemonRef)
+    
+    // Order by nationalDexNumber if available
+    try {
+      q = query(pokemonRef, orderBy('nationalDexNumber', 'asc'))
+    } catch (e) {
+      // If ordering fails (no index), just get all without ordering
+      q = query(pokemonRef)
+    }
+    
+    const snapshot = await getDocs(q)
+    let pokemon = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    
+    // Apply filters
+    if (filters.types && filters.types.length > 0) {
+      pokemon = pokemon.filter(p => 
+        p.types && p.types.some(type => filters.types.includes(type))
+      )
+    }
+    
+    // Apply limit
+    if (filters.limit && filters.limit > 0) {
+      pokemon = pokemon.slice(0, filters.limit)
+    }
+    
+    return { success: true, data: pokemon }
+  } catch (error) {
+    console.error('Error getting Pokemon:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// ============================================
+// CARDS (card_en and card_ja)
+// ============================================
+
+export const getCard = async (cardId, language = 'en') => {
+  try {
+    const collectionName = `card_${language}`
+    const cardRef = doc(db, collectionName, cardId)
+    const docSnap = await getDoc(cardRef)
     if (docSnap.exists()) {
       return { success: true, data: { id: docSnap.id, ...docSnap.data() } }
     } else {
       return { success: false, error: 'Card not found' }
     }
   } catch (error) {
-    console.error('Error getting Pokemon card:', error)
+    console.error('Error getting card:', error)
     return { success: false, error: error.message }
   }
 }
 
 export const getAllPokemonCards = async (filters = {}) => {
   try {
-    const pokemonRef = collection(db, 'pokemon')
-    let q = query(pokemonRef)
+    const language = filters.language || 'all' // 'en', 'ja', or 'all'
+    const collections = []
     
-    // Only order by nationalDexNumber if we're not filtering (to avoid index issues)
-    // If filtering, we'll sort in memory
-    if (!filters.set && !filters.setCode && !filters.rarity && !filters.limit) {
-      try {
-        q = query(pokemonRef, orderBy('nationalDexNumber', 'asc'))
-      } catch (e) {
-        // If ordering fails (no index), just get all without ordering
-        q = query(pokemonRef)
+    if (language === 'all' || language === 'en') {
+      collections.push({ ref: collection(db, 'card_en'), name: 'card_en' })
+    }
+    if (language === 'all' || language === 'ja') {
+      collections.push({ ref: collection(db, 'card_ja'), name: 'card_ja' })
+    }
+    
+    if (collections.length === 0) {
+      return { success: true, data: [] }
+    }
+    
+    // Build queries for each collection
+    const queries = collections.map(({ ref }) => {
+      let q = query(ref)
+      
+      // Apply filters
+      if (filters.setId) {
+        q = query(q, where('setId', '==', filters.setId))
       }
+      if (filters.apiSetId) {
+        q = query(q, where('apiSetId', '==', filters.apiSetId))
+      }
+      if (filters.nationalDexNumber) {
+        q = query(q, where('nationalDexNumber', '==', filters.nationalDexNumber))
+      }
+      if (filters.rarity) {
+        q = query(q, where('rarity', '==', filters.rarity))
+      }
+      if (filters.types && filters.types.length > 0) {
+        // Firestore doesn't support array-contains-any easily, so we'll filter in memory
+        q = query(q)
+      }
+      
+      // Order by setNumber if available
+      try {
+        q = query(q, orderBy('setNumber', 'asc'))
+      } catch (e) {
+        // If ordering fails, continue without ordering
+      }
+      
+      // Apply limit at query level
+      if (filters.limit && filters.limit > 0) {
+        q = query(q, limit(filters.limit))
+      }
+      
+      return getDocs(q)
+    })
+    
+    // Execute all queries in parallel
+    const snapshots = await Promise.all(queries)
+    
+    // Combine results from all collections
+    let cards = []
+    snapshots.forEach((snapshot, index) => {
+      const collectionCards = snapshot.docs.map(doc => ({
+        id: doc.id,
+        collection: collections[index].name,
+        language: collections[index].name === 'card_ja' ? 'ja' : 'en',
+        ...doc.data()
+      }))
+      cards = cards.concat(collectionCards)
+    })
+    
+    // Apply in-memory filters
+    if (filters.types && filters.types.length > 0) {
+      cards = cards.filter(card => 
+        card.types && card.types.some(type => filters.types.includes(type))
+      )
     }
     
-    if (filters.set) {
-      q = query(q, where('set', '==', filters.set))
-    }
-    if (filters.setCode) {
-      q = query(q, where('setCode', '==', filters.setCode))
-    }
-    if (filters.rarity) {
-      q = query(q, where('rarity', '==', filters.rarity))
-    }
+    // Sort by nationalDexNumber or setNumber
+    cards.sort((a, b) => {
+      if (a.nationalDexNumber && b.nationalDexNumber && a.nationalDexNumber !== b.nationalDexNumber) {
+        return a.nationalDexNumber - b.nationalDexNumber
+      }
+      if (a.setNumber && b.setNumber) {
+        return a.setNumber.localeCompare(b.setNumber, undefined, { numeric: true })
+      }
+      return (a.name || '').localeCompare(b.name || '')
+    })
     
-    // Apply limit at query level for better performance
-    if (filters.limit && filters.limit > 0) {
-      q = query(q, limit(filters.limit))
-    }
-    
-    const snapshot = await getDocs(q)
-    const cards = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
-    
-    // Sort in memory if we didn't order by nationalDexNumber
-    if (filters.set || filters.setCode || filters.rarity) {
-      cards.sort((a, b) => {
-        if (a.nationalDexNumber && b.nationalDexNumber) {
-          return a.nationalDexNumber - b.nationalDexNumber
-        }
-        if (a.nationalDexNumber) return -1
-        if (b.nationalDexNumber) return 1
-        return (a.name || '').localeCompare(b.name || '')
-      })
+    // Apply limit after combining if querying multiple collections
+    if (filters.limit && filters.limit > 0 && language === 'all') {
+      cards = cards.slice(0, filters.limit)
     }
     
     return { success: true, data: cards }
@@ -131,92 +219,114 @@ export const getAllPokemonCards = async (filters = {}) => {
   }
 }
 
+export const getCardsBySet = async (setId, language = 'en') => {
+  // setId can be either Firestore document ID or API ID
+  // Try to get the set first to determine if it's a document ID or API ID
+  try {
+    const collectionName = `set_${language}`
+    const setRef = doc(db, collectionName, setId)
+    const setDoc = await getDoc(setRef)
+    
+    if (setDoc.exists()) {
+      const setData = setDoc.data()
+      // Query by apiSetId (primary) and also by setId (Firestore doc ID) as fallback
+      // This ensures we get all cards even if some have setId and some have apiSetId
+      const result = await getAllPokemonCards({ apiSetId: setData.apiId, language })
+      
+      // Also query by Firestore document ID to catch any cards that might only have setId
+      const resultByDocId = await getAllPokemonCards({ setId: setId, language })
+      
+      // Combine and deduplicate by card ID
+      const allCards = [...(result.data || []), ...(resultByDocId.data || [])]
+      const uniqueCards = Array.from(
+        new Map(allCards.map(card => [card.id, card])).values()
+      )
+      
+      return { success: true, data: uniqueCards }
+    } else {
+      // If not found as document ID, assume it's an API ID and query directly
+      return getAllPokemonCards({ apiSetId: setId, language })
+    }
+  } catch (error) {
+    console.error('Error in getCardsBySet:', error)
+    // Fallback: try querying by apiSetId directly
+    return getAllPokemonCards({ apiSetId: setId, language })
+  }
+}
+
+export const getCardsByPokemon = async (nationalDexNumber, language = 'all') => {
+  return getAllPokemonCards({ nationalDexNumber, language })
+}
+
 // ============================================
-// SETS
+// SETS (set_en and set_ja)
 // ============================================
 
-export const addSet = async (setData) => {
+export const getSet = async (setId, language = 'en') => {
   try {
-    const setsRef = collection(db, 'sets')
-    const docRef = await addDoc(setsRef, {
-      ...setData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+    const collectionName = `set_${language}`
+    const setRef = doc(db, collectionName, setId)
+    const docSnap = await getDoc(setRef)
+    if (docSnap.exists()) {
+      return { success: true, data: { id: docSnap.id, ...docSnap.data() } }
+    } else {
+      return { success: false, error: 'Set not found' }
+    }
+  } catch (error) {
+    console.error('Error getting set:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+export const getAllSets = async (filters = {}) => {
+  try {
+    const language = filters.language || 'all' // 'en', 'ja', or 'all'
+    const collections = []
+    
+    if (language === 'all' || language === 'en') {
+      collections.push({ ref: collection(db, 'set_en'), name: 'set_en' })
+    }
+    if (language === 'all' || language === 'ja') {
+      collections.push({ ref: collection(db, 'set_ja'), name: 'set_ja' })
+    }
+    
+    if (collections.length === 0) {
+      return { success: true, data: [] }
+    }
+    
+    // Query all collections in parallel
+    const queries = collections.map(({ ref }) => {
+      try {
+        return getDocs(query(ref, orderBy('releaseDate', 'desc')))
+      } catch (error) {
+        // If ordering fails (no index), try without ordering
+        return getDocs(query(ref))
+      }
     })
-    return { success: true, id: docRef.id }
-  } catch (error) {
-    console.error('Error adding set:', error)
-    return { success: false, error: error.message }
-  }
-}
-
-export const updateSet = async (setId, updates) => {
-  try {
-    const setRef = doc(db, 'sets', setId)
-    await updateDoc(setRef, {
-      ...updates,
-      updatedAt: serverTimestamp()
+    
+    const snapshots = await Promise.all(queries)
+    
+    // Combine results from all collections
+    let allSets = []
+    snapshots.forEach((snapshot, index) => {
+      const sets = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        language: collections[index].name === 'set_ja' ? 'ja' : 'en'
+      }))
+      allSets = allSets.concat(sets)
     })
-    return { success: true }
-  } catch (error) {
-    console.error('Error updating set:', error)
-    return { success: false, error: error.message }
-  }
-}
-
-export const deleteSet = async (setId) => {
-  try {
-    const setRef = doc(db, 'sets', setId)
-    await deleteDoc(setRef)
-    return { success: true }
-  } catch (error) {
-    console.error('Error deleting set:', error)
-    return { success: false, error: error.message }
-  }
-}
-
-export const getAllSets = async () => {
-  try {
-    const setsRef = collection(db, 'sets')
-    const q = query(setsRef, orderBy('releaseDate', 'desc'))
-    const snapshot = await getDocs(q)
-    const sets = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
-    return { success: true, data: sets }
+    
+    // Sort combined results by releaseDate descending
+    allSets.sort((a, b) => {
+      const dateA = a.releaseDate?.toMillis?.() || (a.releaseDate?.seconds ? a.releaseDate.seconds * 1000 : 0)
+      const dateB = b.releaseDate?.toMillis?.() || (b.releaseDate?.seconds ? b.releaseDate.seconds * 1000 : 0)
+      return dateB - dateA
+    })
+    
+    return { success: true, data: allSets }
   } catch (error) {
     console.error('Error getting sets:', error)
     return { success: false, error: error.message }
   }
 }
-
-// ============================================
-// BULK OPERATIONS
-// ============================================
-
-export const bulkAddPokemonCards = async (cardsArray) => {
-  try {
-    const pokemonRef = collection(db, 'pokemon')
-    const batch = []
-    
-    for (const card of cardsArray) {
-      batch.push(addDoc(pokemonRef, {
-        ...card,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      }))
-    }
-    
-    const results = await Promise.all(batch)
-    return { 
-      success: true, 
-      count: results.length,
-      ids: results.map(r => r.id)
-    }
-  } catch (error) {
-    console.error('Error bulk adding Pokemon cards:', error)
-    return { success: false, error: error.message }
-  }
-}
-

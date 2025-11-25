@@ -10,20 +10,18 @@
     @click="handleCardClick"
   >
     <img
-      v-if="card.imageUrl || card.thumbnailUrl"
-      :src="card.imageUrl || card.thumbnailUrl"
+      v-if="getCardImageUrl(card) && !imageError"
+      :src="getCardImageUrl(card)"
       :alt="card.name"
       class="w-full h-full object-contain"
       @error="handleImageError"
     />
-    <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
-      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
+    <div v-else class="w-full h-full flex items-center justify-center font-bold text-lg" style="color: var(--color-text-tertiary); background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary));">
+      {{ getCardFallbackText(card) }}
     </div>
     <!-- Card Name Tooltip -->
     <div v-if="showNameTooltip" class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs px-1 py-0.5 text-center truncate opacity-0 group-hover:opacity-100 transition-opacity">
-      {{ card.name }}
+      {{ formatCardName(card) }}
     </div>
     <!-- Poké Ball Icon - Top Right (if collection enabled) -->
     <div
@@ -52,15 +50,15 @@
   >
     <!-- Card Image -->
     <div class="aspect-square rounded-t-lg flex items-center justify-center overflow-hidden p-1.5 sm:p-2 card-image-bg" style="background: linear-gradient(to bottom right, var(--color-bg-tertiary), var(--color-bg-secondary));">
-      <img 
-        v-if="card.imageUrl || card.thumbnailUrl" 
-        :src="card.imageUrl || card.thumbnailUrl" 
+      <img
+        v-if="getCardImageUrl(card) && !imageError"
+        :src="getCardImageUrl(card)"
         :alt="card.name"
         class="w-full h-full object-contain"
         @error="handleImageError"
       />
-      <div v-else class="text-xl sm:text-2xl font-bold" style="color: var(--color-text-tertiary);">
-        {{ getCardInitial(card.name) }}
+      <div v-else class="text-xl sm:text-2xl font-bold flex items-center justify-center w-full h-full" style="color: var(--color-text-tertiary); background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary));">
+        {{ getCardFallbackText(card) }}
       </div>
     </div>
 
@@ -68,13 +66,13 @@
     <div class="card-body p-2 sm:p-2.5 relative">
       <!-- Pokemon Name -->
       <h6 class="text-xs sm:text-sm font-medium truncate mb-1" style="color: var(--color-text-primary);">
-        {{ card.name }}
+        {{ formatCardName(card) }}
       </h6>
       
       <!-- Set Collection Name and Set Number (on one line) -->
       <div class="mb-1 flex items-center gap-1.5 flex-wrap">
-        <p v-if="card.set" class="text-[10px] sm:text-xs truncate flex-1 min-w-0" style="color: var(--color-text-secondary);">
-          {{ card.set }}
+        <p v-if="formattedSetName" class="text-[10px] sm:text-xs truncate flex-1 min-w-0" style="color: var(--color-text-secondary);">
+          {{ formattedSetName }}
         </p>
         <p v-if="card.setNumber" class="text-[10px] sm:text-xs flex-shrink-0" style="color: var(--color-text-tertiary);">
           #{{ card.setNumber }}
@@ -118,8 +116,24 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { getTypeColorClass } from '../utils/pokemonTypes'
+import { formatCardName } from '../utils/cardNameFormatter'
+import { formatSetName } from '../utils/setNameFormatter'
+import { getCardFallbackText } from '../utils/cardImageFallback'
+
+// Get card image URL - prefer English image for Japanese cards if available
+const getCardImageUrl = (card) => {
+  if (!card) return null
+  
+  // For Japanese cards, prefer English image if available
+  if (card.language === 'ja' && card.englishImageUrl) {
+    return card.englishImageUrl
+  }
+  
+  // Otherwise use Japanese/English image
+  return card.imageUrl || card.thumbnailUrl || null
+}
 
 // Poké Ball icon paths (static assets from public folder)
 const pokeballIconPath = '/pokeball.svg'
@@ -185,16 +199,23 @@ const props = defineProps({
 
 const emit = defineEmits(['click', 'toggle-collected'])
 
-const getCardInitial = (name) => {
-  return name?.charAt(0).toUpperCase() || '?'
-}
+const imageError = ref(false)
+
+// Reset image error when card changes
+watch(() => props.card?.id, () => {
+  imageError.value = false
+})
 
 const getTypeColor = (type) => {
   return getTypeColorClass(type)
 }
 
 const handleImageError = (event) => {
-  event.target.style.display = 'none'
+  imageError.value = true
+  // Hide the broken image
+  if (event.target) {
+    event.target.style.display = 'none'
+  }
 }
 
 const handleCardClick = (event) => {
@@ -210,5 +231,7 @@ const handleToggleCollected = (event) => {
   event.preventDefault()
   emit('toggle-collected', props.card)
 }
+
+const formattedSetName = computed(() => formatSetName(props.card))
 </script>
 

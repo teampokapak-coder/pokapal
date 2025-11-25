@@ -22,6 +22,18 @@
               />
             </div>
 
+            <!-- Language Filter -->
+            <select
+              v-model="filterLanguage"
+              class="px-3 md:px-4 py-2 text-sm md:text-base border rounded-md focus:outline-none focus:ring-2"
+              style="border-color: var(--color-border);"
+              @change="applyFilters"
+            >
+              <option value="en">English</option>
+              <option value="ja">Japanese</option>
+              <option value="">All Languages</option>
+            </select>
+
             <!-- Series Filter -->
             <select
               v-model="filterSeries"
@@ -57,17 +69,17 @@
           >
             <!-- Set Image -->
             <div class="aspect-square rounded-t-lg flex items-center justify-center overflow-hidden" style="background-color: var(--color-bg-secondary);">
-              <div v-if="set.logo" class="w-full h-full flex items-center justify-center p-2 md:p-4">
-                <img :src="set.logo" :alt="set.name" class="max-w-full max-h-full object-contain" />
+              <div v-if="getSetLogoUrl(set)" class="w-full h-full flex items-center justify-center p-2 md:p-4">
+                <img :src="getSetLogoUrl(set)" :alt="formatSetDisplayName(set)" class="max-w-full max-h-full object-contain" />
               </div>
-              <div v-else class="text-2xl md:text-6xl font-bold" style="color: var(--color-text-tertiary);">
-                {{ set.code?.substring(0, 2).toUpperCase() || '?' }}
+              <div v-else class="text-2xl md:text-6xl font-bold flex items-center justify-center w-full h-full" style="color: var(--color-text-tertiary); background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary));">
+                {{ getSetIdInitials(set.apiId || set.code || set.id) }}
               </div>
             </div>
             
             <div class="card-body p-2 md:p-4">
-              <h3 class="card-title mb-0.5 md:mb-1 text-xs md:text-base truncate">{{ set.name }}</h3>
-              <p class="text-[10px] md:text-xs mb-1 md:mb-2 truncate" style="color: var(--color-text-tertiary);">{{ set.series }}</p>
+              <h3 class="card-title mb-0.5 md:mb-1 text-xs md:text-base truncate">{{ formatSetDisplayName(set) }}</h3>
+              <p class="text-[10px] md:text-xs mb-1 md:mb-2 truncate" style="color: var(--color-text-tertiary);">{{ formatSeriesDisplayName(set) }}</p>
               <div class="flex justify-between items-center text-[10px] md:text-sm">
                 <span style="color: var(--color-text-secondary);">{{ set.totalCards || 0 }} cards</span>
                 <span v-if="set.releaseDate" style="color: var(--color-text-tertiary);">
@@ -93,12 +105,15 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAllSets } from '../utils/firebasePokemon'
 import { Timestamp } from 'firebase/firestore'
+import { getSetLogoUrl, formatSetDisplayName, formatSeriesDisplayName } from '../utils/setDisplayHelper'
+import { getSetIdInitials } from '../utils/cardImageFallback'
 
 const router = useRouter()
 
 const sets = ref([])
 const isLoading = ref(false)
 const searchQuery = ref('')
+const filterLanguage = ref('en') // Default to English
 const filterSeries = ref('')
 const searchTimeout = ref(null)
 
@@ -112,6 +127,16 @@ const uniqueSeries = computed(() => {
 
 const filteredSets = computed(() => {
   let filtered = sets.value
+
+  // Language filter (default to English if no language field)
+  if (filterLanguage.value) {
+    filtered = filtered.filter(set => {
+      // English sets: no language field OR language === 'en'
+      // Japanese sets: language === 'ja'
+      const setLanguage = set.language || 'en' // Default to 'en' if no language field
+      return setLanguage === filterLanguage.value
+    })
+  }
 
   // Search filter
   if (searchQuery.value) {

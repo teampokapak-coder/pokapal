@@ -34,9 +34,9 @@
                 <!-- Set Logo/Image -->
                 <div class="w-24 h-24 flex-shrink-0 pokemon-image-bg rounded-lg flex items-center justify-center overflow-hidden">
                   <img 
-                    v-if="set.logo" 
-                    :src="set.logo" 
-                    :alt="set.name"
+                    v-if="getSetLogoUrl(set)" 
+                    :src="getSetLogoUrl(set)" 
+                    :alt="formatSetDisplayName(set)"
                     class="w-full h-full object-contain p-2"
                   />
                   <div v-else class="text-center">
@@ -49,9 +49,9 @@
 
                 <!-- Set Name and Series -->
                 <div class="flex-1 min-w-0">
-                  <h1 class="text-xl mb-1 leading-tight">{{ set.name }}</h1>
+                  <h1 class="text-xl mb-1 leading-tight">{{ formatSetDisplayName(set) }}</h1>
                   <div v-if="set.series">
-                    <span class="text-xs" style="color: var(--color-text-secondary);">{{ set.series }}</span>
+                    <span class="text-xs" style="color: var(--color-text-secondary);">{{ formatSeriesDisplayName(set) }}</span>
                   </div>
                 </div>
               </div>
@@ -90,27 +90,27 @@
               <!-- Set Logo/Image -->
               <div class="w-48 h-48 pokemon-image-bg rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                 <img 
-                  v-if="set.logo" 
-                  :src="set.logo" 
-                  :alt="set.name"
+                  v-if="getSetLogoUrl(set)" 
+                  :src="getSetLogoUrl(set)" 
+                  :alt="formatSetDisplayName(set)"
                   class="w-full h-full object-contain p-4"
                 />
-                <div v-else class="text-center">
-                  <div class="text-4xl font-bold mb-2" style="color: var(--color-text-tertiary);">
-                    {{ set.code?.substring(0, 2).toUpperCase() || '?' }}
+                <div v-else class="text-center w-full h-full flex flex-col items-center justify-center" style="color: var(--color-text-tertiary); background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary));">
+                  <div class="text-4xl font-bold mb-2">
+                    {{ getSetIdInitials(set.apiId || set.code || set.id) }}
                   </div>
-                  <div class="text-sm" style="color: var(--color-text-tertiary);">{{ set.code }}</div>
+                  <div class="text-sm" style="color: var(--color-text-tertiary);">{{ set.code || set.apiId }}</div>
                 </div>
               </div>
 
               <!-- Set Info -->
               <div class="flex-1">
                 <div class="flex items-center gap-3 mb-2">
-                  <h1>{{ set.name }}</h1>
+                  <h1>{{ formatSetDisplayName(set) }}</h1>
                 </div>
 
                 <div v-if="set.series" class="mb-4">
-                  <span class="text-sm" style="color: var(--color-text-secondary);">{{ set.series }}</span>
+                  <span class="text-sm" style="color: var(--color-text-secondary);">{{ formatSeriesDisplayName(set) }}</span>
                 </div>
 
                 <!-- Stats -->
@@ -233,10 +233,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { doc, getDoc, Timestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
-import { getAllPokemonCards } from '../utils/firebasePokemon'
+import { getAllPokemonCards, getSet, getCardsBySet } from '../utils/firebasePokemon'
 import { useAuth } from '../composables/useAuth'
 import { toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
+import { getSetLogoUrl, formatSetDisplayName, formatSeriesDisplayName } from '../utils/setDisplayHelper'
+import { getSetIdInitials } from '../utils/cardImageFallback'
 import CardModal from '../components/CardModal.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
@@ -257,15 +259,34 @@ const collectedCards = ref(new Set())
 // Poké Ball icon paths (static assets from public folder)
 const pokeballIconPath = '/pokeball.svg'
 
+const getOrdinalSuffix = (day) => {
+  if (day > 3 && day < 21) return 'th'
+  switch (day % 10) {
+    case 1: return 'st'
+    case 2: return 'nd'
+    case 3: return 'rd'
+    default: return 'th'
+  }
+}
+
 const formatDate = (date) => {
   if (!date) return 'N/A'
+  
+  let dateObj
   if (date instanceof Timestamp) {
-    return date.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    dateObj = date.toDate()
+  } else if (date instanceof Date) {
+    dateObj = date
+  } else {
+    return date
   }
-  if (date instanceof Date) {
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  }
-  return date
+  
+  const month = dateObj.toLocaleDateString('en-US', { month: 'short' })
+  const day = dateObj.getDate()
+  const year = dateObj.getFullYear()
+  const ordinal = getOrdinalSuffix(day)
+  
+  return `${month} ${day}${ordinal} ${year}`
 }
 
 const selectCard = (card) => {
@@ -358,16 +379,22 @@ const filteredCards = computed(() => {
 const loadSet = async () => {
   isLoading.value = true
   try {
-    const setDoc = doc(db, 'sets', setId)
-    const setSnap = await getDoc(setDoc)
+    // Try English sets collection first
+    let result = await getSet(setId, 'en')
+    let setLanguage = 'en'
     
-    if (setSnap.exists()) {
+    // If not found, try Japanese sets collection
+    if (!result.success) {
+      result = await getSet(setId, 'ja')
+      setLanguage = 'ja'
+    }
+    
+    if (result.success) {
+      // Ensure language is set on the set object
       set.value = {
-        id: setSnap.id,
-        ...setSnap.data()
+        ...result.data,
+        language: result.data.language || setLanguage
       }
-      
-      // Load cards for this set
       await loadCards()
     } else {
       set.value = null
@@ -385,30 +412,29 @@ const loadCards = async () => {
   
   isLoadingCards.value = true
   try {
-    // Get all cards and filter by this set
-    const result = await getAllPokemonCards({})
-    if (!result.success) {
+    // Determine language from set - ensure we query the correct collection
+    // English sets should query card_en, Japanese sets should query card_ja
+    const language = set.value.language || 'en'
+    
+    console.log(`Loading cards for ${language} set: ${set.value.name} (${set.value.apiId})`)
+    
+    // Load cards by setId (Firestore document ID) and language
+    // getCardsBySet will query card_en for 'en' language, card_ja for 'ja' language
+    const result = await getCardsBySet(set.value.id, language)
+    
+    if (result.success) {
+      cards.value = result.data || []
+      console.log(`Found ${cards.value.length} cards for ${language} set ${set.value.name} (from ${language === 'en' ? 'card_en' : 'card_ja'})`)
+    } else {
       console.error('Failed to load cards:', result.error)
-      return
+      cards.value = []
     }
-
-    const allCards = result.data || []
-    
-    // Filter cards that belong to this set
-    // Match by setId (Firestore document ID) or set name
-    cards.value = allCards.filter(card => {
-      return card.setId === set.value.id || 
-             card.set === set.value.name ||
-             card.setCode === set.value.code ||
-             card.apiSetId === set.value.apiId
-    })
-    
-    console.log(`Found ${cards.value.length} cards for set ${set.value.name}`)
     
     // Load collected cards
     await loadCollectedCards()
   } catch (error) {
     console.error('Error loading cards:', error)
+    cards.value = []
   } finally {
     isLoadingCards.value = false
   }

@@ -132,17 +132,17 @@
             >
               <!-- Set Image Placeholder -->
               <div class="aspect-square pokemon-image-bg rounded-t-lg flex items-center justify-center overflow-hidden">
-                <div v-if="set.logo" class="w-full h-full flex items-center justify-center">
-                  <img :src="set.logo" :alt="set.name" class="max-w-full max-h-full object-contain" />
+                <div v-if="getSetLogoUrl(set)" class="w-full h-full flex items-center justify-center">
+                  <img :src="getSetLogoUrl(set)" :alt="formatSetDisplayName(set)" class="max-w-full max-h-full object-contain" />
                 </div>
-                <div v-else class="text-6xl font-bold" style="color: var(--color-text-tertiary);">
-                  {{ set.code?.substring(0, 2).toUpperCase() || '?' }}
+                <div v-else class="text-6xl font-bold flex items-center justify-center w-full h-full" style="color: var(--color-text-tertiary); background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary));">
+                  {{ getSetIdInitials(set.apiId || set.code || set.id) }}
                 </div>
               </div>
               
               <div class="card-body p-2 sm:p-4">
-                <h3 class="card-title mb-1 text-sm sm:text-base">{{ set.name }}</h3>
-                <p class="text-xs mb-2" style="color: var(--color-text-tertiary);">{{ set.series }}</p>
+                <h3 class="card-title mb-1 text-sm sm:text-base">{{ formatSetDisplayName(set) }}</h3>
+                <p class="text-xs mb-2" style="color: var(--color-text-tertiary);">{{ formatSeriesDisplayName(set) }}</p>
                 <div class="flex justify-between items-center text-xs sm:text-sm">
                   <span style="color: var(--color-text-secondary);">{{ set.totalCards || 0 }} cards</span>
                   <span v-if="set.releaseDate" style="color: var(--color-text-tertiary);">
@@ -298,12 +298,14 @@ import { useRouter } from 'vue-router'
 import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
-import { getAllSets, getAllPokemonCards } from '../utils/firebasePokemon'
+import { getAllSets, getAllPokemonCards, getAllPokemon } from '../utils/firebasePokemon'
 import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
 import CardModal from '../components/CardModal.vue'
 import { groupPokemonByBase } from '../utils/pokemonGrouping'
 import PokemonListItem from '../components/PokemonListItem.vue'
+import { getSetLogoUrl, formatSetDisplayName, formatSeriesDisplayName } from '../utils/setDisplayHelper'
+import { getSetIdInitials } from '../utils/cardImageFallback'
 
 const router = useRouter()
 const { user } = useAuth()
@@ -374,11 +376,14 @@ const handleSetClick = (set) => {
 }
 
 const handlePokemonClick = (pokemon) => {
-  // Navigate to Pokemon detail page using pokemonList document ID
-  if (pokemon.id) {
+  // Navigate to Pokemon detail page using nationalDexNumber (preferred)
+  if (pokemon.nationalDexNumber) {
+    router.push(`/pokemon/${pokemon.nationalDexNumber}`)
+  } else if (pokemon.id) {
+    // Fallback: use document ID if no nationalDexNumber
     router.push(`/pokemon/${pokemon.id}`)
   } else {
-    // Fallback: try to find by name or navigate to browse
+    // Last resort: try to find by name or navigate to browse
     const searchName = pokemon.displayName || pokemon.name
     router.push(`/browse?name=${encodeURIComponent(searchName)}`)
   }
@@ -476,7 +481,8 @@ const formatDate = (date) => {
 const loadSets = async () => {
   isLoadingSets.value = true
   try {
-    const result = await getAllSets()
+    // Load only English sets for featured sets (classic English sets)
+    const result = await getAllSets({ language: 'en' })
     if (result.success) {
       sets.value = result.data || []
       // Set trending sets (popular classic sets)
@@ -501,28 +507,39 @@ const loadSets = async () => {
 const loadFeaturedPokemon = async () => {
   isLoadingPokemon.value = true
   try {
-    // Query pokemonList collection directly
-    const pokemonListRef = collection(db, 'pokemonList')
-    
-    // Try to order by nationalDexNumber, fallback to name if index doesn't exist
-    let q
-    try {
-      q = query(pokemonListRef, orderBy('nationalDexNumber', 'asc'))
-    } catch (e) {
-      // If ordering fails (no index), just get all without ordering
-      q = query(pokemonListRef)
+    // Query pokemon collection
+    const result = await getAllPokemon()
+    if (!result.success) {
+      console.error('Failed to load Pokemon:', result.error)
+      return
     }
     
-    const snapshot = await getDocs(q)
-    const allPokemonRaw = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
+    const allPokemonRaw = result.data || []
+    console.log(`Loaded ${allPokemonRaw.length} Pokemon from pokemon collection`)
+    
+    // Load all cards once and count by nationalDexNumber (much faster than individual queries)
+    const allCardsResult = await getAllPokemonCards({ language: 'all' })
+    const cardCountsByDex = new Map()
+    
+    if (allCardsResult.success && allCardsResult.data) {
+      allCardsResult.data.forEach(card => {
+        if (card.nationalDexNumber) {
+          cardCountsByDex.set(
+            card.nationalDexNumber, 
+            (cardCountsByDex.get(card.nationalDexNumber) || 0) + 1
+          )
+        }
+      })
+    }
+    
+    // Add card counts to Pokemon
+    const pokemonWithCounts = allPokemonRaw.map(pokemon => ({
+      ...pokemon,
+      cardCount: cardCountsByDex.get(pokemon.nationalDexNumber) || 0
     }))
     
-    console.log(`Loaded ${allPokemonRaw.length} Pokemon from pokemonList collection`)
-    
     // Use the grouping utility to get only base Pokemon (no variations like "Erika's Pikachu")
-    const allPokemon = groupPokemonByBase(allPokemonRaw)
+    const allPokemon = groupPokemonByBase(pokemonWithCounts)
 
     // Sort by nationalDexNumber if available, otherwise alphabetically
     allPokemon.sort((a, b) => {

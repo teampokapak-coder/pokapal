@@ -97,10 +97,16 @@
                     <p class="text-lg sm:text-xl font-bold" style="color: var(--color-text-primary);">{{ pokemon.sets.length }}</p>
                   </div>
                 </div>
-                <div v-if="pokemon.cardIds && pokemon.cardIds.length > 0" class="card">
+                <div v-if="cards.length > 0" class="card">
                   <div class="card-body p-2 sm:p-3">
-                    <p class="text-[10px] sm:text-xs uppercase tracking-wide mb-0.5 sm:mb-1" style="color: var(--color-text-tertiary);">Vars</p>
-                    <p class="text-lg sm:text-xl font-bold" style="color: var(--color-text-primary);">{{ pokemon.cardIds.length }}</p>
+                    <p class="text-[10px] sm:text-xs uppercase tracking-wide mb-0.5 sm:mb-1" style="color: var(--color-text-tertiary);">English</p>
+                    <p class="text-lg sm:text-xl font-bold" style="color: var(--color-text-primary);">{{ cards.length }}</p>
+                  </div>
+                </div>
+                <div v-if="japaneseCards.length > 0" class="card">
+                  <div class="card-body p-2 sm:p-3">
+                    <p class="text-[10px] sm:text-xs uppercase tracking-wide mb-0.5 sm:mb-1" style="color: var(--color-text-tertiary);">Japanese</p>
+                    <p class="text-lg sm:text-xl font-bold" style="color: var(--color-text-primary);">{{ japaneseCards.length }}</p>
                   </div>
                 </div>
               </div>
@@ -170,10 +176,16 @@
                       <p class="text-2xl font-bold" style="color: var(--color-text-primary);">{{ pokemon.sets.length }}</p>
                     </div>
                   </div>
-                  <div v-if="pokemon.cardIds && pokemon.cardIds.length > 0" class="card">
+                  <div v-if="cards.length > 0" class="card">
                     <div class="card-body p-4">
-                      <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--color-text-tertiary);">Variations</p>
-                      <p class="text-2xl font-bold" style="color: var(--color-text-primary);">{{ pokemon.cardIds.length }}</p>
+                      <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--color-text-tertiary);">English Cards</p>
+                      <p class="text-2xl font-bold" style="color: var(--color-text-primary);">{{ cards.length }}</p>
+                    </div>
+                  </div>
+                  <div v-if="japaneseCards.length > 0" class="card">
+                    <div class="card-body p-4">
+                      <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--color-text-tertiary);">Japanese Cards</p>
+                      <p class="text-2xl font-bold" style="color: var(--color-text-primary);">{{ japaneseCards.length }}</p>
                     </div>
                   </div>
                 </div>
@@ -192,6 +204,15 @@
 
             <!-- Filters -->
             <div class="mb-4 sm:mb-6 flex gap-2 sm:gap-4 flex-wrap">
+              <select
+                v-model="filterLanguage"
+                class="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 flex-1 sm:flex-none min-w-0"
+                style="border-color: var(--color-border);"
+              >
+                <option value="all">All Languages</option>
+                <option value="en">English</option>
+                <option value="ja">Japanese</option>
+              </select>
               <select
                 v-model="filterSet"
                 class="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 flex-1 sm:flex-none min-w-0"
@@ -311,7 +332,7 @@
                 {{ pokemon?.displayName || pokemon?.name }}
               </p>
               <p class="text-xs mt-1">
-                {{ pokemon?.cardIds?.length || 0 }} cards will be included
+                {{ (cards.length + japaneseCards.length) || 0 }} cards will be included
               </p>
             </div>
 
@@ -343,7 +364,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { doc, getDoc, collection, getDocs, query, where, addDoc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore'
 import pokemonListData from '../data/pokemonList.json'
 import { db } from '../config/firebase'
-import { getAllPokemonCards } from '../utils/firebasePokemon'
+import { getAllPokemonCards, getPokemon, getAllPokemon, getPokemonByDexNumber } from '../utils/firebasePokemon'
 import { useAuth } from '../composables/useAuth'
 import { toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
@@ -360,9 +381,11 @@ const cards = ref([])
 const isLoading = ref(false)
 const isLoadingCards = ref(false)
 const selectedCard = ref(null)
+const filterLanguage = ref('all')
 const filterSet = ref('')
 const filterRarity = ref('')
 const collectedCards = ref(new Set())
+const japaneseCards = ref([])
 const showStartMasterSetModal = ref(false)
 const isCreatingMasterSet = ref(false)
 const masterSetForm = ref({
@@ -531,18 +554,29 @@ const uniqueRarities = computed(() => {
 })
 
 const filteredCards = computed(() => {
-  let filtered = cards.value
+  // Combine English and Japanese cards
+  let allCards = [...cards.value, ...japaneseCards.value]
 
+  // Filter by language
+  if (filterLanguage.value === 'en') {
+    allCards = allCards.filter(card => card.language === 'en' || !card.language)
+  } else if (filterLanguage.value === 'ja') {
+    allCards = allCards.filter(card => card.language === 'ja')
+  }
+  // If 'all', keep all cards
+
+  // Filter by set
   if (filterSet.value) {
-    filtered = filtered.filter(card => card.set === filterSet.value)
+    allCards = allCards.filter(card => card.set === filterSet.value)
   }
 
+  // Filter by rarity
   if (filterRarity.value) {
-    filtered = filtered.filter(card => card.rarity === filterRarity.value)
+    allCards = allCards.filter(card => card.rarity === filterRarity.value)
   }
 
   // Sort by set number if available
-  filtered.sort((a, b) => {
+  allCards.sort((a, b) => {
     if (a.setNumber && b.setNumber) {
       const numA = parseInt(a.setNumber.split('/')[0]) || 0
       const numB = parseInt(b.setNumber.split('/')[0]) || 0
@@ -551,59 +585,45 @@ const filteredCards = computed(() => {
     return 0
   })
 
-  return filtered
+  return allCards
 })
 
 const loadPokemon = async () => {
   isLoading.value = true
   try {
-    // First try to load by document ID
-    const pokemonDoc = doc(db, 'pokemonList', pokemonId)
-    const pokemonSnap = await getDoc(pokemonDoc)
+    // Try to parse as nationalDexNumber first (preferred)
+    const dexNumber = parseInt(pokemonId)
+    let result = null
     
-    if (pokemonSnap.exists()) {
-      pokemon.value = {
-        id: pokemonSnap.id,
-        ...pokemonSnap.data()
-      }
-      
-      // Load cards for this Pokemon
+    if (!isNaN(dexNumber)) {
+      // Try to get by nationalDexNumber first (most common case)
+      result = await getPokemonByDexNumber(dexNumber)
+    }
+    
+    // If not found by dex number, try as document ID
+    if (!result || !result.success) {
+      result = await getPokemon(pokemonId)
+    }
+    
+    if (result.success) {
+      pokemon.value = result.data
       await loadCards()
     } else {
-      // If not found by ID, try to find by national dex number
-      const dexNumber = parseInt(pokemonId)
+      // Fallback: try to find in pokemonList.json if not in Firestore
       if (!isNaN(dexNumber)) {
-        const pokemonListRef = collection(db, 'pokemonList')
-        const q = query(pokemonListRef, where('nationalDexNumber', '==', dexNumber))
-        const snapshot = await getDocs(q)
-        
-        if (!snapshot.empty) {
-          // Found by dex number
-          const docSnap = snapshot.docs[0]
+        const basePokemon = pokemonListData.find(p => p.nationalDexNumber === dexNumber)
+        if (basePokemon) {
           pokemon.value = {
-            id: docSnap.id,
-            ...docSnap.data()
+            nationalDexNumber: basePokemon.nationalDexNumber,
+            name: basePokemon.name,
+            displayName: basePokemon.name,
+            types: basePokemon.types || [],
+            spriteUrl: basePokemon.spriteUrl,
+            gifUrl: basePokemon.gifUrl
           }
           await loadCards()
         } else {
-          // Not in pokemonList collection, but might be in base list
-          const basePokemon = pokemonListData.find(p => p.nationalDexNumber === dexNumber)
-          if (basePokemon) {
-            // Create a basic Pokemon entry from base data
-            pokemon.value = {
-              nationalDexNumber: basePokemon.nationalDexNumber,
-              name: basePokemon.name,
-              displayName: basePokemon.name,
-              cardCount: 0,
-              types: [],
-              sets: [],
-              cardIds: []
-            }
-            // Still try to load cards (might find some)
-            await loadCards()
-          } else {
-            pokemon.value = null
-          }
+          pokemon.value = null
         }
       } else {
         pokemon.value = null
@@ -618,34 +638,33 @@ const loadPokemon = async () => {
 }
 
 const loadCards = async () => {
-  if (!pokemon.value) return
+  if (!pokemon.value || !pokemon.value.nationalDexNumber) return
   
   isLoadingCards.value = true
   try {
-    // Get all cards and filter by this Pokemon
-    const result = await getAllPokemonCards({})
-    if (!result.success) {
-      console.error('Failed to load cards:', result.error)
-      return
-    }
-
-    const allCards = result.data || []
-    const normalizedName = normalizePokemonName(pokemon.value.name || pokemon.value.displayName)
-    
-    // Filter cards that match this Pokemon
-    // Match by normalized name or nationalDexNumber
-    cards.value = allCards.filter(card => {
-      const cardNormalizedName = normalizePokemonName(card.name)
-      const matchesName = cardNormalizedName === normalizedName
-      const matchesDex = pokemon.value.nationalDexNumber && 
-                        card.nationalDexNumber === pokemon.value.nationalDexNumber
-      return matchesName || matchesDex
+    // Load cards by nationalDexNumber from both collections
+    const cardsResult = await getAllPokemonCards({ 
+      nationalDexNumber: pokemon.value.nationalDexNumber,
+      language: 'all'
     })
     
-    console.log(`Found ${cards.value.length} cards for ${pokemon.value.name}`)
+    if (cardsResult.success) {
+      const allCards = cardsResult.data || []
+      
+      // Separate English and Japanese cards
+      cards.value = allCards.filter(card => card.language === 'en' || !card.language)
+      japaneseCards.value = allCards.filter(card => card.language === 'ja')
+      
+      console.log(`Loaded ${cards.value.length} English cards and ${japaneseCards.value.length} Japanese cards`)
+    }
     
-    // Load collected status for these cards
-    if (user.value && cards.value.length > 0) {
+    // Update card counts
+    if (pokemon.value) {
+      pokemon.value.cardCount = cards.value.length + japaneseCards.value.length
+    }
+    
+    // Load collected status for all cards
+    if (user.value && (cards.value.length > 0 || japaneseCards.value.length > 0)) {
       await loadCollectedStatus()
     }
   } catch (error) {
@@ -656,11 +675,11 @@ const loadCards = async () => {
 }
 
 const loadCollectedStatus = async () => {
-  if (!user.value || cards.value.length === 0) return
+  if (!user.value || (cards.value.length === 0 && japaneseCards.value.length === 0)) return
   
   try {
-    const cardIds = cards.value.map(card => card.id)
-    const collectedSet = await getCollectedCardIds(user.value.uid, cardIds)
+    const allCardIds = [...cards.value.map(card => card.id), ...japaneseCards.value.map(card => card.id)]
+    const collectedSet = await getCollectedCardIds(user.value.uid, allCardIds)
     collectedCards.value = collectedSet
   } catch (error) {
     console.error('Error loading collected status:', error)
@@ -708,7 +727,7 @@ const createMasterSetFromPokemon = async () => {
     return
   }
 
-  if (!pokemon.value || !pokemon.value.cardIds || pokemon.value.cardIds.length === 0) {
+  if (!pokemon.value || (cards.value.length === 0 && japaneseCards.value.length === 0)) {
     alert('No cards found for this Pokemon')
     return
   }
@@ -742,7 +761,8 @@ const createMasterSetFromPokemon = async () => {
 
     // 2. Create assignment document
     const assignmentsRef = collection(db, 'assignments')
-    const cardIds = pokemon.value.cardIds || []
+    // Get card IDs from loaded cards (both English and Japanese)
+    const cardIds = [...cards.value.map(c => c.id), ...japaneseCards.value.map(c => c.id)]
 
     const assignmentData = {
       challengeId: challengeId,
