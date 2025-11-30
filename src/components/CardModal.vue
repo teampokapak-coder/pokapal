@@ -52,7 +52,7 @@
             <div>
               <h4 class="text-sm font-medium text-gray-700 mb-2">Set Information</h4>
               <p class="text-sm text-gray-600">{{ formatSetName(card) }}</p>
-              <p v-if="card.setNumber" class="text-sm text-gray-600">#{{ card.setNumber }}</p>
+              <p v-if="card.localId" class="text-sm text-gray-600">#{{ card.localId }}</p>
               <p v-if="formatSeriesName(card)" class="text-sm text-gray-500 mt-1">{{ formatSeriesName(card) }}</p>
             </div>
             <div v-if="card.types && card.types.length > 0">
@@ -76,9 +76,43 @@
               <h4 class="text-sm font-medium text-gray-700 mb-2">HP</h4>
               <p class="text-sm text-gray-600">{{ card.hp }}</p>
             </div>
-            <div v-if="card.artist">
+            <div v-if="card.illustrator">
               <h4 class="text-sm font-medium text-gray-700 mb-2">Artist</h4>
-              <p class="text-sm text-gray-600">{{ card.artist }}</p>
+              <p class="text-sm text-gray-600">{{ card.illustrator }}</p>
+            </div>
+            <!-- Variants - only show if true -->
+            <div v-if="hasVariants(card)">
+              <h4 class="text-sm font-medium text-gray-700 mb-2">Variants</h4>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-if="card.variants?.holo"
+                  class="px-2 py-1 rounded text-xs font-medium"
+                  style="background-color: var(--color-bg-tertiary); color: var(--color-text-primary);"
+                >
+                  ✨ Holo
+                </span>
+                <span
+                  v-if="card.variants?.reverse"
+                  class="px-2 py-1 rounded text-xs font-medium"
+                  style="background-color: var(--color-bg-tertiary); color: var(--color-text-primary);"
+                >
+                  🔄 Reverse Holo
+                </span>
+                <span
+                  v-if="card.variants?.firstEdition"
+                  class="px-2 py-1 rounded text-xs font-medium"
+                  style="background-color: var(--color-bg-tertiary); color: var(--color-text-primary);"
+                >
+                  1️⃣ First Edition
+                </span>
+                <span
+                  v-if="card.variants?.wPromo"
+                  class="px-2 py-1 rounded text-xs font-medium"
+                  style="background-color: var(--color-bg-tertiary); color: var(--color-text-primary);"
+                >
+                  🎁 W Promo
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -104,8 +138,8 @@ const getCardImageUrl = (card) => {
     return card.englishImageUrl
   }
   
-  // Otherwise use Japanese/English image
-  return card.imageUrl || card.thumbnailUrl || null
+  // Use convenience fields first, then fallback to API image field
+  return card.imageUrl || card.thumbnailUrl || card.image || null
 }
 
 // Poké Ball icon paths (static assets from public folder)
@@ -155,6 +189,16 @@ const handleClose = () => {
 
 const handleToggleCollected = () => {
   emit('toggle-collected', props.card)
+}
+
+// Check if card has any variants
+const hasVariants = (card) => {
+  if (!card || !card.variants) return false
+  return card.variants.holo || 
+         card.variants.reverse || 
+         card.variants.firstEdition || 
+         card.variants.wPromo ||
+         card.variants.normal
 }
 </script>
 

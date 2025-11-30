@@ -14,16 +14,17 @@
 export const formatSetName = (card) => {
   if (!card) return ''
   
-  const japaneseSetName = card.set || ''
+  // Handle new API structure where set is an object
+  const setName = typeof card.set === 'object' ? card.set?.name : card.set || ''
   const englishSetName = card.englishSetName || ''
   
   // If we have both, show English first with Japanese in parentheses
-  if (englishSetName && japaneseSetName && japaneseSetName !== englishSetName) {
-    return `${englishSetName} (${japaneseSetName})`
+  if (englishSetName && setName && setName !== englishSetName) {
+    return `${englishSetName} (${setName})`
   }
   
   // Otherwise, show whichever we have
-  return englishSetName || japaneseSetName
+  return englishSetName || setName
 }
 
 /**
@@ -37,16 +38,17 @@ export const formatSetName = (card) => {
 export const formatSeriesName = (card) => {
   if (!card) return ''
   
-  const japaneseSeries = card.series || ''
+  // Handle new API structure where set.serie is an object
+  const seriesName = card.set?.serie?.name || ''
   const englishSeries = card.englishSeries || ''
   
   // If we have both, show English first with Japanese in parentheses
-  if (englishSeries && japaneseSeries && japaneseSeries !== englishSeries) {
-    return `${englishSeries} (${japaneseSeries})`
+  if (englishSeries && seriesName && seriesName !== englishSeries) {
+    return `${englishSeries} (${seriesName})`
   }
   
   // Otherwise, show whichever we have
-  return englishSeries || japaneseSeries
+  return englishSeries || seriesName
 }
 
 /**
@@ -57,7 +59,8 @@ export const formatSeriesName = (card) => {
  */
 export const getPrimarySetName = (card) => {
   if (!card) return ''
-  return card.englishSetName || card.set || ''
+  const setName = typeof card.set === 'object' ? card.set?.name : card.set || ''
+  return card.englishSetName || setName
 }
 
 /**
@@ -68,6 +71,7 @@ export const getPrimarySetName = (card) => {
  */
 export const getPrimarySeriesName = (card) => {
   if (!card) return ''
-  return card.englishSeries || card.series || ''
+  const seriesName = card.set?.serie?.name || ''
+  return card.englishSeries || seriesName
 }
 

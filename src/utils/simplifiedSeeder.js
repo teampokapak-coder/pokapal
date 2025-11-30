@@ -299,14 +299,21 @@ export const seedCardsForSet = async (setId, language = 'en') => {
     
     console.log(`📦 Found ${apiCards.length} cards from API`)
     
-    // Get existing cards
-    const existingQuery = query(cardsRef, where('apiSetId', '==', setId))
-    const existingSnapshot = await getDocs(existingQuery)
+    // Get existing cards - query by both setId (Firestore doc ID) and setApiId (API ID) to catch all
+    const existingQueryBySetId = query(cardsRef, where('setId', '==', setDoc.id))
+    const existingQueryByApiId = query(cardsRef, where('setApiId', '==', setId))
+    const [existingSnapshotById, existingSnapshotByApiId] = await Promise.all([
+      getDocs(existingQueryBySetId),
+      getDocs(existingQueryByApiId)
+    ])
+    
     const existing = new Map()
-    existingSnapshot.docs.forEach(doc => {
+    // Combine results from both queries
+    const allExistingDocs = [...existingSnapshotById.docs, ...existingSnapshotByApiId.docs]
+    allExistingDocs.forEach(doc => {
       const data = doc.data()
-      if (data.apiId) {
-        existing.set(data.apiId, doc.id)
+      if (data.id) { // Use 'id' field (API card ID like 'swsh3-136')
+        existing.set(data.id, doc.id)
       }
     })
     
@@ -317,13 +324,14 @@ export const seedCardsForSet = async (setId, language = 'en') => {
     // Process cards
     for (const apiCard of apiCards) {
       try {
-        // Fetch full card details if needed
+        // Always fetch full card details to get complete data (rarity, abilities, attacks, etc.)
+        // Brief cards from set.cards array may be missing important fields
         let fullCardData = apiCard
-        if (!apiCard.image) {
-          const cardDetailResult = await fetchTCGdxCardById(apiCard.id, language)
-          if (cardDetailResult.success) {
-            fullCardData = cardDetailResult.data
-          }
+        const cardDetailResult = await fetchTCGdxCardById(apiCard.id, language)
+        if (cardDetailResult.success) {
+          fullCardData = cardDetailResult.data
+        } else {
+          console.warn(`⚠️ Could not fetch full details for card ${apiCard.id}, using brief card data`)
         }
         
         // Ensure setData has required fields for mapping
@@ -344,7 +352,7 @@ export const seedCardsForSet = async (setId, language = 'en') => {
           }
         }
         
-        const existingDocId = existing.get(cardData.apiId)
+        const existingDocId = existing.get(cardData.id) // Use 'id' field (API card ID)
         
         // Remove undefined values (Firestore doesn't allow undefined)
         const cleanCardData = {}

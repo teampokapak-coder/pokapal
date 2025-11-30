@@ -146,10 +146,16 @@ export const getAllPokemonCards = async (filters = {}) => {
         q = query(q, where('setId', '==', filters.setId))
       }
       if (filters.apiSetId) {
-        q = query(q, where('apiSetId', '==', filters.apiSetId))
+        q = query(q, where('setApiId', '==', filters.apiSetId))
       }
-      if (filters.nationalDexNumber) {
-        q = query(q, where('nationalDexNumber', '==', filters.nationalDexNumber))
+      if (filters.nationalDexNumber !== undefined && filters.nationalDexNumber !== null) {
+        // Ensure nationalDexNumber is a number for consistent querying
+        const dexNumber = typeof filters.nationalDexNumber === 'string' 
+          ? parseInt(filters.nationalDexNumber) 
+          : filters.nationalDexNumber
+        if (!isNaN(dexNumber)) {
+          q = query(q, where('nationalDexNumber', '==', dexNumber))
+        }
       }
       if (filters.rarity) {
         q = query(q, where('rarity', '==', filters.rarity))
@@ -159,9 +165,9 @@ export const getAllPokemonCards = async (filters = {}) => {
         q = query(q)
       }
       
-      // Order by setNumber if available
+      // Order by localId if available (API field name)
       try {
-        q = query(q, orderBy('setNumber', 'asc'))
+        q = query(q, orderBy('localId', 'asc'))
       } catch (e) {
         // If ordering fails, continue without ordering
       }
@@ -220,8 +226,8 @@ export const getAllPokemonCards = async (filters = {}) => {
 }
 
 export const getCardsBySet = async (setId, language = 'en') => {
-  // setId can be either Firestore document ID or API ID
-  // Try to get the set first to determine if it's a document ID or API ID
+  // setId should be the Firestore document ID (e.g., "dC3hFxfrIOMQ9dApPqPC")
+  // Query cards by both setId (Firestore doc ID) and setApiId (API ID) to ensure we get all cards
   try {
     const collectionName = `set_${language}`
     const setRef = doc(db, collectionName, setId)
@@ -229,28 +235,32 @@ export const getCardsBySet = async (setId, language = 'en') => {
     
     if (setDoc.exists()) {
       const setData = setDoc.data()
-      // Query by apiSetId (primary) and also by setId (Firestore doc ID) as fallback
-      // This ensures we get all cards even if some have setId and some have apiSetId
-      const result = await getAllPokemonCards({ apiSetId: setData.apiId, language })
+      const apiId = setData.apiId // Set's API ID (e.g., "swsh3")
       
-      // Also query by Firestore document ID to catch any cards that might only have setId
+      // Query by setId (Firestore document ID) - primary method
       const resultByDocId = await getAllPokemonCards({ setId: setId, language })
       
+      // Also query by setApiId (API ID) as fallback to catch any cards
+      let resultByApiId = { data: [] }
+      if (apiId) {
+        resultByApiId = await getAllPokemonCards({ apiSetId: apiId, language })
+      }
+      
       // Combine and deduplicate by card ID
-      const allCards = [...(result.data || []), ...(resultByDocId.data || [])]
+      const allCards = [...(resultByDocId.data || []), ...(resultByApiId.data || [])]
       const uniqueCards = Array.from(
         new Map(allCards.map(card => [card.id, card])).values()
       )
       
       return { success: true, data: uniqueCards }
     } else {
-      // If not found as document ID, assume it's an API ID and query directly
-      return getAllPokemonCards({ apiSetId: setId, language })
+      // If set not found, try querying by setId directly (in case it's a card query)
+      return getAllPokemonCards({ setId: setId, language })
     }
   } catch (error) {
     console.error('Error in getCardsBySet:', error)
-    // Fallback: try querying by apiSetId directly
-    return getAllPokemonCards({ apiSetId: setId, language })
+    // Fallback: try querying by setId directly
+    return getAllPokemonCards({ setId: setId, language })
   }
 }
 

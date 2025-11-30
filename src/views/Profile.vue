@@ -755,7 +755,8 @@ const loadCollection = async () => {
 const uniqueCollectionSets = computed(() => {
   const sets = new Set()
   collectedCards.value.forEach(card => {
-    if (card.set) sets.add(card.set)
+    const setName = typeof card.set === 'object' ? card.set?.name : card.set
+    if (setName) sets.add(setName)
   })
   return Array.from(sets).sort()
 })
@@ -768,14 +769,17 @@ const filteredCollectionCards = computed(() => {
     const query = collectionSearchQuery.value.toLowerCase()
     filtered = filtered.filter(card =>
       card.name?.toLowerCase().includes(query) ||
-      card.setNumber?.toLowerCase().includes(query) ||
-      card.set?.toLowerCase().includes(query)
+      card.localId?.toLowerCase().includes(query) ||
+      (typeof card.set === 'object' ? card.set?.name : card.set)?.toLowerCase().includes(query)
     )
   }
   
   // Set filter
   if (collectionFilterSet.value) {
-    filtered = filtered.filter(card => card.set === collectionFilterSet.value)
+    filtered = filtered.filter(card => {
+      const setName = typeof card.set === 'object' ? card.set?.name : card.set
+      return setName === collectionFilterSet.value
+    })
   }
   
   // Sort by collected date (newest first) or by set number

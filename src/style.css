@@ -368,75 +368,79 @@
   
   .pokemon-type {
     @apply px-2 py-1 rounded-full text-xs font-medium;
+    color: #ffffff !important;
   }
 
   .pokemon-type-fire {
-    background-color: #dc2626;
-    color: #ffffff;
+    background-color: #b91c1c;
+    color: #ffffff !important;
   }
 
   .pokemon-type-water {
-    background-color: #2563eb;
-    color: #ffffff;
+    background-color: #1e40af;
+    color: #ffffff !important;
   }
 
   .pokemon-type-grass {
-    background-color: #16a34a;
-    color: #ffffff;
+    background-color: #15803d;
+    color: #ffffff !important;
   }
 
   .pokemon-type-electric {
-    background-color: #fbbf24;
-    color: #000000;
+    background-color: #ca8a04;
+    color: #ffffff !important;
   }
 
   .pokemon-type-psychic {
-    background-color: #9333ea;
-    color: #ffffff;
+    background-color: #7e22ce;
+    color: #ffffff !important;
   }
 
   .pokemon-type-fighting {
-    background-color: #ea580c;
-    color: #ffffff;
+    background-color: #c2410c;
+    color: #ffffff !important;
   }
 
   .pokemon-type-darkness {
-    background-color: #1f2937;
-    color: #ffffff;
+    background-color: #111827;
+    color: #ffffff !important;
   }
 
   .pokemon-type-metal {
-    background-color: #6b7280;
-    color: #ffffff;
+    background-color: #475569;
+    color: #ffffff !important;
   }
 
   .pokemon-type-fairy {
-    background-color: #ec4899;
-    color: #ffffff;
+    background-color: #be185d;
+    color: #ffffff !important;
   }
 
   .pokemon-type-dragon {
-    background-color: #6366f1;
-    color: #ffffff;
+    background-color: #4f46e5;
+    color: #ffffff !important;
   }
 
   .pokemon-type-colorless {
-    background-color: #9ca3af;
-    color: #ffffff;
+    background-color: #64748b;
+    color: #ffffff !important;
   }
 
   /* Dark mode adjustments for better contrast */
   @media (prefers-color-scheme: dark) {
     .pokemon-type-fire {
       background-color: #ef4444;
+      color: #ffffff;
     }
 
     .pokemon-type-water {
       background-color: #3b82f6;
+      color: #ffffff;
     }
 
     .pokemon-type-grass {
       background-color: #22c55e;
+      color: #000000;
     }
 
     .pokemon-type-electric {
@@ -446,26 +450,32 @@
 
     .pokemon-type-psychic {
       background-color: #a855f7;
+      color: #ffffff;
     }
 
     .pokemon-type-fighting {
       background-color: #f97316;
+      color: #ffffff;
     }
 
     .pokemon-type-darkness {
-      background-color: #374151;
+      background-color: #111827;
+      color: #ffffff;
     }
 
     .pokemon-type-metal {
       background-color: #9ca3af;
+      color: #000000;
     }
 
     .pokemon-type-fairy {
       background-color: #f472b6;
+      color: #ffffff;
     }
 
     .pokemon-type-dragon {
       background-color: #818cf8;
+      color: #ffffff;
     }
 
     .pokemon-type-colorless {

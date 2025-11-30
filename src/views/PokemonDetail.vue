@@ -302,14 +302,14 @@
           <div class="space-y-4">
             <div>
               <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
-                Challenge Name
+                Master Set Name
               </label>
               <input
-                v-model="masterSetForm.challengeName"
+                v-model="masterSetForm.name"
                 type="text"
                 :placeholder="`${pokemon?.displayName || pokemon?.name} Master Set`"
                 class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
-                style="border-color: var(--color-border);"
+                style="border-color: var(--color-border); background-color: var(--color-bg-primary); color: var(--color-text-primary);"
               />
             </div>
 
@@ -322,8 +322,75 @@
                 rows="3"
                 placeholder="Add a description for your master set..."
                 class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
-                style="border-color: var(--color-border);"
+                style="border-color: var(--color-border); background-color: var(--color-bg-primary); color: var(--color-text-primary);"
               ></textarea>
+            </div>
+
+            <!-- Language Selection -->
+            <div>
+              <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
+                Languages
+              </label>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    v-model="masterSetForm.languages"
+                    value="en"
+                    class="w-4 h-4"
+                  />
+                  <span style="color: var(--color-text-primary);">English</span>
+                  <span v-if="cards.length > 0" class="text-xs" style="color: var(--color-text-tertiary);">
+                    ({{ cards.length }} cards)
+                  </span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    v-model="masterSetForm.languages"
+                    value="ja"
+                    class="w-4 h-4"
+                  />
+                  <span style="color: var(--color-text-primary);">Japanese</span>
+                  <span v-if="japaneseCards.length > 0" class="text-xs" style="color: var(--color-text-tertiary);">
+                    ({{ japaneseCards.length }} cards)
+                  </span>
+                </label>
+              </div>
+              <p v-if="masterSetForm.languages.length === 0" class="text-xs text-red-500 mt-1">
+                Please select at least one language
+              </p>
+            </div>
+
+            <!-- Invite Users -->
+            <div>
+              <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
+                Invite Friends (Optional)
+              </label>
+              <div class="space-y-2">
+                <div v-for="(invite, index) in masterSetForm.invites" :key="index" class="flex gap-2">
+                  <input
+                    v-model="invite.email"
+                    type="email"
+                    placeholder="friend@example.com"
+                    class="flex-1 px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
+                    style="border-color: var(--color-border); background-color: var(--color-bg-primary); color: var(--color-text-primary);"
+                    @input="searchUserForInvite(invite, index)"
+                  />
+                  <button
+                    @click="removeInvite(index)"
+                    class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <button
+                  @click="addInvite"
+                  class="btn btn-h5 btn-secondary w-full text-sm"
+                >
+                  + Add Friend
+                </button>
+              </div>
             </div>
 
             <div class="text-sm" style="color: var(--color-text-secondary);">
@@ -332,7 +399,7 @@
                 {{ pokemon?.displayName || pokemon?.name }}
               </p>
               <p class="text-xs mt-1">
-                {{ (cards.length + japaneseCards.length) || 0 }} cards will be included
+                {{ getTotalCardCount() }} cards will be included
               </p>
             </div>
 
@@ -346,7 +413,7 @@
               <button
                 @click="createMasterSetFromPokemon"
                 class="btn btn-h4 btn-primary flex-1"
-                :disabled="!masterSetForm.challengeName.trim() || isCreatingMasterSet"
+                :disabled="!masterSetForm.name.trim() || masterSetForm.languages.length === 0 || isCreatingMasterSet"
               >
                 {{ isCreatingMasterSet ? 'Creating...' : 'Create Master Set' }}
               </button>
@@ -371,6 +438,7 @@ import PokemonCard from '../components/PokemonCard.vue'
 import CardModal from '../components/CardModal.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import { getTypeColorClass } from '../utils/pokemonTypes'
+import { createMasterSet, createAssignment, getCardIdsForPokemon } from '../utils/masterSetUtils'
 
 const route = useRoute()
 const router = useRouter()
@@ -389,8 +457,10 @@ const japaneseCards = ref([])
 const showStartMasterSetModal = ref(false)
 const isCreatingMasterSet = ref(false)
 const masterSetForm = ref({
-  challengeName: '',
-  description: ''
+  name: '',
+  description: '',
+  languages: ['en'], // Default to English
+  invites: []
 })
 
 // Poké Ball icon paths (static assets from public folder)
@@ -540,7 +610,8 @@ const selectCard = (card) => {
 const uniqueSets = computed(() => {
   const sets = new Set()
   cards.value.forEach(card => {
-    if (card.set) sets.add(card.set)
+    const setName = typeof card.set === 'object' ? card.set?.name : card.set
+    if (setName) sets.add(setName)
   })
   return Array.from(sets).sort()
 })
@@ -567,7 +638,10 @@ const filteredCards = computed(() => {
 
   // Filter by set
   if (filterSet.value) {
-    allCards = allCards.filter(card => card.set === filterSet.value)
+    allCards = allCards.filter(card => {
+      const setName = typeof card.set === 'object' ? card.set?.name : card.set
+      return setName === filterSet.value
+    })
   }
 
   // Filter by rarity
@@ -638,13 +712,17 @@ const loadPokemon = async () => {
 }
 
 const loadCards = async () => {
-  if (!pokemon.value || !pokemon.value.nationalDexNumber) return
+  if (!pokemon.value || !pokemon.value.nationalDexNumber) {
+    return
+  }
   
   isLoadingCards.value = true
   try {
+    const dexNumber = pokemon.value.nationalDexNumber
+    
     // Load cards by nationalDexNumber from both collections
     const cardsResult = await getAllPokemonCards({ 
-      nationalDexNumber: pokemon.value.nationalDexNumber,
+      nationalDexNumber: dexNumber,
       language: 'all'
     })
     
@@ -654,8 +732,6 @@ const loadCards = async () => {
       // Separate English and Japanese cards
       cards.value = allCards.filter(card => card.language === 'en' || !card.language)
       japaneseCards.value = allCards.filter(card => card.language === 'ja')
-      
-      console.log(`Loaded ${cards.value.length} English cards and ${japaneseCards.value.length} Japanese cards`)
     }
     
     // Update card counts
@@ -714,6 +790,34 @@ const generateInviteCode = () => {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
+// Add invite
+const addInvite = () => {
+  masterSetForm.value.invites.push({ email: '', userId: null, userName: null })
+}
+
+// Remove invite
+const removeInvite = (index) => {
+  masterSetForm.value.invites.splice(index, 1)
+}
+
+// Search for user by email (optional - can enhance later)
+const searchUserForInvite = async (invite, index) => {
+  // TODO: Implement user search by email
+  // For now, just store the email
+}
+
+// Get total card count based on selected languages
+const getTotalCardCount = () => {
+  let count = 0
+  if (masterSetForm.value.languages.includes('en')) {
+    count += cards.value.length
+  }
+  if (masterSetForm.value.languages.includes('ja')) {
+    count += japaneseCards.value.length
+  }
+  return count
+}
+
 // Create master set from Pokemon page
 const createMasterSetFromPokemon = async () => {
   if (!user.value) {
@@ -722,81 +826,100 @@ const createMasterSetFromPokemon = async () => {
     return
   }
 
-  if (!masterSetForm.value.challengeName.trim()) {
-    alert('Please enter a challenge name')
+  if (!masterSetForm.value.name.trim()) {
+    alert('Please enter a master set name')
     return
   }
 
-  if (!pokemon.value || (cards.value.length === 0 && japaneseCards.value.length === 0)) {
-    alert('No cards found for this Pokemon')
+  if (masterSetForm.value.languages.length === 0) {
+    alert('Please select at least one language')
+    return
+  }
+
+  if (!pokemon.value || !pokemon.value.nationalDexNumber) {
+    alert('No Pokemon data found')
     return
   }
 
   isCreatingMasterSet.value = true
 
   try {
-    // 1. Create challenge document
-    const challengesRef = collection(db, 'challenges')
-    const inviteCode = generateInviteCode()
+    // 1. Get card IDs for selected languages
+    const cardIds = await getCardIdsForPokemon(
+      pokemon.value.nationalDexNumber,
+      masterSetForm.value.languages
+    )
 
-    const challengeData = {
-      name: masterSetForm.value.challengeName.trim(),
-      description: masterSetForm.value.description.trim() || '',
-      inviteCode,
-      createdBy: user.value.uid,
-      members: [user.value.uid], // Solo challenge initially
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+    if (cardIds.card_en.length === 0 && cardIds.card_ja.length === 0) {
+      alert('No cards found for this Pokemon in the selected languages')
+      isCreatingMasterSet.value = false
+      return
     }
 
-    const challengeDoc = await addDoc(challengesRef, challengeData)
-    const challengeId = challengeDoc.id
+    // 2. Create master set
+    const masterSetData = {
+      name: masterSetForm.value.name.trim(),
+      description: masterSetForm.value.description.trim() || null,
+      type: 'pokemon',
+      targetPokemonId: String(pokemon.value.nationalDexNumber),
+      targetPokemonName: pokemon.value.displayName || pokemon.value.name,
+      targetSetId: null,
+      targetSetCollection: null,
+      targetSetName: null,
+      languages: masterSetForm.value.languages,
+      createdBy: user.value.uid
+    }
 
-    // Update user's challenges array
-    const userRef = doc(db, 'users', user.value.uid)
-    await updateDoc(userRef, {
-      challenges: arrayUnion(challengeId),
-      updatedAt: serverTimestamp()
+    const masterSetResult = await createMasterSet(masterSetData)
+    if (!masterSetResult.success) {
+      throw new Error(masterSetResult.error)
+    }
+
+    const masterSetId = masterSetResult.data.id
+
+    // 3. Create assignment for creator
+    const creatorAssignment = await createAssignment({
+      masterSetId,
+      userId: user.value.uid,
+      userEmail: user.value.email,
+      userName: user.value.displayName || user.value.email,
+      card_en: cardIds.card_en,
+      card_ja: cardIds.card_ja,
+      assignmentType: null,
+      assignmentSetId: null,
+      assignmentPokemonId: null,
+      status: 'accepted',
+      createdBy: user.value.uid
     })
 
-    // 2. Create assignment document
-    const assignmentsRef = collection(db, 'assignments')
-    // Get card IDs from loaded cards (both English and Japanese)
-    const cardIds = [...cards.value.map(c => c.id), ...japaneseCards.value.map(c => c.id)]
-
-    const assignmentData = {
-      challengeId: challengeId,
-      userId: user.value.uid,
-      email: null,
-      type: 'pokemon',
-      setId: null,
-      setName: null,
-      pokemonId: pokemonId,
-      pokemonName: pokemon.value.displayName || pokemon.value.name,
-      totalCards: cardIds.length, // Store total for quick reference
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+    if (!creatorAssignment.success) {
+      throw new Error(creatorAssignment.error)
     }
 
-    const assignmentDoc = await addDoc(assignmentsRef, assignmentData)
-    const assignmentId = assignmentDoc.id
-
-    // 3. Create cards sub-collection (one document per card)
-    const cardsRef = collection(db, 'assignments', assignmentId, 'cards')
-    
-    // Batch create card documents (limit to 500 per batch to avoid Firestore limits)
-    const batchSize = 500
-    for (let i = 0; i < cardIds.length; i += batchSize) {
-      const batch = cardIds.slice(i, i + batchSize)
-      const promises = batch.map(cardId => 
-        addDoc(cardsRef, { cardId })
-      )
-      await Promise.all(promises)
+    // 4. Create assignments for invitees
+    for (const invite of masterSetForm.value.invites) {
+      if (invite.email && invite.email.includes('@')) {
+        await createAssignment({
+          masterSetId,
+          userId: invite.userId || null,
+          userEmail: invite.email,
+          userName: invite.userName || null,
+          card_en: cardIds.card_en,
+          card_ja: cardIds.card_ja,
+          assignmentType: null,
+          assignmentSetId: null,
+          assignmentPokemonId: null,
+          status: 'pending',
+          createdBy: user.value.uid
+        })
+      }
     }
 
-    // Close modal and redirect to challenge
+    // Close modal and show success
     showStartMasterSetModal.value = false
-    router.push(`/challenge/${challengeId}`)
+    alert('Master set created successfully!')
+    // TODO: Navigate to master set detail page when created
+    // router.push(`/master-set/${masterSetId}`)
   } catch (error) {
     console.error('Error creating master set:', error)
     alert('Error creating master set: ' + error.message)
@@ -808,8 +931,10 @@ const createMasterSetFromPokemon = async () => {
 // Initialize form when modal opens
 watch(showStartMasterSetModal, (isOpen) => {
   if (isOpen && pokemon.value) {
-    masterSetForm.value.challengeName = `${pokemon.value.displayName || pokemon.value.name} Master Set`
+    masterSetForm.value.name = `${pokemon.value.displayName || pokemon.value.name} Master Set`
     masterSetForm.value.description = ''
+    masterSetForm.value.languages = ['en'] // Default to English
+    masterSetForm.value.invites = []
   }
 })
 

@@ -221,12 +221,20 @@
                     </h4>
                     
                     <!-- Set ID -->
-                    <p class="text-xs text-center mb-2" style="color: var(--color-text-secondary);">
+                    <p class="text-xs text-center mb-1" style="color: var(--color-text-secondary);">
                       {{ set.apiId }}
                     </p>
                     
+                    <!-- Release Date -->
+                    <p v-if="set.releaseDate || set.releaseYear" class="text-xs text-center mb-1" style="color: var(--color-text-secondary);">
+                      {{ formatSetDate(set) }}
+                    </p>
+                    
                     <!-- Card Count -->
-                    <p class="text-xs text-center mb-3" style="color: var(--color-text-secondary);">
+                    <p 
+                      class="text-xs text-center mb-3 font-medium"
+                      :style="(set.cardCount || 0) > 0 ? { color: '#10b981' } : { color: 'var(--color-text-secondary)' }"
+                    >
                       Cards: {{ set.cardCount || 0 }}
                     </p>
                     
@@ -369,12 +377,20 @@
                     </p>
                     
                     <!-- Set ID -->
-                    <p class="text-xs text-center mb-2" style="color: var(--color-text-secondary);">
+                    <p class="text-xs text-center mb-1" style="color: var(--color-text-secondary);">
                       {{ set.apiId }}
                     </p>
                     
+                    <!-- Release Date -->
+                    <p v-if="set.releaseDate || set.releaseYear" class="text-xs text-center mb-1" style="color: var(--color-text-secondary);">
+                      {{ formatSetDate(set) }}
+                    </p>
+                    
                     <!-- Card Count -->
-                    <p class="text-xs text-center mb-3" style="color: var(--color-text-secondary);">
+                    <p 
+                      class="text-xs text-center mb-3 font-medium"
+                      :style="(set.cardCount || 0) > 0 ? { color: '#10b981' } : { color: 'var(--color-text-secondary)' }"
+                    >
                       Cards: {{ set.cardCount || 0 }}
                     </p>
                     
@@ -510,6 +526,7 @@ import { db, storage } from '../config/firebase'
 import { seedPokemonCollection, seedSets, seedCardsForSet } from '../utils/simplifiedSeeder'
 import { fetchSetById } from '../utils/tcgdxAPI'
 import { mapTCGdxSetToSchema } from '../utils/tcgdxAPI'
+import { Timestamp } from 'firebase/firestore'
 
 // State
 const pokemonCount = ref(0)
@@ -654,10 +671,12 @@ const loadSets = async () => {
       getDocs(collection(db, 'card_ja'))
     ])
     
-    // Count cards by apiSetId in memory (fallback if set document doesn't have cardCount)
+    // Count cards by setApiId in memory (dynamic count from actual cards)
     const cardCountsEn = new Map()
     cardsEnSnapshot.docs.forEach(doc => {
-      const apiSetId = doc.data().apiSetId
+      const cardData = doc.data()
+      // Try setApiId first (new structure), then fallback to set.id or apiSetId (old structure)
+      const apiSetId = cardData.setApiId || cardData.set?.id || cardData.apiSetId
       if (apiSetId) {
         cardCountsEn.set(apiSetId, (cardCountsEn.get(apiSetId) || 0) + 1)
       }
@@ -665,19 +684,19 @@ const loadSets = async () => {
     
     const cardCountsJa = new Map()
     cardsJaSnapshot.docs.forEach(doc => {
-      const apiSetId = doc.data().apiSetId
+      const cardData = doc.data()
+      // Try setApiId first (new structure), then fallback to set.id or apiSetId (old structure)
+      const apiSetId = cardData.setApiId || cardData.set?.id || cardData.apiSetId
       if (apiSetId) {
         cardCountsJa.set(apiSetId, (cardCountsJa.get(apiSetId) || 0) + 1)
       }
     })
     
-    // Process English sets - prefer cardCount from set document
+    // Process English sets - always use dynamic count from cards (ignore stale cardCount in set document)
     const enSets = setsEnSnapshot.docs.map(doc => {
       const data = doc.data()
-      // Use cardCount from set document if available, otherwise count from cards
-      const cardCount = data.cardCount !== undefined && data.cardCount !== null 
-        ? data.cardCount 
-        : (cardCountsEn.get(data.apiId) || 0)
+      // Always count dynamically from cards collection (more accurate)
+      const cardCount = cardCountsEn.get(data.apiId) || 0
       return {
         id: doc.id,
         ...data,
@@ -692,13 +711,11 @@ const loadSets = async () => {
       return dateB - dateA
     })
     
-    // Process Japanese sets - prefer cardCount from set document
+    // Process Japanese sets - always use dynamic count from cards (ignore stale cardCount in set document)
     const jaSets = setsJaSnapshot.docs.map(doc => {
       const data = doc.data()
-      // Use cardCount from set document if available, otherwise count from cards
-      const cardCount = data.cardCount !== undefined && data.cardCount !== null 
-        ? data.cardCount 
-        : (cardCountsJa.get(data.apiId) || 0)
+      // Always count dynamically from cards collection (more accurate)
+      const cardCount = cardCountsJa.get(data.apiId) || 0
       return {
         id: doc.id,
         ...data,
@@ -722,6 +739,33 @@ const loadSets = async () => {
   }
 }
 
+// Update card count for a specific set dynamically (without reloading all sets)
+const updateSetCardCount = async (setApiId, language) => {
+  try {
+    const collectionName = `card_${language}`
+    const cardsSnapshot = await getDocs(collection(db, collectionName))
+    
+    let count = 0
+    cardsSnapshot.docs.forEach(doc => {
+      const cardData = doc.data()
+      // Try setApiId first (new structure), then fallback to set.id or apiSetId (old structure)
+      const cardSetApiId = cardData.setApiId || cardData.set?.id || cardData.apiSetId
+      if (cardSetApiId === setApiId) {
+        count++
+      }
+    })
+    
+    // Update the card count in the sets array reactively
+    const setsArray = language === 'en' ? setsEn.value : setsJa.value
+    const setIndex = setsArray.findIndex(s => s.apiId === setApiId)
+    if (setIndex !== -1) {
+      setsArray[setIndex].cardCount = count
+    }
+  } catch (error) {
+    console.error('Error updating card count:', error)
+  }
+}
+
 // Seed cards for a specific set
 const seedCardsForSetHandler = async (setId, language) => {
   isFetchingCards.value[setId] = true
@@ -732,8 +776,9 @@ const seedCardsForSetHandler = async (setId, language) => {
     if (result.success) {
       message.value = `✅ Seeded ${result.added} ${language === 'en' ? 'English' : 'Japanese'} cards, updated ${result.updated} for set ${setId}`
       messageType.value = 'success'
-      await loadCounts()
-      await loadSets() // Reload sets to update card counts
+      await loadCounts() // Update total card counts
+      // Update card count dynamically for this specific set (faster than reloading all sets)
+      await updateSetCardCount(setId, language)
     } else {
       message.value = `❌ Error: ${result.error}`
       messageType.value = 'error'
@@ -927,6 +972,44 @@ const repullFromAPI = async () => {
     messageType.value = 'error'
   } finally {
     isUploading.value = false
+  }
+}
+
+// Format set release date for display
+const formatSetDate = (set) => {
+  if (set.releaseDate) {
+    let dateObj
+    if (set.releaseDate instanceof Timestamp) {
+      dateObj = set.releaseDate.toDate()
+    } else if (set.releaseDate?.toDate) {
+      dateObj = set.releaseDate.toDate()
+    } else if (set.releaseDate instanceof Date) {
+      dateObj = set.releaseDate
+    } else if (set.releaseDate?.seconds) {
+      dateObj = new Date(set.releaseDate.seconds * 1000)
+    } else {
+      return set.releaseYear || 'N/A'
+    }
+    
+    const month = dateObj.toLocaleDateString('en-US', { month: 'short' })
+    const day = dateObj.getDate()
+    const year = dateObj.getFullYear()
+    const ordinal = getOrdinalSuffix(day)
+    
+    return `${month} ${day}${ordinal} ${year}`
+  } else if (set.releaseYear) {
+    return set.releaseYear.toString()
+  }
+  return 'N/A'
+}
+
+const getOrdinalSuffix = (day) => {
+  if (day > 3 && day < 21) return 'th'
+  switch (day % 10) {
+    case 1: return 'st'
+    case 2: return 'nd'
+    case 3: return 'rd'
+    default: return 'th'
   }
 }
 

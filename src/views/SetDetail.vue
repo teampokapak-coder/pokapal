@@ -144,6 +144,16 @@
             </div>
           </div>
 
+          <!-- Start Master Set Button -->
+          <div v-if="user" class="mb-6">
+            <button
+              @click="showStartMasterSetModal = true"
+              class="btn btn-h4 btn-primary"
+            >
+              Start Master Set
+            </button>
+          </div>
+
           <!-- Cards Section -->
           <div class="mt-8">
             <div class="flex justify-between items-center mb-6">
@@ -225,13 +235,164 @@
       @close="selectedCard = null"
       @toggle-collected="(card) => toggleCollected(card.id)"
     />
+
+    <!-- Start Master Set Modal -->
+    <div
+      v-if="showStartMasterSetModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      @click="showStartMasterSetModal = false"
+    >
+      <div
+        class="rounded-lg max-w-md w-full"
+        style="background-color: var(--color-bg-secondary);"
+        @click.stop
+      >
+        <div class="p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 style="color: var(--color-text-primary);">Start Master Set</h3>
+            <button
+              @click="showStartMasterSetModal = false"
+              style="color: var(--color-text-tertiary);"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
+                Master Set Name
+              </label>
+              <input
+                v-model="masterSetForm.name"
+                type="text"
+                :placeholder="`${set?.name || 'Set'} Master Set`"
+                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
+                style="border-color: var(--color-border); background-color: var(--color-bg-primary); color: var(--color-text-primary);"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
+                Description (Optional)
+              </label>
+              <textarea
+                v-model="masterSetForm.description"
+                rows="3"
+                placeholder="Add a description for your master set..."
+                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
+                style="border-color: var(--color-border); background-color: var(--color-bg-primary); color: var(--color-text-primary);"
+              ></textarea>
+            </div>
+
+            <!-- Language Selection -->
+            <div>
+              <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
+                Languages
+              </label>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    v-model="masterSetForm.languages"
+                    value="en"
+                    class="w-4 h-4"
+                    :disabled="set?.language === 'ja'"
+                  />
+                  <span style="color: var(--color-text-primary);">English</span>
+                  <span v-if="set?.language === 'en' && cards.length > 0" class="text-xs" style="color: var(--color-text-tertiary);">
+                    ({{ cards.length }} cards)
+                  </span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    v-model="masterSetForm.languages"
+                    value="ja"
+                    class="w-4 h-4"
+                    :disabled="set?.language === 'en'"
+                  />
+                  <span style="color: var(--color-text-primary);">Japanese</span>
+                  <span v-if="set?.language === 'ja' && cards.length > 0" class="text-xs" style="color: var(--color-text-tertiary);">
+                    ({{ cards.length }} cards)
+                  </span>
+                </label>
+              </div>
+              <p v-if="masterSetForm.languages.length === 0" class="text-xs text-red-500 mt-1">
+                Please select at least one language
+              </p>
+              <p v-if="set?.language" class="text-xs mt-1" style="color: var(--color-text-tertiary);">
+                This set contains {{ set.language === 'en' ? 'English' : 'Japanese' }} cards
+              </p>
+            </div>
+
+            <!-- Invite Users -->
+            <div>
+              <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
+                Invite Friends (Optional)
+              </label>
+              <div class="space-y-2">
+                <div v-for="(invite, index) in masterSetForm.invites" :key="index" class="flex gap-2">
+                  <input
+                    v-model="invite.email"
+                    type="email"
+                    placeholder="friend@example.com"
+                    class="flex-1 px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
+                    style="border-color: var(--color-border); background-color: var(--color-bg-primary); color: var(--color-text-primary);"
+                    @input="searchUserForInvite(invite, index)"
+                  />
+                  <button
+                    @click="removeInvite(index)"
+                    class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <button
+                  @click="addInvite"
+                  class="btn btn-h5 btn-secondary w-full text-sm"
+                >
+                  + Add Friend
+                </button>
+              </div>
+            </div>
+
+            <div class="text-sm" style="color: var(--color-text-secondary);">
+              <p class="mb-2">This will create a master set for:</p>
+              <p class="font-medium" style="color: var(--color-text-primary);">
+                {{ set?.name }}
+              </p>
+              <p class="text-xs mt-1">
+                {{ cards.length }} cards will be included
+              </p>
+            </div>
+
+            <div class="flex gap-3 pt-4">
+              <button
+                @click="showStartMasterSetModal = false"
+                class="btn btn-h4 btn-ghost flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                @click="createMasterSetFromSet"
+                class="btn btn-h4 btn-primary flex-1"
+                :disabled="!masterSetForm.name.trim() || masterSetForm.languages.length === 0 || isCreatingMasterSet"
+              >
+                {{ isCreatingMasterSet ? 'Creating...' : 'Create Master Set' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { doc, getDoc, Timestamp } from 'firebase/firestore'
+import { doc, getDoc, Timestamp, serverTimestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { getAllPokemonCards, getSet, getCardsBySet } from '../utils/firebasePokemon'
 import { useAuth } from '../composables/useAuth'
@@ -241,6 +402,7 @@ import { getSetLogoUrl, formatSetDisplayName, formatSeriesDisplayName } from '..
 import { getSetIdInitials } from '../utils/cardImageFallback'
 import CardModal from '../components/CardModal.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
+import { createMasterSet, createAssignment, getCardIdsForSet } from '../utils/masterSetUtils'
 
 const route = useRoute()
 const { user } = useAuth()
@@ -255,6 +417,14 @@ const filterType = ref('')
 const filterRarity = ref('')
 const filterCardType = ref('')
 const collectedCards = ref(new Set())
+const showStartMasterSetModal = ref(false)
+const isCreatingMasterSet = ref(false)
+const masterSetForm = ref({
+  name: '',
+  description: '',
+  languages: [],
+  invites: []
+})
 
 // Poké Ball icon paths (static assets from public folder)
 const pokeballIconPath = '/pokeball.svg'
@@ -360,14 +530,14 @@ const filteredCards = computed(() => {
   }
 
   if (filterCardType.value) {
-    filtered = filtered.filter(card => card.cardType === filterCardType.value || card.supertype === filterCardType.value)
+    filtered = filtered.filter(card => card.category === filterCardType.value)
   }
 
   // Sort by set number if available
   filtered.sort((a, b) => {
-    if (a.setNumber && b.setNumber) {
-      const numA = parseInt(a.setNumber.split('/')[0]) || 0
-      const numB = parseInt(b.setNumber.split('/')[0]) || 0
+    if (a.localId && b.localId) {
+      const numA = parseInt(a.localId.split('/')[0]) || 0
+      const numB = parseInt(b.localId.split('/')[0]) || 0
       return numA - numB
     }
     return 0
@@ -416,17 +586,13 @@ const loadCards = async () => {
     // English sets should query card_en, Japanese sets should query card_ja
     const language = set.value.language || 'en'
     
-    console.log(`Loading cards for ${language} set: ${set.value.name} (${set.value.apiId})`)
-    
     // Load cards by setId (Firestore document ID) and language
     // getCardsBySet will query card_en for 'en' language, card_ja for 'ja' language
     const result = await getCardsBySet(set.value.id, language)
     
     if (result.success) {
       cards.value = result.data || []
-      console.log(`Found ${cards.value.length} cards for ${language} set ${set.value.name} (from ${language === 'en' ? 'card_en' : 'card_ja'})`)
     } else {
-      console.error('Failed to load cards:', result.error)
       cards.value = []
     }
     
@@ -439,6 +605,147 @@ const loadCards = async () => {
     isLoadingCards.value = false
   }
 }
+
+// Add invite
+const addInvite = () => {
+  masterSetForm.value.invites.push({ email: '', userId: null, userName: null })
+}
+
+// Remove invite
+const removeInvite = (index) => {
+  masterSetForm.value.invites.splice(index, 1)
+}
+
+// Search for user by email (optional - can enhance later)
+const searchUserForInvite = async (invite, index) => {
+  // TODO: Implement user search by email
+  // For now, just store the email
+}
+
+// Create master set from Set page
+const createMasterSetFromSet = async () => {
+  if (!user.value) {
+    alert('Please log in to create a master set')
+    return
+  }
+
+  if (!masterSetForm.value.name.trim()) {
+    alert('Please enter a master set name')
+    return
+  }
+
+  if (masterSetForm.value.languages.length === 0) {
+    alert('Please select at least one language')
+    return
+  }
+
+  if (!set.value || !set.value.id) {
+    alert('No set data found')
+    return
+  }
+
+  isCreatingMasterSet.value = true
+
+  try {
+    // Get card IDs for selected languages
+    const cardIds = { card_en: [], card_ja: [] }
+    
+    for (const lang of masterSetForm.value.languages) {
+      const ids = await getCardIdsForSet(set.value.id, lang)
+      if (lang === 'en') {
+        cardIds.card_en = ids
+      } else if (lang === 'ja') {
+        cardIds.card_ja = ids
+      }
+    }
+
+    if (cardIds.card_en.length === 0 && cardIds.card_ja.length === 0) {
+      alert('No cards found for this set in the selected languages')
+      isCreatingMasterSet.value = false
+      return
+    }
+
+    // Create master set
+    const masterSetData = {
+      name: masterSetForm.value.name.trim(),
+      description: masterSetForm.value.description.trim() || null,
+      type: 'set',
+      targetSetId: set.value.id,
+      targetSetCollection: `set_${set.value.language || 'en'}`,
+      targetSetName: set.value.name,
+      targetPokemonId: null,
+      targetPokemonName: null,
+      languages: masterSetForm.value.languages,
+      createdBy: user.value.uid
+    }
+
+    const masterSetResult = await createMasterSet(masterSetData)
+    if (!masterSetResult.success) {
+      throw new Error(masterSetResult.error)
+    }
+
+    const masterSetId = masterSetResult.data.id
+
+    // Create assignment for creator
+    const creatorAssignment = await createAssignment({
+      masterSetId,
+      userId: user.value.uid,
+      userEmail: user.value.email,
+      userName: user.value.displayName || user.value.email,
+      card_en: cardIds.card_en,
+      card_ja: cardIds.card_ja,
+      assignmentType: null,
+      assignmentSetId: null,
+      assignmentPokemonId: null,
+      status: 'accepted',
+      createdBy: user.value.uid
+    })
+
+    if (!creatorAssignment.success) {
+      throw new Error(creatorAssignment.error)
+    }
+
+    // Create assignments for invitees
+    for (const invite of masterSetForm.value.invites) {
+      if (invite.email && invite.email.includes('@')) {
+        await createAssignment({
+          masterSetId,
+          userId: invite.userId || null,
+          userEmail: invite.email,
+          userName: invite.userName || null,
+          card_en: cardIds.card_en,
+          card_ja: cardIds.card_ja,
+          assignmentType: null,
+          assignmentSetId: null,
+          assignmentPokemonId: null,
+          status: 'pending',
+          createdBy: user.value.uid
+        })
+      }
+    }
+
+    // Close modal and show success
+    showStartMasterSetModal.value = false
+    alert('Master set created successfully!')
+    // TODO: Navigate to master set detail page when created
+  } catch (error) {
+    console.error('Error creating master set:', error)
+    alert('Error creating master set: ' + error.message)
+  } finally {
+    isCreatingMasterSet.value = false
+  }
+}
+
+// Initialize form when modal opens
+watch(showStartMasterSetModal, (isOpen) => {
+  if (isOpen && set.value) {
+    masterSetForm.value.name = `${set.value.name} Master Set`
+    masterSetForm.value.description = ''
+    // Default to set's language
+    masterSetForm.value.languages = set.value.language === 'ja' ? ['ja'] : ['en']
+    masterSetForm.value.invites = []
+  }
+})
 
 onMounted(() => {
   loadSet()

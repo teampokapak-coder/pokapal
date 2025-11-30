@@ -493,68 +493,61 @@ export const mapTCGdxCardToSchema = (tcgdxCard, tcgdxSet, language = 'en', fires
     }
   }
   
+  // Use API structure directly, only add what we need
   return {
-    // API reference
-    apiId: tcgdxCard.id,
-    apiSetId: tcgdxSet?.id || tcgdxCard.set?.id || null, // Ensure never undefined
+    // API fields - use exactly as provided
+    id: tcgdxCard.id,
+    category: tcgdxCard.category || 'Pokemon',
+    illustrator: tcgdxCard.illustrator || '',
+    image: imageBaseUrl || tcgdxCard.image || '',
+    localId: tcgdxCard.localId || tcgdxCard.number || '',
+    name: tcgdxCard.name,
+    rarity: tcgdxCard.rarity || 'Unknown',
+    hp: tcgdxCard.hp ? parseInt(tcgdxCard.hp) : null,
+    types: tcgdxCard.types || [],
+    evolveFrom: tcgdxCard.evolveFrom || null,
+    description: tcgdxCard.description || '',
+    stage: tcgdxCard.stage || null,
+    attacks: tcgdxCard.attacks || [],
+    weaknesses: tcgdxCard.weaknesses || [],
+    resistances: tcgdxCard.resistances || [],
+    retreat: tcgdxCard.retreat || null,
+    regulationMark: tcgdxCard.regulationMark || null,
+    legal: tcgdxCard.legal || null,
+    abilities: tcgdxCard.abilities || [],
+    level: tcgdxCard.level || null,
+    dexId: tcgdxCard.dexId || [],
     
-    // Firestore reference
-    ...(firestoreSetId && { setId: firestoreSetId }),
+    // Set info - use API structure
+    set: tcgdxCard.set || {
+      id: tcgdxSet?.id || tcgdxCard.set?.id || '',
+      name: tcgdxSet?.name || tcgdxCard.set?.name || '',
+      logo: tcgdxSet?.logo || tcgdxCard.set?.logo || null,
+      symbol: tcgdxSet?.symbol || tcgdxCard.set?.symbol || null,
+      cardCount: tcgdxSet?.cardCount || tcgdxCard.set?.cardCount || null,
+      serie: tcgdxSet?.serie || tcgdxCard.set?.serie || null
+    },
     
-    // Language
+    // Variants - use API structure directly
+    variants: tcgdxCard.variants || {
+      firstEdition: false,
+      holo: false,
+      normal: true,
+      reverse: false,
+      wPromo: false
+    },
+    
+    // Only add what we need
+    nationalDexNumber: tcgdxCard.dexId?.[0] || null,
+    setId: firestoreSetId || null, // Firestore document ID reference
+    setApiId: tcgdxCard.set?.id || tcgdxSet?.id || null, // API set ID for querying
     language: language,
     
-    // Basic info
-    name: tcgdxCard.name,
-    nationalDexNumber: tcgdxCard.dexId?.[0] || null, // TCGdx uses dexId array
-    nationalPokedexNumbers: tcgdxCard.dexId || [],
-    
-    // Set info
-    set: tcgdxSet?.name || tcgdxCard.set?.name || '',
-    setCode: tcgdxSet?.id || tcgdxCard.set?.id || '',
-    setNumber: tcgdxCard.localId || tcgdxCard.number || '',
-    releaseYear: (() => {
-      if (!tcgdxSet?.releaseDate) return null
-      const date = new Date(tcgdxSet.releaseDate)
-      const year = date.getFullYear()
-      return isNaN(year) ? null : year
-    })(),
-    series: tcgdxSet?.serie?.name || tcgdxCard.set?.serie?.name || '',
-    
-    // Card details
-    rarity: tcgdxCard.rarity || 'Unknown',
-    cardType: tcgdxCard.category || 'Pokemon',
-    supertype: tcgdxCard.category || 'Pokemon',
-    subtypes: tcgdxCard.stage ? [tcgdxCard.stage] : [],
-    stage: tcgdxCard.stage || (tcgdxCard.category === 'Pokemon' ? 'Basic' : null),
-    
-    // Pokemon-specific (only if category is Pokemon)
-    types: tcgdxCard.types || [],
-    level: tcgdxCard.level || null,
-    hp: tcgdxCard.hp ? parseInt(tcgdxCard.hp) : null,
-    evolvesFrom: tcgdxCard.evolveFrom || null,
-    evolvesTo: [],
-    
-    // Rules and traits
-    rules: [],
-    ancientTrait: null,
-    regulationMark: tcgdxCard.regulationMark || null,
-    
-    // Variants
-    isHolo: tcgdxCard.variants?.holo || false,
-    isReverseHolo: tcgdxCard.variants?.reverse || false,
-    isFirstEdition: tcgdxCard.variants?.firstEdition || false,
-    isShadowless: false,
-    isFullArt: false, // TCGdx doesn't provide this
-    isRainbow: false, // TCGdx doesn't provide this
-    
-    // Metadata
-    artist: tcgdxCard.illustrator || '',
-    imageUrl: formatTCGdxCardImageUrl(imageBaseUrl, 'high', 'webp'), // Format with /high.webp
-    thumbnailUrl: formatTCGdxCardImageUrl(imageBaseUrl, 'low', 'webp'), // Format with /low.webp for thumbnails
+    // Construct image URLs for convenience (but keep original image field)
+    imageUrl: formatTCGdxCardImageUrl(imageBaseUrl || tcgdxCard.image, 'high', 'webp'),
+    thumbnailUrl: formatTCGdxCardImageUrl(imageBaseUrl || tcgdxCard.image, 'low', 'webp'),
     
     // English translation fields (for Japanese cards)
-    // If English card data is provided, add English name and image
     ...(englishCardData && {
       englishName: englishCardData.name || null,
       englishImageUrl: englishCardData.image 
@@ -563,25 +556,7 @@ export const mapTCGdxCardToSchema = (tcgdxCard, tcgdxSet, language = 'en', fires
       englishThumbnailUrl: englishCardData.image
         ? formatTCGdxCardImageUrl(englishCardData.image, 'low', 'webp')
         : null
-    }),
-    
-    // Card mechanics
-    abilities: tcgdxCard.abilities || [],
-    attacks: tcgdxCard.attacks || [],
-    weaknesses: tcgdxCard.weaknesses || [],
-    resistances: tcgdxCard.resistances || [],
-    retreatCost: tcgdxCard.retreat || null,
-    convertedRetreatCost: tcgdxCard.retreat || null,
-    flavorText: tcgdxCard.description || '',
-    
-    // Legalities and pricing
-    legalities: {
-      standard: tcgdxCard.legal?.standard ? 'Legal' : 'Illegal',
-      expanded: tcgdxCard.legal?.expanded ? 'Legal' : 'Illegal',
-      unlimited: 'Legal'
-    },
-    tcgplayerPrices: tcgdxCard.pricing?.tcgplayer || null,
-    cardmarketPrices: tcgdxCard.pricing?.cardmarket || null
+    })
   }
 }
 

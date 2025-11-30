@@ -296,7 +296,7 @@
                     </div>
                     <!-- Card Number Badge -->
                     <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs px-1 py-0.5 text-center truncate flex items-center justify-center">
-                      <span class="flex-1">{{ card.setNumber || card.number || '' }}</span>
+                      <span class="flex-1">{{ card.localId || card.number || '' }}</span>
                       <!-- Poké Ball Icon (always show for your assignment) -->
                       <div
                         v-if="assignment.userId === user?.uid"
@@ -613,7 +613,7 @@ const getFilteredCards = (assignment) => {
     const lowerQuery = query.toLowerCase()
     filtered = filtered.filter(card =>
       card.name?.toLowerCase().includes(lowerQuery) ||
-      card.setNumber?.toLowerCase().includes(lowerQuery)
+      card.localId?.toLowerCase().includes(lowerQuery)
     )
   }
   

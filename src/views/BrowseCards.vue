@@ -271,7 +271,7 @@ const filteredCards = computed(() => {
     const search = filters.value.search.toLowerCase()
     filtered = filtered.filter(card =>
       card.name?.toLowerCase().includes(search) ||
-      card.setNumber?.toLowerCase().includes(search)
+      card.localId?.toLowerCase().includes(search)
     )
   }
 
@@ -296,7 +296,7 @@ const filteredCards = computed(() => {
 
   // Card type filter
   if (filters.value.cardType) {
-    filtered = filtered.filter(card => card.cardType === filters.value.cardType)
+    filtered = filtered.filter(card => card.category === filters.value.cardType)
   }
 
   return filtered

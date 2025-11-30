@@ -69,8 +69,8 @@ export function getCardFallbackText(card) {
   if (!card) return '?'
   
   // Prefer set ID initials if available
-  if (card.setId || card.apiSetId || card.setCode) {
-    const setId = card.setId || card.apiSetId || card.setCode
+  const setId = card.setId || card.set?.id || card.id
+  if (setId) {
     return getSetIdInitials(setId)
   }
   

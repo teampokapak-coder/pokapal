@@ -491,7 +491,7 @@
                   <h5 class="mb-3">Current Assignments</h5>
                   
                   <!-- Check if we have "Assign to All" -->
-                  <div v-if="hasAssignToAll.value && (form.selectedSetId || form.selectedPokemonId)" class="card card-flat p-3 mb-3">
+                  <div v-if="hasAssignToAll && (form.selectedSetId || form.selectedPokemonId)" class="card card-flat p-3 mb-3">
                     <div class="flex items-center justify-between">
                       <p class="text-sm text-gray-700">
                         <span class="font-medium">All users:</span> 
@@ -499,7 +499,7 @@
                         <span v-else-if="form.collectionType === 'pokemon' && form.selectedPokemonId">{{ getPokemonName(form.selectedPokemonId) }}</span>
                       </p>
                       <button
-                        @click="hasAssignToAll.value = false; form.selectedSetId = null; form.selectedPokemonId = null; form.selectedSet = null; form.selectedPokemon = null; form.individualAssignments = {}"
+                        @click="hasAssignToAll = false; form.selectedSetId = null; form.selectedPokemonId = null; form.selectedSet = null; form.selectedPokemon = null; form.individualAssignments = {}"
                         class="text-xs text-red-600 hover:text-red-800"
                       >
                         Remove
@@ -531,7 +531,7 @@
                     </div>
                   </div>
                   
-                  <div v-if="!hasAssignToAll.value && Object.keys(form.individualAssignments).length === 0" class="text-sm text-gray-500 text-center py-4">
+                  <div v-if="!hasAssignToAll && Object.keys(form.individualAssignments).length === 0" class="text-sm text-gray-500 text-center py-4">
                     No assignments yet. Select a set/pokemon above and click "Save" to assign it.
                   </div>
                 </div>
@@ -580,7 +580,7 @@
                   <p class="text-gray-900 capitalize">{{ form.collectionType }}</p>
                 </div>
                 <!-- Show assignments -->
-                <div v-if="hasAssignToAll.value">
+                <div v-if="hasAssignToAll">
                   <!-- Assign to All -->
                   <div v-if="form.collectionType === 'set'">
                     <h4 class="text-sm font-medium text-gray-700 mb-1">Set (All Members)</h4>
@@ -645,9 +645,11 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { collection, getDocs, query, where, addDoc, doc, getDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
+import { createMasterSet as createMasterSetUtil, createAssignment, getCardIdsForSet, getCardIdsForPokemon } from '../utils/masterSetUtils'
+import { getAllPokemonCards } from '../utils/firebasePokemon'
 
 const router = useRouter()
 const { user } = useAuth()
@@ -683,12 +685,34 @@ const hasAssignToAll = ref(false)
 const loadSets = async () => {
   isLoadingSets.value = true
   try {
-    const setsRef = collection(db, 'sets')
-    const snapshot = await getDocs(setsRef)
-    availableSets.value = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })).sort((a, b) => {
+    // Load from both set_en and set_ja collections
+    const setsEnRef = collection(db, 'set_en')
+    const setsJaRef = collection(db, 'set_ja')
+    
+    const [enSnapshot, jaSnapshot] = await Promise.all([
+      getDocs(setsEnRef),
+      getDocs(setsJaRef)
+    ])
+    
+    const allSets = []
+    
+    enSnapshot.docs.forEach(doc => {
+      allSets.push({
+        id: doc.id,
+        ...doc.data(),
+        language: 'en'
+      })
+    })
+    
+    jaSnapshot.docs.forEach(doc => {
+      allSets.push({
+        id: doc.id,
+        ...doc.data(),
+        language: 'ja'
+      })
+    })
+    
+    availableSets.value = allSets.sort((a, b) => {
       const dateA = a.releaseDate?.toDate?.() || new Date(0)
       const dateB = b.releaseDate?.toDate?.() || new Date(0)
       return dateB - dateA
@@ -796,12 +820,16 @@ const searchUser = async (invite, index) => {
 const loadPokemon = async () => {
   isLoadingPokemon.value = true
   try {
-    const pokemonListRef = collection(db, 'pokemonList')
-    const snapshot = await getDocs(pokemonListRef)
+    const pokemonRef = collection(db, 'pokemon')
+    const snapshot = await getDocs(pokemonRef)
     availablePokemon.value = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }))
+    })).sort((a, b) => {
+      const dexA = a.nationalDexNumber || 9999
+      const dexB = b.nationalDexNumber || 9999
+      return dexA - dexB
+    })
   } catch (error) {
     console.error('Error loading Pokemon:', error)
   } finally {
@@ -886,6 +914,8 @@ const saveSetAssignment = () => {
     hasAssignToAll.value = true
     form.value.selectedSetId = setId
     form.value.selectedSet = form.value.selectedSet || availableSets.value.find(s => s.id === setId)
+    // Keep selectedSetId set so it displays in Current Assignments
+    // Don't clear it - we need it to show the assignment
     // Clear individual assignments when assigning to all
     form.value.individualAssignments = {}
   } else {
@@ -893,16 +923,20 @@ const saveSetAssignment = () => {
     hasAssignToAll.value = false
     
     const personId = currentAssignmentTarget.value || user.value?.uid || 'creator'
-    form.value.individualAssignments[personId] = {
+    // Use Vue's reactive assignment to ensure reactivity
+    const newAssignments = { ...form.value.individualAssignments }
+    newAssignments[personId] = {
       type: 'set',
       setId: setId,
       pokemonId: null
     }
+    form.value.individualAssignments = newAssignments
+    
+    // Clear the selection card so they can pick another set/pokemon
+    form.value.selectedSet = null
+    form.value.selectedSetId = null
   }
   
-  // Clear the selection card so they can pick another set/pokemon
-  form.value.selectedSet = null
-  form.value.selectedSetId = null
   // Reset dropdown to "all" for next assignment
   currentAssignmentTarget.value = 'all'
 }
@@ -943,6 +977,8 @@ const savePokemonAssignment = () => {
     // Assign to all - store for all members (creator + invites)
     hasAssignToAll.value = true
     form.value.selectedPokemon = form.value.selectedPokemon || availablePokemon.value.find(p => p.id === form.value.selectedPokemonId)
+    // Keep selectedPokemonId set so it displays in Current Assignments
+    // Don't clear it - we need it to show the assignment
     // Clear individual assignments when assigning to all
     form.value.individualAssignments = {}
   } else {
@@ -950,17 +986,21 @@ const savePokemonAssignment = () => {
     hasAssignToAll.value = false
     
     const personId = currentAssignmentTarget.value || user.value?.uid || 'creator'
-    form.value.individualAssignments[personId] = {
+    // Use Vue's reactive assignment to ensure reactivity
+    const newAssignments = { ...form.value.individualAssignments }
+    newAssignments[personId] = {
       type: 'pokemon',
       setId: null,
       pokemonId: form.value.selectedPokemonId
     }
+    form.value.individualAssignments = newAssignments
+    
+    // Clear the selection card so they can pick another set/pokemon
+    form.value.selectedPokemon = null
+    form.value.selectedPokemonId = null
+    pokemonSearchQuery.value = ''
   }
   
-  // Clear the selection card so they can pick another set/pokemon
-  form.value.selectedPokemon = null
-  form.value.selectedPokemonId = null
-  pokemonSearchQuery.value = ''
   // Reset dropdown to "all" for next assignment
   currentAssignmentTarget.value = 'all'
 }
@@ -1072,171 +1112,177 @@ const createMasterSet = async () => {
   isCreating.value = true
   
   try {
-    let challengeId = null
-    let creatorAssignmentId = null
+    // Determine languages based on assignments
+    const languages = new Set()
     
-    // Build members array (creator + invites)
-    const members = [user.value.uid]
-    const validInvites = form.value.invites.filter(i => i.email && i.email.includes('@'))
-    for (const invite of validInvites) {
-      // Add userId if exists, otherwise add email
-      if (invite.userId) {
-        members.push(invite.userId)
-      } else {
-        members.push(invite.email)
+    // Helper function to get card IDs for an assignment
+    const getCardIdsForAssignment = async (type, setId, pokemonId, setLanguage) => {
+      if (type === 'set' && setId) {
+        // Get card IDs for set
+        const cardIds = await getCardIdsForSet(setId, setLanguage || 'en')
+        return { card_en: setLanguage === 'en' ? cardIds : [], card_ja: setLanguage === 'ja' ? cardIds : [] }
+      } else if (type === 'pokemon' && pokemonId) {
+        // Get Pokemon by ID
+        const pokemon = availablePokemon.value.find(p => p.id === pokemonId)
+        if (pokemon && pokemon.nationalDexNumber) {
+          // Default to both languages for Pokemon
+          return await getCardIdsForPokemon(pokemon.nationalDexNumber, ['en', 'ja'])
+        }
+      }
+      return { card_en: [], card_ja: [] }
+    }
+    
+    // Determine master set type and languages
+    let masterSetType = null
+    let masterSetTargetId = null
+    let masterSetTargetName = null
+    let masterSetTargetCollection = null
+    
+    if (hasAssignToAll.value) {
+      // All have same assignment - use that as master set type
+      masterSetType = form.value.collectionType
+      if (form.value.collectionType === 'set') {
+        const selectedSet = form.value.selectedSet || availableSets.value.find(s => s.id === form.value.selectedSetId)
+        masterSetTargetId = form.value.selectedSetId
+        masterSetTargetName = selectedSet?.name
+        masterSetTargetCollection = `set_${selectedSet?.language || 'en'}`
+        if (selectedSet?.language) languages.add(selectedSet.language)
+      } else if (form.value.collectionType === 'pokemon') {
+        const selectedPokemon = form.value.selectedPokemon || availablePokemon.value.find(p => p.id === form.value.selectedPokemonId)
+        masterSetTargetId = String(selectedPokemon?.nationalDexNumber)
+        masterSetTargetName = selectedPokemon?.displayName || selectedPokemon?.name
+        languages.add('en')
+        languages.add('ja')
+      }
+    } else {
+      // Mixed assignments - master set type is null, but we'll use the first assignment's type
+      const firstAssignment = Object.values(form.value.individualAssignments)[0]
+      if (firstAssignment) {
+        masterSetType = firstAssignment.type
+        // For mixed, we'll default to both languages
+        languages.add('en')
+        languages.add('ja')
       }
     }
     
-    // Create challenge (always create, even for solo)
-    const challengesRef = collection(db, 'challenges')
-    const inviteCode = generateInviteCode()
-    
-    const challengeData = {
-      name: form.value.challengeName,
-      description: '',
-      inviteCode,
-      createdBy: user.value.uid,
-      members: members, // Array of userIds and/or emails
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+    // Create master set
+    const masterSetData = {
+      name: form.value.challengeName.trim(),
+      description: null,
+      type: masterSetType || 'set', // Default to 'set' if null
+      targetSetId: masterSetType === 'set' ? masterSetTargetId : null,
+      targetSetCollection: masterSetTargetCollection,
+      targetSetName: masterSetType === 'set' ? masterSetTargetName : null,
+      targetPokemonId: masterSetType === 'pokemon' ? masterSetTargetId : null,
+      targetPokemonName: masterSetType === 'pokemon' ? masterSetTargetName : null,
+      languages: Array.from(languages),
+      createdBy: user.value.uid
     }
     
-    const challengeDoc = await addDoc(challengesRef, challengeData)
-    challengeId = challengeDoc.id
+    const masterSetResult = await createMasterSetUtil(masterSetData)
+    if (!masterSetResult.success) {
+      throw new Error(masterSetResult.error)
+    }
     
-    // Update user's challenges array
-    const userRef = doc(db, 'users', user.value.uid)
-    await updateDoc(userRef, {
-      challenges: arrayUnion(challengeId),
-      updatedAt: serverTimestamp()
+    const masterSetId = masterSetResult.data.id
+    
+    // Get all members (creator + invites)
+    const members = []
+    const validInvites = form.value.invites.filter(i => i.email && i.email.includes('@'))
+    
+    // Add creator
+    members.push({
+      userId: user.value.uid,
+      userEmail: user.value.email,
+      userName: user.value.displayName || user.value.email
     })
     
-    // Create invites (if there are invites)
-    if (hasInvites.value) {
-      const invitesRef = collection(db, 'invites')
-      for (const invite of validInvites) {
-        await addDoc(invitesRef, {
-          challengeId,
-          challengeName: form.value.challengeName,
-          invitedBy: user.value.uid,
-          invitedByName: user.value.displayName || user.value.email,
-          email: invite.email,
-          userId: invite.userId || null,
-          status: 'pending',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          acceptedAt: null
+    // Add invites
+    for (const invite of validInvites) {
+      members.push({
+        userId: invite.userId || null,
+        userEmail: invite.email,
+        userName: invite.userName || null
+      })
+    }
+    
+    // Create assignments
+    if (hasAssignToAll.value) {
+      // "Assign to All" - all members get the same assignment
+      const selectedSet = form.value.selectedSet || availableSets.value.find(s => s.id === form.value.selectedSetId)
+      const selectedPokemon = form.value.selectedPokemon || availablePokemon.value.find(p => p.id === form.value.selectedPokemonId)
+      
+      // Get card IDs once
+      const cardIds = await getCardIdsForAssignment(
+        form.value.collectionType,
+        form.value.collectionType === 'set' ? form.value.selectedSetId : null,
+        form.value.collectionType === 'pokemon' ? form.value.selectedPokemonId : null,
+        selectedSet?.language
+      )
+      
+      // Create assignment for each member
+      for (const member of members) {
+        await createAssignment({
+          masterSetId,
+          userId: member.userId,
+          userEmail: member.userEmail,
+          userName: member.userName,
+          card_en: cardIds.card_en,
+          card_ja: cardIds.card_ja,
+          assignmentType: null, // Same as masterSet.type
+          assignmentSetId: null,
+          assignmentPokemonId: null,
+          status: member.userId === user.value.uid ? 'accepted' : 'pending',
+          createdBy: user.value.uid
+        })
+      }
+    } else {
+      // Individual assignments - each member gets their own assignment
+      for (const member of members) {
+        const personId = member.userId || member.userEmail
+        const assignment = form.value.individualAssignments[personId] || form.value.individualAssignments[member.userEmail]
+        
+        if (!assignment) {
+          console.warn(`No assignment found for ${personId}`)
+          continue
+        }
+        
+        const selectedSet = assignment.type === 'set' ? availableSets.value.find(s => s.id === assignment.setId) : null
+        const selectedPokemon = assignment.type === 'pokemon' ? availablePokemon.value.find(p => p.id === assignment.pokemonId) : null
+        
+        // Get card IDs for this specific assignment
+        const cardIds = await getCardIdsForAssignment(
+          assignment.type,
+          assignment.setId || null,
+          assignment.pokemonId || null,
+          selectedSet?.language
+        )
+        
+        await createAssignment({
+          masterSetId,
+          userId: member.userId,
+          userEmail: member.userEmail,
+          userName: member.userName,
+          card_en: cardIds.card_en,
+          card_ja: cardIds.card_ja,
+          assignmentType: assignment.type, // Different from masterSet.type
+          assignmentSetId: assignment.type === 'set' ? assignment.setId : null,
+          assignmentPokemonId: assignment.type === 'pokemon' ? assignment.pokemonId : null,
+          status: member.userId === user.value.uid ? 'accepted' : 'pending',
+          createdBy: user.value.uid
         })
       }
     }
     
-    // Create assignments in top-level assignments collection
-    const assignmentsRef = collection(db, 'assignments')
-    const pokemonRef = collection(db, 'pokemon')
-    
-    // Helper function to get cardIds for an assignment
-    const getCardIdsForAssignment = async (type, setId, pokemonId) => {
-      let cardIds = []
-      
-      if (type === 'set' && setId) {
-        // Query cards for this set
-        const q = query(pokemonRef, where('setId', '==', setId))
-        const snapshot = await getDocs(q)
-        cardIds = snapshot.docs.map(doc => doc.id)
-      } else if (type === 'pokemon' && pokemonId) {
-        // Get cardIds from pokemonList
-        const pokemonListRef = doc(db, 'pokemonList', pokemonId)
-        const pokemonListDoc = await getDoc(pokemonListRef)
-        if (pokemonListDoc.exists()) {
-          cardIds = pokemonListDoc.data().cardIds || []
-        }
-      }
-      
-      return cardIds
-    }
-    
-    if (hasAssignToAll.value) {
-      // "Assign to All" - create one assignment per member with the same assignment
-      const selectedSet = form.value.selectedSet || availableSets.value.find(s => s.id === form.value.selectedSetId)
-      const selectedPokemon = form.value.selectedPokemon || availablePokemon.value.find(p => p.id === form.value.selectedPokemonId)
-      
-      // Pre-calculate cardIds once for all members (they all have the same assignment)
-      const cardIds = await getCardIdsForAssignment(
-        form.value.collectionType,
-        form.value.collectionType === 'set' ? form.value.selectedSetId : null,
-        form.value.collectionType === 'pokemon' ? form.value.selectedPokemonId : null
-      )
-      
-      for (const memberId of members) {
-        const assignmentData = {
-          challengeId: challengeId, // Reference to challenge
-          userId: memberId.includes('@') ? null : memberId, // userId if it's a userId, null if email
-          email: memberId.includes('@') ? memberId : null, // email if it's an email, null if userId
-          type: form.value.collectionType,
-          setId: form.value.collectionType === 'set' ? form.value.selectedSetId : null,
-          setName: form.value.collectionType === 'set' ? (selectedSet?.name || null) : null,
-          pokemonId: form.value.collectionType === 'pokemon' ? form.value.selectedPokemonId : null,
-          pokemonName: form.value.collectionType === 'pokemon' ? (selectedPokemon?.displayName || selectedPokemon?.name || null) : null,
-          cardIds: cardIds, // Pre-calculated list of card IDs
-          totalCards: cardIds.length, // Store total for quick reference
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        }
-        const assignmentDoc = await addDoc(assignmentsRef, assignmentData)
-        
-        // Store creator's assignment ID for redirect
-        if (memberId === user.value.uid) {
-          creatorAssignmentId = assignmentDoc.id
-        }
-      }
-    } else {
-      // Individual assignments - create assignments based on individualAssignments
-      for (const [personId, assignment] of Object.entries(form.value.individualAssignments)) {
-        const selectedSet = assignment.type === 'set' ? availableSets.value.find(s => s.id === assignment.setId) : null
-        const selectedPokemon = assignment.type === 'pokemon' ? availablePokemon.value.find(p => p.id === assignment.pokemonId) : null
-        
-        // Pre-calculate cardIds for this specific assignment
-        const cardIds = await getCardIdsForAssignment(
-          assignment.type,
-          assignment.setId || null,
-          assignment.pokemonId || null
-        )
-        
-        const assignmentData = {
-          challengeId: challengeId, // Reference to challenge
-          userId: personId.includes('@') ? null : personId, // userId if it's a userId, null if email
-          email: personId.includes('@') ? personId : null, // email if it's an email, null if userId
-          type: assignment.type,
-          setId: assignment.setId || null,
-          setName: selectedSet?.name || null,
-          pokemonId: assignment.pokemonId || null,
-          pokemonName: selectedPokemon?.displayName || selectedPokemon?.name || null,
-          cardIds: cardIds, // Pre-calculated list of card IDs
-          totalCards: cardIds.length, // Store total for quick reference
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        }
-        const assignmentDoc = await addDoc(assignmentsRef, assignmentData)
-        
-        // Store creator's assignment ID for redirect
-        if (personId === user.value.uid || personId === 'creator') {
-          creatorAssignmentId = assignmentDoc.id
-        }
-      }
-    }
-    
-    // Redirect to challenge page (consolidated view)
-    router.push(`/challenge/${challengeId}`)
+    // Redirect to master set page (TODO: create this page)
+    alert('Master set created successfully!')
+    router.push('/')
   } catch (error) {
     console.error('Error creating master set:', error)
     alert('Error creating master set: ' + error.message)
   } finally {
     isCreating.value = false
   }
-}
-
-const generateInviteCode = () => {
-  return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
 // Set default assignment target when entering step 3

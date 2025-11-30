@@ -74,8 +74,8 @@
         <p v-if="formattedSetName" class="text-[10px] sm:text-xs truncate flex-1 min-w-0" style="color: var(--color-text-secondary);">
           {{ formattedSetName }}
         </p>
-        <p v-if="card.setNumber" class="text-[10px] sm:text-xs flex-shrink-0" style="color: var(--color-text-tertiary);">
-          #{{ card.setNumber }}
+        <p v-if="card.localId" class="text-[10px] sm:text-xs flex-shrink-0" style="color: var(--color-text-tertiary);">
+          #{{ card.localId }}
         </p>
       </div>
       
@@ -131,8 +131,8 @@ const getCardImageUrl = (card) => {
     return card.englishImageUrl
   }
   
-  // Otherwise use Japanese/English image
-  return card.imageUrl || card.thumbnailUrl || null
+  // Use convenience fields first, then fallback to API image field
+  return card.imageUrl || card.thumbnailUrl || card.image || null
 }
 
 // Poké Ball icon paths (static assets from public folder)
