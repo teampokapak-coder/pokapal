@@ -106,24 +106,22 @@
                     </button>
                   </div>
                 </div>
-                <p class="text-sm text-gray-600 mt-2">
-                  Invite Code: <span class="font-mono font-bold">{{ challengeData.inviteCode }}</span>
-                  <button
-                    @click="copyInviteCode"
-                    class="ml-2 text-xs text-gray-500 hover:text-gray-700"
-                  >
-                    Copy
-                  </button>
-                </p>
+                <div class="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div class="flex gap-2">
+                    <button
+                      v-if="isCreator"
+                      @click="showInviteModal = true"
+                      class="btn btn-h4 btn-primary"
+                    >
+                      + Invite
+                    </button>
+                    <router-link to="/profile" class="btn btn-h4 btn-ghost hidden sm:inline-flex">
+                      ← Back
+                    </router-link>
+                  </div>
+                </div>
               </div>
-              <div class="flex gap-2 ml-4">
-                <button
-                  v-if="isCreator"
-                  @click="showInviteModal = true"
-                  class="btn btn-h4 btn-primary"
-                >
-                  + Invite
-                </button>
+              <div class="flex gap-2 ml-4 hidden sm:flex">
                 <router-link to="/profile" class="btn btn-h4 btn-ghost">
                   ← Back
                 </router-link>
@@ -165,10 +163,16 @@
             </div>
           </div>
 
-          <!-- Members & Assignments Overview -->
+          <!-- Master Set Summary -->
           <div class="card mb-6">
             <div class="card-body">
-              <h3 class="mb-4">Members & Assignments</h3>
+              <h3 class="mb-4">Master Set Summary</h3>
+              <div v-if="challengeData.type === 'set' && challengeData.targetSetName" class="mb-4">
+                <p class="text-lg font-medium">Set: {{ challengeData.targetSetName }}</p>
+              </div>
+              <div v-else-if="challengeData.type === 'pokemon' && challengeData.targetPokemonName" class="mb-4">
+                <p class="text-lg font-medium">Pokemon: {{ challengeData.targetPokemonName }}</p>
+              </div>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div
                   v-for="assignment in memberAssignments"
@@ -176,25 +180,19 @@
                   class="border border-gray-200 rounded-lg p-4"
                 >
                   <div class="flex items-start justify-between mb-2">
-                    <p class="font-medium text-gray-900">
+                    <p class="font-medium text-gray-900 dark:text-gray-100">
                       {{ assignment.userName || assignment.email || 'Unknown User' }}
                     </p>
-                    <span v-if="assignment.userId === user?.uid" class="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">You</span>
-                  </div>
-                  <div v-if="assignment.type === 'pokemon' && assignment.pokemonName" class="text-sm text-gray-600 mb-2">
-                    <span class="font-medium">Pokemon:</span> {{ assignment.pokemonName }}
-                  </div>
-                  <div v-else-if="assignment.type === 'set' && assignment.setName" class="text-sm text-gray-600 mb-2">
-                    <span class="font-medium">Set:</span> {{ assignment.setName }}
+                    <span v-if="assignment.userId === user?.uid" class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">You</span>
                   </div>
                   <div class="mt-2">
-                    <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                    <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
                       <span>Progress</span>
                       <span>{{ assignment.progress || 0 }}%</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
-                        class="bg-gray-900 h-2 rounded-full transition-all duration-300"
+                        class="bg-gray-900 dark:bg-green-500 h-2 rounded-full transition-all duration-300"
                         :style="{ width: `${assignment.progress || 0}%` }"
                       ></div>
                     </div>
@@ -260,57 +258,22 @@
                   />
                 </div>
 
-                <!-- Cards Grid -->
-                <div v-if="getFilteredCards(assignment).length > 0" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+                <!-- Cards Grid Container (scrollable, max 4 rows) -->
                   <div
+                  v-if="getFilteredCards(assignment).length > 0" 
+                  class="cards-scroll-container max-h-[600px] sm:max-h-[500px] overflow-y-auto overflow-x-hidden pr-2"
+                >
+                  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2 sm:gap-3 pb-2">
+                    <PokemonCardMS
                     v-for="card in getFilteredCards(assignment)"
                     :key="card.id"
-                    class="relative aspect-square bg-gray-100 rounded overflow-hidden border-2 transition-all"
-                    :class="[
-                      card.checkedOff ? 'border-gray-400 opacity-60' : 'border-gray-200',
-                      assignment.userId === user?.uid ? 'cursor-pointer hover:border-gray-400' : ''
-                    ]"
-                    :title="card.name"
-                    @click="assignment.userId === user?.uid ? toggleCard(card, assignment) : null"
-                  >
-                    <img
-                      v-if="card.imageUrl || card.thumbnailUrl"
-                      :src="card.imageUrl || card.thumbnailUrl"
-                      :alt="card.name"
-                      class="w-full h-full object-contain"
-                      @error="handleImageError"
+                      :card="card"
+                      :is-collected="card.isCollected"
+                      :show-collection-button="assignment.userId === user?.uid"
+                      :show-name-tooltip="true"
+                      @click="selectCard(card)"
+                      @toggle-collected="assignment.userId === user?.uid ? toggleCard(card, assignment) : null"
                     />
-                    <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
-                      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <!-- Checkmark Overlay (assignment-specific) -->
-                    <div
-                      v-if="card.checkedOff"
-                      class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"
-                    >
-                      <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <!-- Card Number Badge -->
-                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs px-1 py-0.5 text-center truncate flex items-center justify-center">
-                      <span class="flex-1">{{ card.localId || card.number || '' }}</span>
-                      <!-- Poké Ball Icon (always show for your assignment) -->
-                      <div
-                        v-if="assignment.userId === user?.uid"
-                        class="cursor-pointer hover:scale-110 transition-transform ml-1"
-                        @click.stop="toggleGlobalCollected(card.id)"
-                        :title="card.isCollected ? 'In your collection - Click to remove' : 'Click to add to collection'"
-                      >
-                        <img
-                          :src="getPokeballIcon(card.isCollected)"
-                          alt="Poké Ball"
-                          class="w-3 h-3"
-                        />
-                      </div>
-                    </div>
                   </div>
                 </div>
                 <div v-else class="text-center py-8 text-gray-500">
@@ -323,6 +286,15 @@
         </div>
       </div>
     </section>
+
+    <!-- Card Detail Modal -->
+    <CardModal
+      v-if="selectedCard"
+      :card="selectedCard"
+      :is-collected="selectedCard ? memberAssignments.find(a => a.userId === user?.uid)?.cards?.find(c => c.id === selectedCard.id)?.isCollected || false : false"
+      @close="selectedCard = null"
+      @toggle-collected="selectedCard ? toggleCard(selectedCard, memberAssignments.find(a => a.userId === user?.uid)) : null"
+    />
   </div>
 </template>
 
@@ -333,12 +305,15 @@ import { collection, getDocs, query, where, doc, getDoc, setDoc, addDoc, updateD
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
 import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
+import PokemonCardMS from '../components/PokemonCardMS.vue'
+import CardModal from '../components/CardModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { user } = useAuth()
 
-const challengeId = route.params.challengeId
+const challengeId = route.params.challengeId || route.params.masterSetId
+const isMasterSet = !!route.params.masterSetId
 const challengeData = ref(null)
 const memberAssignments = ref([])
 const isLoading = ref(false)
@@ -388,21 +363,25 @@ const loadChallengeDetails = async () => {
   
   isLoading.value = true
   try {
-    // Load challenge data
-    const challengeRef = doc(db, 'challenges', challengeId)
-    const challengeSnap = await getDoc(challengeRef)
+    // Load master set or challenge data
+    const collectionName = isMasterSet ? 'masterSets' : 'challenges'
+    const dataRef = doc(db, collectionName, challengeId)
+    const dataSnap = await getDoc(dataRef)
     
-    if (!challengeSnap.exists()) {
+    if (!dataSnap.exists()) {
       challengeData.value = null
       isLoading.value = false
       return
     }
     
-    challengeData.value = { id: challengeSnap.id, ...challengeSnap.data() }
+    challengeData.value = { id: dataSnap.id, ...dataSnap.data() }
     
-    // Load ALL assignments for this challenge
+    // Load ALL assignments for this master set/challenge
     const assignmentsRef = collection(db, 'assignments')
-    const assignmentsQuery = query(assignmentsRef, where('challengeId', '==', challengeId))
+    const assignmentsQuery = query(
+      assignmentsRef, 
+      where(isMasterSet ? 'masterSetId' : 'challengeId', '==', challengeId)
+    )
     const assignmentsSnapshot = await getDocs(assignmentsQuery)
     
     const assignments = []
@@ -453,121 +432,286 @@ const loadChallengeDetails = async () => {
         }
       }
       
-      // Load cards using pre-calculated cardIds from assignment
-      const pokemonRef = collection(db, 'pokemon')
+      // Load cards using pre-calculated card IDs from assignment
+      // Assignments store card_en and card_ja arrays with Firestore document IDs
       let allCards = []
       
-      // Use stored cardIds if available (new assignments), otherwise fallback to querying
-      const cardIds = assignmentData.cardIds || []
+      const cardEnIds = assignmentData.card_en || []
+      const cardJaIds = assignmentData.card_ja || []
       
-      if (cardIds.length > 0) {
-        // Use pre-calculated cardIds - fetch documents directly by ID
-        // This is more efficient than queries and avoids rate limits
-        // Process in batches to avoid overwhelming Firestore
-        const batchSize = 50 // Process 50 at a time
-        const batches = []
-        for (let i = 0; i < cardIds.length; i += batchSize) {
-          batches.push(cardIds.slice(i, i + batchSize))
+      // Debug: Log what we're working with
+      console.log(`Assignment ${assignmentDoc.id} card IDs:`, {
+        cardEnIds: cardEnIds.slice(0, 5), // First 5 for debugging
+        cardEnTotal: cardEnIds.length,
+        cardJaIds: cardJaIds.slice(0, 5),
+        cardJaTotal: cardJaIds.length
+      })
+      
+      // Fallback: check for old cardIds format
+      const hasOldFormat = cardEnIds.length === 0 && cardJaIds.length === 0 && assignmentData.cardIds
+      
+      if (cardEnIds.length > 0 || cardJaIds.length > 0 || hasOldFormat) {
+        // Load English cards from card_en collection
+        // card_en array stores the 'id' field values (like "me02-045"), not Firestore document IDs
+        if (cardEnIds.length > 0) {
+          const cardEnRef = collection(db, 'card_en')
+          
+          // Query in batches (Firestore 'in' query limit is 10)
+          const batchSize = 10
+          let foundCount = 0
+          let notFoundCount = 0
+          
+          for (let i = 0; i < cardEnIds.length; i += batchSize) {
+            const batch = cardEnIds.slice(i, i + batchSize)
+            try {
+              // Query by 'id' field
+              const q = query(cardEnRef, where('id', 'in', batch))
+              const snapshot = await getDocs(q)
+              
+              const batchCards = snapshot.docs.map(doc => {
+                foundCount++
+                const cardData = doc.data()
+                // Preserve the original id field value before overriding
+                const originalCardId = cardData.id || cardData.apiId
+                return {
+                  ...cardData,
+                  id: doc.id, // Override with Firestore document ID (for consistency with rest of app)
+                  cardId: originalCardId, // Preserve original card id field (like "me02-045")
+                  language: 'en'
+                }
+              })
+              
+              allCards.push(...batchCards)
+              
+              // Track which IDs weren't found (compare card's original 'id' field value)
+              const foundCardIds = new Set(batchCards.map(c => c.cardId || c.id || c.apiId).filter(Boolean))
+              batch.forEach(cardId => {
+                if (!foundCardIds.has(cardId)) {
+                  notFoundCount++
+                  console.warn(`Card not found in card_en with id="${cardId}"`)
+                }
+              })
+            } catch (error) {
+              console.error(`Error querying batch of English cards:`, error)
+              notFoundCount += batch.length
+            }
+          }
+          console.log(`Loaded ${foundCount} English cards, ${notFoundCount} not found`)
         }
         
-        // Process batches sequentially to avoid quota issues
-        for (const batch of batches) {
-          const batchPromises = batch.map(cardId => {
-            const cardRef = doc(db, 'pokemon', cardId)
-            return getDoc(cardRef)
-          })
+        // Load Japanese cards from card_ja collection
+        // card_ja array stores the 'id' field values, not Firestore document IDs
+        if (cardJaIds.length > 0) {
+          const cardJaRef = collection(db, 'card_ja')
           
-          const batchSnapshots = await Promise.all(batchPromises)
-          const batchCards = batchSnapshots
-            .filter(snap => snap.exists())
-            .map(snap => ({
-              id: snap.id,
-              ...snap.data()
-            }))
+          // Query in batches (Firestore 'in' query limit is 10)
+          const batchSize = 10
+          let foundCount = 0
+          let notFoundCount = 0
+          
+          for (let i = 0; i < cardJaIds.length; i += batchSize) {
+            const batch = cardJaIds.slice(i, i + batchSize)
+            try {
+              // Query by 'id' field
+              const q = query(cardJaRef, where('id', 'in', batch))
+              const snapshot = await getDocs(q)
+              
+              const batchCards = snapshot.docs.map(doc => {
+                foundCount++
+                const cardData = doc.data()
+                // Preserve the original id field value before overriding
+                const originalCardId = cardData.id || cardData.apiId
+                return {
+                  ...cardData,
+                  id: doc.id, // Override with Firestore document ID (for consistency with rest of app)
+                  cardId: originalCardId, // Preserve original card id field
+                  language: 'ja'
+                }
+              })
           
           allCards.push(...batchCards)
+              
+              // Track which IDs weren't found (compare card's original 'id' field value)
+              const foundCardIds = new Set(batchCards.map(c => c.cardId || c.id || c.apiId).filter(Boolean))
+              batch.forEach(cardId => {
+                if (!foundCardIds.has(cardId)) {
+                  notFoundCount++
+                  console.warn(`Card not found in card_ja with id="${cardId}"`)
+                }
+              })
+            } catch (error) {
+              console.error(`Error querying batch of Japanese cards:`, error)
+              notFoundCount += batch.length
+            }
+          }
+          console.log(`Loaded ${foundCount} Japanese cards, ${notFoundCount} not found`)
+        }
+        
+        // Fallback for old format
+        if (hasOldFormat && assignmentData.cardIds.length > 0) {
+          const batchSize = 50
+          for (let i = 0; i < assignmentData.cardIds.length; i += batchSize) {
+            const batch = assignmentData.cardIds.slice(i, i + batchSize)
+            const batchPromises = batch.map(async (cardId) => {
+              // Try card_en first, then card_ja
+              let cardRef = doc(db, 'card_en', cardId)
+              let cardSnap = await getDoc(cardRef)
+              let language = 'en'
+              
+              if (!cardSnap.exists()) {
+                cardRef = doc(db, 'card_ja', cardId)
+                cardSnap = await getDoc(cardRef)
+                language = 'ja'
+              }
+              
+              if (cardSnap.exists()) {
+                return {
+                  id: cardSnap.id,
+                  language,
+                  ...cardSnap.data()
+                }
+              }
+              return null
+            })
+            const batchCards = (await Promise.all(batchPromises)).filter(card => card !== null)
+            allCards.push(...batchCards)
+          }
         }
       } else {
-        // Fallback for old assignments that don't have cardIds stored
+        // Fallback for old assignments that don't have card_en/card_ja stored
+        // Try to query by assignment type
         if (assignmentData.type === 'set' && assignmentData.setId) {
-          const q = query(pokemonRef, where('setId', '==', assignmentData.setId))
-          const snapshot = await getDocs(q)
-          allCards = snapshot.docs.map(doc => ({
+          // Query card_en collection
+          const cardEnRef = collection(db, 'card_en')
+          const qEn = query(cardEnRef, where('setId', '==', assignmentData.setId))
+          const snapshotEn = await getDocs(qEn)
+          const cardsEn = snapshotEn.docs.map(doc => ({
             id: doc.id,
+            language: 'en',
             ...doc.data()
           }))
-        } else if (assignmentData.type === 'pokemon' && assignmentData.pokemonId) {
-          const pokemonListRef = doc(db, 'pokemonList', assignmentData.pokemonId)
-          const pokemonListDoc = await getDoc(pokemonListRef)
           
-          if (pokemonListDoc.exists()) {
-            const pokemonListData = pokemonListDoc.data()
-            const fallbackCardIds = pokemonListData.cardIds || []
-            
-            const chunks = []
-            for (let i = 0; i < fallbackCardIds.length; i += 10) {
-              chunks.push(fallbackCardIds.slice(i, i + 10))
-            }
-            
-            const cardPromises = chunks.map(chunk => {
-              const q = query(pokemonRef, where(FieldPath.documentId(), 'in', chunk))
-              return getDocs(q)
-            })
-            
-            const cardSnapshots = await Promise.all(cardPromises)
-            allCards = cardSnapshots.flatMap(snapshot => 
-              snapshot.docs.map(doc => ({
+          // Query card_ja collection
+          const cardJaRef = collection(db, 'card_ja')
+          const qJa = query(cardJaRef, where('setId', '==', assignmentData.setId))
+          const snapshotJa = await getDocs(qJa)
+          const cardsJa = snapshotJa.docs.map(doc => ({
+            id: doc.id,
+            language: 'ja',
+            ...doc.data()
+          }))
+          
+          allCards = [...cardsEn, ...cardsJa]
+        } else if (assignmentData.type === 'pokemon' && assignmentData.assignmentPokemonId) {
+          // Query by nationalDexNumber
+          const cardEnRef = collection(db, 'card_en')
+          const qEn = query(cardEnRef, where('nationalDexNumber', '==', parseInt(assignmentData.assignmentPokemonId)))
+          const snapshotEn = await getDocs(qEn)
+          const cardsEn = snapshotEn.docs.map(doc => ({
+            id: doc.id,
+            language: 'en',
+            ...doc.data()
+          }))
+          
+          const cardJaRef = collection(db, 'card_ja')
+          const qJa = query(cardJaRef, where('nationalDexNumber', '==', parseInt(assignmentData.assignmentPokemonId)))
+          const snapshotJa = await getDocs(qJa)
+          const cardsJa = snapshotJa.docs.map(doc => ({
                 id: doc.id,
+            language: 'ja',
                 ...doc.data()
               }))
-            )
-          }
+          
+          allCards = [...cardsEn, ...cardsJa]
         }
       }
       
-      // Load checked cards from collectorList (assignment-specific)
-      let checkedCards = new Map()
-      if (assignmentData.userId) {
-        const collectorListRef = collection(db, 'collectorList')
-        const collectorListQuery = query(
-          collectorListRef,
+      // Load global collected status from userCards for this user
+      // userCards stores cardId as API ID (like "me02-013"), not Firestore document ID
+      let collectedCardFirestoreIds = new Set()
+      if (assignmentData.userId && allCards.length > 0) {
+        // Get API IDs from cards (the cardId field we preserved, or fallback to id/apiId)
+        const apiIds = allCards.map(c => {
+          // Use the card's API ID field (the original id field we preserved as cardId)
+          return c.cardId || c.id || c.apiId
+        }).filter(Boolean)
+        
+        console.log(`Querying userCards for userId: ${assignmentData.userId}, API IDs:`, apiIds.slice(0, 5))
+        
+        // Query userCards collection by userId and cardId field (which stores API IDs)
+        const userCardsRef = collection(db, 'userCards')
+        const collectedApiIds = new Set()
+        
+        // Query in batches (Firestore 'in' query limit is 10)
+        const batchSize = 10
+        for (let i = 0; i < apiIds.length; i += batchSize) {
+          const batch = apiIds.slice(i, i + batchSize)
+          try {
+            const q = query(
+              userCardsRef,
           where('userId', '==', assignmentData.userId),
-          where('assignmentId', '==', assignmentDoc.id)
+              where('cardId', 'in', batch)
         )
-        const collectorListSnapshot = await getDocs(collectorListQuery)
-        collectorListSnapshot.docs.forEach(doc => {
+            const snapshot = await getDocs(q)
+            snapshot.docs.forEach(doc => {
           const data = doc.data()
-          checkedCards.set(data.cardId, data.checkedOff)
+              if (data.cardId) {
+                collectedApiIds.add(data.cardId)
+              }
+            })
+          } catch (error) {
+            console.error(`Error querying userCards batch:`, error)
+          }
+        }
+        
+        console.log(`Found ${collectedApiIds.size} collected cards out of ${apiIds.length} total`)
+        console.log(`Collected API IDs:`, Array.from(collectedApiIds).slice(0, 5))
+        
+        // Map collected API IDs back to Firestore document IDs for card matching
+        allCards.forEach(card => {
+          const apiId = card.cardId || card.id || card.apiId
+          if (apiId && collectedApiIds.has(apiId)) {
+            collectedCardFirestoreIds.add(card.id) // card.id is Firestore document ID
+          }
         })
       }
       
-      // Load global collected status from userCards (if viewing own assignment)
-      let globalCollectedCards = new Set()
-      if (assignmentData.userId === user.value?.uid && allCards.length > 0) {
-        const cardIds = allCards.map(c => c.id)
-        globalCollectedCards = await getCollectedCardIds(assignmentData.userId, cardIds)
-      }
+      // Debug logging
+      console.log(`Assignment ${assignmentDoc.id}:`, {
+        cardEnCount: cardEnIds.length,
+        cardJaCount: cardJaIds.length,
+        loadedCardsCount: allCards.length,
+        collectedCount: collectedCardFirestoreIds.size,
+        userId: assignmentData.userId
+      })
       
-      // Merge card data with checked status (assignment) and global collected status
-      const cards = allCards.map(card => ({
-        ...card,
-        checkedOff: checkedCards.get(card.id) || false, // Assignment-specific
-        isCollected: globalCollectedCards.has(card.id) // Global collection
-      }))
-      
-      // Sort cards: unchecked first, then by set number
-      cards.sort((a, b) => {
-        if (a.checkedOff !== b.checkedOff) {
-          return a.checkedOff ? 1 : -1 // Unchecked first
+      // Merge card data with collected status
+      const cards = allCards.map(card => {
+        const isCollected = collectedCardFirestoreIds.has(card.id)
+        if (isCollected) {
+          console.log(`Card ${card.id} (${card.name || card.cardId}) is collected`)
         }
-        const numA = parseInt(a.setNumber || a.number || '0') || 0
-        const numB = parseInt(b.setNumber || b.number || '0') || 0
+        return {
+        ...card,
+          isCollected
+        }
+      })
+      
+      // Sort cards: uncollected first, then by set number
+      cards.sort((a, b) => {
+        if (a.isCollected !== b.isCollected) {
+          return a.isCollected ? 1 : -1 // Uncollected first
+        }
+        const numA = parseInt(a.localId || a.setNumber || a.number || '0') || 0
+        const numB = parseInt(b.localId || b.setNumber || b.number || '0') || 0
         return numA - numB
       })
       
       const total = cards.length
-      const collected = cards.filter(c => c.checkedOff).length
+      const collected = cards.filter(c => c.isCollected).length
       const progress = total > 0 ? Math.round((collected / total) * 100) : 0
+      
+      console.log(`Final assignment stats: ${collected} / ${total} cards collected (${progress}%)`)
       
       assignments.push({
         id: assignmentDoc.id,
@@ -602,9 +746,9 @@ const getFilteredCards = (assignment) => {
   // Status filter
   const status = filterStatus.value[assignment.id] || 'all'
   if (status === 'checked') {
-    filtered = filtered.filter(c => c.checkedOff)
+    filtered = filtered.filter(c => c.isCollected)
   } else if (status === 'unchecked') {
-    filtered = filtered.filter(c => !c.checkedOff)
+    filtered = filtered.filter(c => !c.isCollected)
   }
   
   // Search filter
@@ -621,19 +765,21 @@ const getFilteredCards = (assignment) => {
 }
 
 const toggleCard = async (card, assignment) => {
-  if (!user.value || !assignment.id) {
-    alert('Please log in to update your collection')
+  if (!user.value || assignment.userId !== user.value.uid) {
+    alert('You can only update your own collection')
     return
   }
   
-  const newCheckedState = !card.checkedOff
-  
   try {
-    // Update local state immediately
-    card.checkedOff = newCheckedState
+    // Toggle card in global userCards collection
+    const result = await toggleCardCollected(user.value.uid, card.id)
+    
+    if (result.success) {
+      // Update local state
+      card.isCollected = result.isCollected
     
     // Update progress
-    if (newCheckedState) {
+      if (result.isCollected) {
       assignment.collected = (assignment.collected || 0) + 1
     } else {
       assignment.collected = Math.max(0, (assignment.collected || 0) - 1)
@@ -641,83 +787,12 @@ const toggleCard = async (card, assignment) => {
     assignment.progress = assignment.total > 0 
       ? Math.round((assignment.collected / assignment.total) * 100) 
       : 0
-    
-    // Create or update collectorList entry
-    const collectorListRef = collection(db, 'collectorList')
-    const collectorListQuery = query(
-      collectorListRef,
-      where('userId', '==', user.value.uid),
-      where('assignmentId', '==', assignment.id),
-      where('cardId', '==', card.id)
-    )
-    const collectorListSnapshot = await getDocs(collectorListQuery)
-    
-    const collectorData = {
-      userId: user.value.uid,
-      assignmentId: assignment.id,
-      challengeId: challengeId,
-      cardId: card.id,
-      checkedOff: newCheckedState,
-      checkedOffAt: newCheckedState ? serverTimestamp() : null,
-      quantity: newCheckedState ? 1 : 0,
-      notes: '',
-      updatedAt: serverTimestamp()
-    }
-    
-    if (!collectorListSnapshot.empty) {
-      // Update existing entry
-      const collectorDoc = collectorListSnapshot.docs[0]
-      await setDoc(doc(db, 'collectorList', collectorDoc.id), collectorData, { merge: true })
-    } else {
-      // Create new entry
-      collectorData.createdAt = serverTimestamp()
-      await addDoc(collectorListRef, collectorData)
-    }
-    
-    // Also update global userCards collection if marking as collected
-    if (newCheckedState) {
-      try {
-        const { markCardAsCollected } = await import('../utils/userCards')
-        await markCardAsCollected(user.value.uid, card.id, 1)
-        // Update local isCollected status
-        card.isCollected = true
-      } catch (error) {
-        console.error('Error updating global collection:', error)
-        // Don't fail the whole operation if global update fails
-      }
-    }
-  } catch (error) {
-    console.error('Error updating card:', error)
-    // Revert on error
-    card.checkedOff = !newCheckedState
-    alert('Error updating card: ' + error.message)
-  }
-}
-
-const toggleGlobalCollected = async (cardId) => {
-  if (!user.value) {
-    alert('Please log in to update your collection')
-    return
-  }
-  
-  try {
-    const result = await toggleCardCollected(user.value.uid, cardId)
-    if (result.success) {
-      // Update the card's isCollected status in all assignments
-      memberAssignments.value.forEach(assignment => {
-        if (assignment.cards) {
-          const card = assignment.cards.find(c => c.id === cardId)
-          if (card) {
-            card.isCollected = result.isCollected
-          }
-        }
-      })
     } else {
       alert('Error: ' + result.error)
     }
   } catch (error) {
-    console.error('Error toggling global collected status:', error)
-    alert('Error updating collection: ' + error.message)
+    console.error('Error toggling card:', error)
+    alert('Error updating collection')
   }
 }
 
@@ -841,15 +916,11 @@ const sendInvite = async () => {
   }
 }
 
-const copyInviteCode = async () => {
-  if (challengeData.value?.inviteCode) {
-    try {
-      await navigator.clipboard.writeText(challengeData.value.inviteCode)
-      alert('Invite code copied to clipboard!')
-    } catch (error) {
-      console.error('Error copying invite code:', error)
-    }
-  }
+
+const selectedCard = ref(null)
+
+const selectCard = (card) => {
+  selectedCard.value = card
 }
 
 const handleImageError = (event) => {
@@ -859,18 +930,30 @@ const handleImageError = (event) => {
 onMounted(() => {
   loadChallengeDetails()
 })
-
-// Watch for editing state changes
-watch(() => challengeData.value?.name, (newName) => {
-  if (newName) {
-    editingName.value = newName
-  }
-})
-
-watch(() => challengeData.value?.description, (newDesc) => {
-  if (newDesc !== undefined) {
-    editingDescription.value = newDesc || ''
-  }
-})
 </script>
+
+<style scoped>
+/* Custom scrollbar styling for cards grid */
+.cards-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.cards-scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cards-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cards-scroll-container::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 4px;
+}
+
+.cards-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-border-hover);
+}
+</style>
 

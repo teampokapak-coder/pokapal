@@ -124,6 +124,11 @@ export const getCard = async (cardId, language = 'en') => {
 export const getAllPokemonCards = async (filters = {}) => {
   try {
     const language = filters.language || 'all' // 'en', 'ja', or 'all'
+    
+    // Extract search filter (client-side only)
+    const searchFilter = filters.search
+    delete filters.search // Remove from query filters
+    
     const collections = []
     
     if (language === 'all' || language === 'en') {
@@ -160,8 +165,19 @@ export const getAllPokemonCards = async (filters = {}) => {
       if (filters.rarity) {
         q = query(q, where('rarity', '==', filters.rarity))
       }
-      if (filters.types && filters.types.length > 0) {
-        // Firestore doesn't support array-contains-any easily, so we'll filter in memory
+      if (filters.type) {
+        // Use array-contains for single type filter (server-side)
+        q = query(q, where('types', 'array-contains', filters.type))
+      }
+      if (filters.category) {
+        q = query(q, where('category', '==', filters.category))
+      }
+      if (filters.setApiId) {
+        q = query(q, where('setApiId', '==', filters.setApiId))
+      }
+      if (filters.setName) {
+        // Note: setName filtering requires loading all cards (no index on set name)
+        // This is less efficient but sometimes necessary
         q = query(q)
       }
       
@@ -186,19 +202,32 @@ export const getAllPokemonCards = async (filters = {}) => {
     // Combine results from all collections
     let cards = []
     snapshots.forEach((snapshot, index) => {
-      const collectionCards = snapshot.docs.map(doc => ({
-        id: doc.id,
-        collection: collections[index].name,
-        language: collections[index].name === 'card_ja' ? 'ja' : 'en',
-        ...doc.data()
-      }))
+      const collectionCards = snapshot.docs.map(doc => {
+        const cardData = doc.data()
+        // Ensure Firestore document ID is preserved (don't let cardData.id overwrite it)
+        return {
+          ...cardData,
+          id: doc.id, // Firestore document ID - must be last to override any id field in cardData
+          collection: collections[index].name,
+          language: collections[index].name === 'card_ja' ? 'ja' : 'en'
+        }
+      })
       cards = cards.concat(collectionCards)
     })
     
-    // Apply in-memory filters
-    if (filters.types && filters.types.length > 0) {
-      cards = cards.filter(card => 
-        card.types && card.types.some(type => filters.types.includes(type))
+    // Apply in-memory filters (for filters that can't be done server-side)
+    if (filters.setName) {
+      cards = cards.filter(card => {
+        // Handle both string set name and set object
+        const cardSetName = typeof card.set === 'string' ? card.set : card.set?.name
+        return cardSetName === filters.setName
+      })
+    }
+    if (searchFilter) {
+      const searchLower = searchFilter.toLowerCase()
+      cards = cards.filter(card =>
+        card.name?.toLowerCase().includes(searchLower) ||
+        card.localId?.toLowerCase().includes(searchLower)
       )
     }
     

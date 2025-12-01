@@ -190,19 +190,29 @@
   /* Button variants */
   .btn-primary {
     background-color: var(--color-accent);
-    color: var(--color-bg-secondary);
+    color: #ffffff !important;
     @apply hover:opacity-90 active:opacity-80;
     @apply focus:ring-2 focus:ring-offset-2;
+  }
+  
+  /* Override text-sm color for primary buttons */
+  .btn-primary.text-sm {
+    color: #ffffff !important;
   }
   
   @media (prefers-color-scheme: dark) {
     .btn-primary {
       background-color: #ffffff;
-      color: #171717;
+      color: #171717 !important;
     }
     
     .btn-primary:hover {
       background-color: #e5e5e5;
+      color: #171717 !important;
+    }
+    
+    .btn-primary.text-sm {
+      color: #171717 !important;
     }
   }
 
@@ -531,7 +541,25 @@
      FORM ELEMENTS (Input, Select, Textarea)
      ============================================ */
 
-  select,
+  select {
+    background-color: var(--color-bg-secondary) !important;
+    color: var(--color-text-primary) !important;
+    border-color: var(--color-border) !important;
+    transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+    padding-right: 2.5rem !important; /* Space for dropdown arrow */
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem 1rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23d1d5db'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    }
+  }
+
   input[type="text"],
   input[type="email"],
   input[type="password"],

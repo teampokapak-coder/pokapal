@@ -62,7 +62,6 @@
                   v-for="type in card.types"
                   :key="type"
                   :class="getTypeColor(type)"
-                  class="px-2 py-1 rounded text-xs font-medium"
                 >
                   {{ type }}
                 </span>

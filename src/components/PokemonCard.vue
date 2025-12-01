@@ -2,7 +2,7 @@
   <!-- Compact Mode -->
   <div
     v-if="compact"
-    class="relative aspect-square rounded overflow-hidden border-2 transition-all cursor-pointer group"
+    class="relative aspect-[3/4] sm:aspect-square rounded overflow-hidden border-2 transition-all cursor-pointer group"
     :class="cardClasses"
     style="background-color: var(--color-bg-tertiary); border-color: var(--color-border);"
     @mouseenter="$event.target.style.borderColor = 'var(--color-border-hover)'"
@@ -87,7 +87,8 @@
             v-for="type in card.types.slice(0, 2)"
             :key="type"
             :class="getTypeColor(type)"
-            class="px-1 py-0.5 rounded text-[10px] sm:text-xs whitespace-nowrap"
+            class="whitespace-nowrap"
+            style="font-size: 0.625rem; padding: 0.125rem 0.25rem; border-radius: 0.25rem;"
           >
             {{ type }}
           </span>

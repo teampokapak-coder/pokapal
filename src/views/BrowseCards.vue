@@ -165,11 +165,41 @@
 
           <!-- Cards Grid -->
           <main class="flex-1 min-w-0">
-            <!-- Results Count -->
-            <div class="mb-3 sm:mb-4">
+            <!-- Results Count and View Toggle -->
+            <div class="mb-3 sm:mb-4 flex items-center justify-between">
               <p class="text-xs sm:text-sm" style="color: var(--color-text-secondary);">
                 Showing {{ filteredCards.length }} of {{ cards.length }} cards
               </p>
+              <!-- View Toggle -->
+              <div class="flex items-center gap-2">
+                <span class="text-xs sm:text-sm" style="color: var(--color-text-secondary);">View:</span>
+                <div class="flex border rounded-md overflow-hidden" style="border-color: var(--color-border);">
+                  <button
+                    @click="cardViewMode = 'standard'"
+                    :class="[
+                      'px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors',
+                      cardViewMode === 'standard' 
+                        ? 'btn-primary' 
+                        : 'btn-ghost'
+                    ]"
+                    :style="cardViewMode === 'standard' ? { color: '#ffffff !important' } : {}"
+                  >
+                    Standard
+                  </button>
+                  <button
+                    @click="cardViewMode = 'compact'"
+                    :class="[
+                      'px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors',
+                      cardViewMode === 'compact' 
+                        ? 'btn-primary' 
+                        : 'btn-ghost'
+                    ]"
+                    :style="cardViewMode === 'compact' ? { color: '#ffffff !important' } : {}"
+                  >
+                    Compact
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- Loading State -->
@@ -178,7 +208,15 @@
             </div>
 
             <!-- Cards Grid -->
-            <div v-else-if="filteredCards.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-1.5 sm:gap-2 md:gap-3">
+            <div 
+              v-else-if="filteredCards.length > 0" 
+              :class="[
+                'grid',
+                cardViewMode === 'compact' 
+                  ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-1.5 sm:gap-2 md:gap-3'
+                  : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5'
+              ]"
+            >
               <PokemonCard
                 v-for="card in filteredCards"
                 :key="card.id"
@@ -186,7 +224,7 @@
                 :is-collected="collectedCards.has(card.id)"
                 :show-collection-icon="true"
                 :show-types="true"
-                :compact="true"
+                :compact="cardViewMode === 'compact'"
                 icon-size="w-6 h-6 sm:w-8 sm:h-8"
                 @click="selectCard"
                 @toggle-collected="(card) => toggleCollected(card.id)"
@@ -238,6 +276,7 @@ const searchTimeout = ref(null)
 const collectedCards = ref(new Set())
 
 const showMobileFilters = ref(false)
+const cardViewMode = ref('standard') // 'standard' or 'compact'
 
 const filters = ref({
   search: '',
@@ -264,9 +303,12 @@ const activeFilterCount = computed(() => {
 })
 
 const filteredCards = computed(() => {
+  // Most filtering is now done server-side via getAllPokemonCards
+  // Only apply client-side filters for search (which requires full text matching)
+  // and set name fallback (if setApiId/setId lookup failed)
   let filtered = cards.value
 
-  // Search filter
+  // Search filter (client-side only - requires loading all cards)
   if (filters.value.search) {
     const search = filters.value.search.toLowerCase()
     filtered = filtered.filter(card =>
@@ -275,29 +317,20 @@ const filteredCards = computed(() => {
     )
   }
 
-  // Set filter
+  // Set filter by name (only if setApiId/setId lookup failed - fallback)
   if (filters.value.set) {
-    filtered = filtered.filter(card => card.set === filters.value.set)
+    const selectedSet = availableSets.value.find(s => s.name === filters.value.set)
+    if (!selectedSet?.apiId && !selectedSet?.id) {
+      // Fallback: filter by set name string (already done in query if possible)
+      filtered = filtered.filter(card => {
+        const cardSetName = typeof card.set === 'string' ? card.set : card.set?.name
+        return cardSetName === filters.value.set
+      })
+    }
   }
 
-  // Type filter
-  if (filters.value.type) {
-    filtered = filtered.filter(card =>
-      card.types && card.types.includes(filters.value.type)
-    )
-  }
-
-  // Rarity filter
-  if (filters.value.rarity) {
-    filtered = filtered.filter(card =>
-      card.rarity?.includes(filters.value.rarity)
-    )
-  }
-
-  // Card type filter
-  if (filters.value.cardType) {
-    filtered = filtered.filter(card => card.category === filters.value.cardType)
-  }
+  // Type, Rarity, and Card Type filters are now handled server-side
+  // No need to filter here - cards.value already contains filtered results
 
   return filtered
 })
@@ -340,12 +373,17 @@ const loadCollectedCards = async () => {
 const debouncedSearch = () => {
   clearTimeout(searchTimeout.value)
   searchTimeout.value = setTimeout(() => {
-    applyFilters()
+    // When searching, reload cards (search requires loading all cards for text matching)
+    // Other filters use efficient server-side queries
+    loadCards(true)
   }, 300)
 }
 
 const applyFilters = () => {
-  // Filters are reactive, no action needed
+  // Reload cards with server-side filters (more efficient)
+  // Type, Rarity, Card Type, and Set (by API ID) are filtered server-side
+  // Only search requires loading all cards
+  loadCards(true)
 }
 
 const clearFilters = () => {
@@ -356,6 +394,8 @@ const clearFilters = () => {
     rarity: '',
     cardType: ''
   }
+  // Reload initial batch of 500 cards when filters are cleared
+  loadCards(false)
   // Close mobile filters after clearing
   showMobileFilters.value = false
 }
@@ -364,11 +404,45 @@ const selectCard = (card) => {
   selectedCard.value = card
 }
 
-const loadCards = async () => {
+const loadCards = async (applyFilters = false) => {
   isLoading.value = true
   try {
-    // Load initial batch of cards (500 at a time for better performance)
-    const result = await getAllPokemonCards({ limit: 500 })
+    // Build query filters for server-side filtering (more efficient)
+    const queryFilters = {}
+    
+    // Only apply server-side filters that don't require loading all cards
+    if (filters.value.type) {
+      queryFilters.type = filters.value.type
+    }
+    if (filters.value.rarity) {
+      queryFilters.rarity = filters.value.rarity
+    }
+    if (filters.value.cardType) {
+      queryFilters.category = filters.value.cardType
+    }
+    if (filters.value.set) {
+      // Find set API ID from available sets
+      const selectedSet = availableSets.value.find(s => s.name === filters.value.set)
+      if (selectedSet?.apiId) {
+        queryFilters.setApiId = selectedSet.apiId
+      } else if (selectedSet?.id) {
+        queryFilters.setId = selectedSet.id
+      } else {
+        // Fallback: use setName (requires loading all cards)
+        queryFilters.setName = filters.value.set
+      }
+    }
+    
+    // If search is active, we need to load all cards (no server-side text search)
+    // Otherwise, use server-side filters with limit for performance
+    const needsFullLoad = filters.value.search || (filters.value.set && !queryFilters.setApiId && !queryFilters.setId)
+    
+    const options = {
+      ...queryFilters,
+      ...(needsFullLoad ? {} : { limit: 500 }) // Only limit if not searching
+    }
+    
+    const result = await getAllPokemonCards(options)
     if (result.success) {
       cards.value = result.data
       // Load collected cards after cards are loaded

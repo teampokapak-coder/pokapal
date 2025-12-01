@@ -59,12 +59,11 @@
                   </div>
 
                   <!-- Types -->
-                  <div v-if="pokemon.types && pokemon.types.length > 0" class="flex gap-1.5 mb-2 flex-wrap">
+                  <div v-if="pokemon.types && pokemon.types.length > 0" class="flex gap-1 mb-2 flex-wrap">
                     <span
                       v-for="type in pokemon.types"
                       :key="type"
                       :class="getTypeColor(type)"
-                      class="px-2 py-0.5 rounded-full text-xs font-medium"
                     >
                       {{ type }}
                     </span>
@@ -75,7 +74,6 @@
                     <button
                       @click="showStartMasterSetModal = true"
                       class="btn btn-h5 btn-primary text-sm py-1.5 px-3"
-                      style="color: white;"
                     >
                       Start Master Set
                     </button>
@@ -146,7 +144,6 @@
                     v-for="type in pokemon.types"
                     :key="type"
                     :class="getTypeColor(type)"
-                    class="px-3 py-1 rounded-full text-sm font-medium"
                   >
                     {{ type }}
                   </span>
@@ -275,6 +272,14 @@
       :is-collected="selectedCard ? collectedCards.has(selectedCard.id) : false"
       @close="selectedCard = null"
       @toggle-collected="(card) => toggleCollected(card.id)"
+    />
+
+    <!-- Success Notification -->
+    <SuccessNotification
+      :show="showSuccessNotification"
+      title="Master Set Created!"
+      message="Redirecting to your master set..."
+      @close="showSuccessNotification = false"
     />
 
     <!-- Start Master Set Modal -->
@@ -437,6 +442,7 @@ import { toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
 import CardModal from '../components/CardModal.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
+import SuccessNotification from '../components/SuccessNotification.vue'
 import { getTypeColorClass } from '../utils/pokemonTypes'
 import { createMasterSet, createAssignment, getCardIdsForPokemon } from '../utils/masterSetUtils'
 
@@ -456,6 +462,7 @@ const collectedCards = ref(new Set())
 const japaneseCards = ref([])
 const showStartMasterSetModal = ref(false)
 const isCreatingMasterSet = ref(false)
+const showSuccessNotification = ref(false)
 const masterSetForm = ref({
   name: '',
   description: '',
@@ -917,9 +924,10 @@ const createMasterSetFromPokemon = async () => {
 
     // Close modal and show success
     showStartMasterSetModal.value = false
-    alert('Master set created successfully!')
-    // TODO: Navigate to master set detail page when created
-    // router.push(`/master-set/${masterSetId}`)
+    showSuccessNotification.value = true
+    setTimeout(() => {
+      router.push(`/master-set/${masterSetId}`)
+    }, 1500) // Redirect after 1.5 seconds
   } catch (error) {
     console.error('Error creating master set:', error)
     alert('Error creating master set: ' + error.message)

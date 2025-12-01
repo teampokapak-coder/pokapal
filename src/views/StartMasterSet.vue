@@ -639,6 +639,14 @@
         </div>
       </div>
     </section>
+
+    <!-- Success Notification -->
+    <SuccessNotification
+      :show="showSuccessNotification"
+      title="Master Set Created!"
+      message="Redirecting to your master set..."
+      @close="showSuccessNotification = false"
+    />
   </div>
 </template>
 
@@ -650,6 +658,7 @@ import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
 import { createMasterSet as createMasterSetUtil, createAssignment, getCardIdsForSet, getCardIdsForPokemon } from '../utils/masterSetUtils'
 import { getAllPokemonCards } from '../utils/firebasePokemon'
+import SuccessNotification from '../components/SuccessNotification.vue'
 
 const router = useRouter()
 const { user } = useAuth()
@@ -677,6 +686,7 @@ const isLoadingSets = ref(false)
 const isLoadingPokemon = ref(false)
 const isPicking = ref(false)
 const isCreating = ref(false)
+const showSuccessNotification = ref(false)
 const pokemonSearchQuery = ref('')
 const filteredPokemon = ref([])
 const currentAssignmentTarget = ref('all') // 'all' or personId
@@ -1274,12 +1284,15 @@ const createMasterSet = async () => {
       }
     }
     
-    // Redirect to master set page (TODO: create this page)
-    alert('Master set created successfully!')
-    router.push('/')
+    // Show success notification and redirect
+    showSuccessNotification.value = true
+    setTimeout(() => {
+      router.push(`/master-set/${masterSetId}`)
+    }, 1500) // Redirect after 1.5 seconds
   } catch (error) {
     console.error('Error creating master set:', error)
     alert('Error creating master set: ' + error.message)
+    showSuccessNotification.value = false
   } finally {
     isCreating.value = false
   }

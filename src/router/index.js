@@ -35,6 +35,11 @@ const routes = [
     component: () => import('../views/ChallengeDetails.vue')
   },
   {
+    path: '/master-set/:masterSetId',
+    name: 'MasterSetDetails',
+    component: () => import('../views/ChallengeDetails.vue') // Reuse ChallengeDetails for now
+  },
+  {
     path: '/browse',
     name: 'BrowseCards',
     component: () => import('../views/BrowseCards.vue')

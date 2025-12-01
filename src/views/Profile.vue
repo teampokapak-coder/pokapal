@@ -17,69 +17,99 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Main Content -->
           <div class="lg:col-span-2 space-y-6">
-            <!-- My Assignments -->
+            <!-- Master Set Challenges -->
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title">My Master Sets</h3>
+                <h3 class="card-title">Master Set Challenges</h3>
               </div>
-              <div class="card-body">
+              <div class="">
                 <div v-if="isLoadingAssignments" class="text-center py-8">
-                  <p class="text-gray-600">Loading assignments...</p>
+                  <p class="text-gray-600">Loading master sets...</p>
                 </div>
 
-                <div v-else-if="assignments.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div v-else-if="allMasterSets.length > 0" class="space-y-4">
                   <div
-                    v-for="assignment in assignments"
-                    :key="assignment.id"
-                    class="card card-flat hover:shadow-lg transition-shadow cursor-pointer"
-                    @click="goToAssignment(assignment)"
+                    v-for="masterSet in allMasterSets"
+                    :key="masterSet.id"
+                    class="card card-flat"
                   >
                     <div class="card-body">
+                      <!-- Header (always visible) -->
                       <div class="flex justify-between items-start mb-3">
-                        <div>
-                          <h4 class="card-title mb-1">{{ assignment.challengeName || (assignment.setName || assignment.pokemonName || 'Master Set') }}</h4>
-                          <p class="text-sm text-gray-600">
-                            <span v-if="assignment.type === 'set'">{{ assignment.setName || 'Set' }}</span>
-                            <span v-else-if="assignment.type === 'pokemon'">{{ assignment.pokemonName || 'Pokemon' }}</span>
-                            <span v-else>Custom Collection</span>
-                          </p>
+                        <div class="flex-1 cursor-pointer" @click="toggleMasterSetExpand(masterSet.id)">
+                          <div class="flex items-center gap-2">
+                            <svg 
+                              class="w-5 h-5 text-gray-500 transition-transform"
+                              :class="{ 'rotate-90': expandedMasterSets[masterSet.id] }"
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                            <div>
+                              <h4 class="card-title mb-1">{{ masterSet.name }}</h4>
+                              <p class="text-sm text-gray-600">
+                                <span v-if="masterSet.type === 'set'">{{ masterSet.targetSetName || 'Set' }}</span>
+                                <span v-else-if="masterSet.type === 'pokemon'">{{ masterSet.targetPokemonName || 'Pokemon' }}</span>
+                                <span v-else>Custom Collection</span>
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <span
-                          v-if="assignment.challengeId"
-                          class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+                        <router-link
+                          :to="`/master-set/${masterSet.id}`"
+                          class="btn btn-h5 btn-primary"
+                          @click.stop
                         >
-                          Challenge
-                        </span>
+                          View Details
+                        </router-link>
                       </div>
                       
-                      <!-- Progress -->
+                      <!-- Progress (always visible) -->
                       <div class="mb-3">
                         <div class="flex justify-between text-sm text-gray-600 mb-1">
-                          <span>Progress</span>
-                          <span>{{ assignment.progress || 0 }}%</span>
+                          <span>Your Progress</span>
+                          <span>{{ masterSet.progress || 0 }}%</span>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                           <div 
-                            class="bg-gray-900 h-2 rounded-full transition-all"
-                            :style="{ width: `${assignment.progress || 0}%` }"
+                            class="bg-gray-900 dark:bg-green-500 h-2 rounded-full transition-all"
+                            :style="{ width: `${masterSet.progress || 0}%` }"
                           ></div>
                         </div>
                         <div class="text-xs text-gray-500 mt-1">
-                          {{ assignment.collected || 0 }} / {{ assignment.total || 0 }} cards
+                          {{ masterSet.collected || 0 }} / {{ masterSet.total || 0 }} cards
                         </div>
                       </div>
-                      
-                      <button
-                        @click.stop="goToAssignment(assignment)"
-                        class="btn btn-h5 btn-primary w-full"
+
+                      <!-- Cards Preview (collapsible, scrollable, max 4 rows) -->
+                      <div 
+                        v-if="expandedMasterSets[masterSet.id]"
+                        v-show="masterSet.cards && masterSet.cards.length > 0"
+                        class="cards-scroll-container max-h-[600px] sm:max-h-[500px] overflow-y-auto overflow-x-hidden pr-2 mt-4"
                       >
-                        View Checklist
-                      </button>
+                        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2 sm:gap-3 pb-2">
+                          <PokemonCardMS
+                            v-for="card in masterSet.cards"
+                            :key="card.id"
+                            :card="card"
+                            :is-collected="card.isCollected"
+                            :show-collection-button="true"
+                            :show-name-tooltip="true"
+                            @click="selectCard(card)"
+                            @toggle-collected="(card) => toggleCard(card, masterSet)"
+                          />
+                        </div>
+                      </div>
+                      <div v-else-if="expandedMasterSets[masterSet.id] && (!masterSet.cards || masterSet.cards.length === 0)" class="text-center py-4 text-gray-500 text-sm">
+                        <p>Loading cards...</p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Empty Assignments State -->
+                <!-- Empty State -->
                 <div v-else class="text-center py-8">
                   <p class="text-gray-600 mb-4">No master sets yet</p>
                   <router-link to="/start" class="btn btn-h4 btn-primary">
@@ -160,7 +190,7 @@
                 <h3 class="card-title">Pending Invites</h3>
                 <p class="card-subtitle">Group invitations waiting for your response</p>
               </div>
-              <div class="card-body">
+              <div class="">
                 <div v-if="isLoadingInvites" class="text-center py-8">
                   <p class="text-gray-600">Loading invites...</p>
                 </div>
@@ -211,80 +241,6 @@
               </div>
             </div>
 
-            <!-- My Challenges -->
-            <div class="card">
-              <div class="card-header">
-                <h3 class="card-title">My Challenges</h3>
-                <p class="card-subtitle">Track progress with your challenges</p>
-              </div>
-              <div class="card-body">
-                <div v-if="isLoadingChallenges" class="text-center py-8">
-                  <p class="text-gray-600">Loading challenges...</p>
-                </div>
-
-                <div v-else-if="userChallenges.length > 0" class="space-y-6">
-                  <div
-                    v-for="challenge in userChallenges"
-                    :key="challenge.id"
-                    class="card card-flat"
-                  >
-                    <div class="card-body">
-                      <!-- Challenge Header -->
-                      <div class="flex justify-between items-start mb-4">
-                        <div>
-                          <h4 class="card-title mb-1">{{ challenge.name }}</h4>
-                          <p class="text-sm text-gray-600" v-if="challenge.description">{{ challenge.description }}</p>
-                        </div>
-                        <router-link
-                          :to="`/challenge/${challenge.id}`"
-                          class="btn btn-h5 btn-primary"
-                        >
-                          View Details
-                        </router-link>
-                      </div>
-
-                      <!-- Challenge Stats (always visible) -->
-                      <div class="grid grid-cols-3 gap-4 mb-4">
-                        <div>
-                          <p class="text-xs text-gray-600 mb-1">Members</p>
-                          <p class="text-xl font-bold text-gray-900">{{ challengeMembers[challenge.id]?.length || challenge.members?.length || 0 }}</p>
-                        </div>
-                        <div>
-                          <p class="text-xs text-gray-600 mb-1">Avg Progress</p>
-                          <p class="text-xl font-bold text-gray-900">{{ challengeStats[challenge.id]?.averageProgress || 0 }}%</p>
-                        </div>
-                        <div>
-                          <p class="text-xs text-gray-600 mb-1">Assignments</p>
-                          <p class="text-xl font-bold text-gray-900">{{ challengeStats[challenge.id]?.totalAssignments || 0 }}</p>
-                        </div>
-                      </div>
-
-                      <!-- Invite Code -->
-                      <div class="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded">
-                        <div class="flex-1">
-                          <p class="text-xs text-gray-600 mb-1">Invite Code</p>
-                          <p class="text-lg font-mono font-bold text-gray-900">{{ challenge.inviteCode }}</p>
-                        </div>
-                        <button
-                          @click="copyInviteCode(challenge.inviteCode)"
-                          class="btn btn-h5 btn-secondary"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Empty Challenges State -->
-                <div v-else class="text-center py-8">
-                  <p class="text-gray-600 mb-4">No challenges yet</p>
-                  <router-link to="/start" class="btn btn-h4 btn-primary">
-                    Start a Challenge
-                  </router-link>
-                </div>
-              </div>
-            </div>
           </div>
 
           <!-- Sidebar -->
@@ -297,20 +253,16 @@
               <div class="card-body">
                 <div class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <p class="text-gray-900">{{ user?.email || 'Not set' }}</p>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                    <p class="text-gray-900 dark:text-gray-100">{{ user?.email || 'Not set' }}</p>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
-                    <p class="text-gray-900">{{ user?.displayName || 'Not set' }}</p>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Display Name</label>
+                    <p class="text-gray-900 dark:text-gray-100">{{ user?.displayName || 'Not set' }}</p>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Master Sets</label>
-                    <p class="text-gray-900">{{ assignments.length }}</p>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Challenges</label>
-                    <p class="text-gray-900">{{ userChallenges.length }}</p>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Master Sets</label>
+                    <p class="text-gray-900 dark:text-gray-100">{{ allMasterSets.length }}</p>
                   </div>
                 </div>
               </div>
@@ -320,6 +272,14 @@
         </div>
       </div>
     </section>
+
+    <!-- Card Detail Modal -->
+    <CardModal
+      v-if="selectedCard"
+      :card="selectedCard"
+      @close="selectedCard = null"
+      @toggle-collected="selectedCard ? toggleCard(selectedCard, allMasterSets.find(ms => ms.cards?.some(c => c.id === selectedCard.id))) : null"
+    />
   </div>
 </template>
 
@@ -329,25 +289,26 @@ import { useRouter } from 'vue-router'
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
-import { getUserCollectedCards, removeCardFromCollection } from '../utils/userCards'
+import { getUserCollectedCards, removeCardFromCollection, toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
+import PokemonCardMS from '../components/PokemonCardMS.vue'
+import CardModal from '../components/CardModal.vue'
 
 const router = useRouter()
 const { user } = useAuth()
 
 const assignments = ref([])
+const allMasterSets = ref([])
 const pendingInvites = ref([])
-const userChallenges = ref([])
 const isLoadingAssignments = ref(false)
 const isLoadingInvites = ref(false)
-const isLoadingChallenges = ref(false)
 const isProcessingInvite = ref(false)
-const challengeMembers = ref({})
-const challengeStats = ref({})
 const collectedCards = ref([])
 const isLoadingCollection = ref(false)
 const collectionSearchQuery = ref('')
 const collectionFilterSet = ref('')
+const selectedCard = ref(null)
+const expandedMasterSets = ref({})
 
 const loadAssignments = async () => {
   if (!user.value) return
@@ -355,69 +316,131 @@ const loadAssignments = async () => {
   isLoadingAssignments.value = true
   try {
     const assignmentsRef = collection(db, 'assignments')
-    const q = query(assignmentsRef, where('userId', '==', user.value.uid))
+    const q = query(
+      assignmentsRef,
+      where('userId', '==', user.value.uid)
+    )
     const snapshot = await getDocs(q)
     
-    assignments.value = await Promise.all(
-      snapshot.docs.map(async (doc) => {
-        const data = { id: doc.id, ...doc.data() }
+    const masterSetMap = new Map()
+    
+    // Load all assignments and group by masterSetId
+    for (const assignmentDoc of snapshot.docs) {
+      const assignmentData = { id: assignmentDoc.id, ...assignmentDoc.data() }
+      
+      if (!assignmentData.masterSetId) continue
+      
+      // Load master set if not already loaded
+      if (!masterSetMap.has(assignmentData.masterSetId)) {
+        try {
+          const masterSetRef = doc(db, 'masterSets', assignmentData.masterSetId)
+          const masterSetSnap = await getDoc(masterSetRef)
+          if (masterSetSnap.exists()) {
+            const masterSetData = masterSetSnap.data()
+            masterSetMap.set(assignmentData.masterSetId, {
+              id: masterSetSnap.id,
+              ...masterSetData,
+              assignment: assignmentData
+            })
+          }
+        } catch (error) {
+          console.error('Error loading master set:', error)
+        }
+      }
+    }
+    
+    // Load cards for each master set (same way as ChallengeDetails)
+    allMasterSets.value = await Promise.all(
+      Array.from(masterSetMap.values()).map(async (masterSet) => {
+        const assignment = masterSet.assignment
+        const cardEnIds = assignment.card_en || []
+        const cardJaIds = assignment.card_ja || []
+        const allCards = []
         
-        // Load challenge name if challengeId exists
-        if (data.challengeId) {
-          try {
-            const challengeRef = doc(db, 'challenges', data.challengeId)
-            const challengeSnap = await getDoc(challengeRef)
-            if (challengeSnap.exists()) {
-              data.challengeName = challengeSnap.data().name
+        // Load English cards
+        if (cardEnIds.length > 0) {
+          const cardEnRef = collection(db, 'card_en')
+          const batchSize = 10
+          
+          for (let i = 0; i < cardEnIds.length; i += batchSize) {
+            const batch = cardEnIds.slice(i, i + batchSize)
+            try {
+              const q = query(cardEnRef, where('id', 'in', batch))
+              const snapshot = await getDocs(q)
+              
+              const batchCards = snapshot.docs.map(doc => {
+                const cardData = doc.data()
+                const originalCardId = cardData.id || cardData.apiId
+                return {
+                  ...cardData,
+                  id: doc.id,
+                  cardId: originalCardId,
+                  language: 'en'
+                }
+              })
+              
+              allCards.push(...batchCards)
+            } catch (error) {
+              console.error(`Error querying batch of English cards:`, error)
             }
-          } catch (error) {
-            console.error('Error loading challenge:', error)
           }
         }
         
-        // Calculate progress from collectorList
-        const collectorListRef = collection(db, 'collectorList')
-        const collectorListQuery = query(
-          collectorListRef,
-          where('userId', '==', user.value.uid),
-          where('assignmentId', '==', doc.id)
-        )
-        const collectorListSnapshot = await getDocs(collectorListQuery)
-        
-        // Get total cards for this assignment - use stored totalCards or cardIds
-        let totalCards = 0
-        
-        // Use stored totalCards if available (new assignments)
-        if (data.totalCards !== undefined) {
-          totalCards = data.totalCards
-        } else if (data.cardIds && data.cardIds.length > 0) {
-          // Use cardIds length if available
-          totalCards = data.cardIds.length
-        } else {
-          // Fallback for old assignments - query (but this is expensive, should migrate)
-          const pokemonRef = collection(db, 'pokemon')
-          if (data.type === 'set' && data.setId) {
-            const setQuery = query(pokemonRef, where('setId', '==', data.setId))
-            const setSnapshot = await getDocs(setQuery)
-            totalCards = setSnapshot.size
-          } else if (data.type === 'pokemon' && data.pokemonId) {
-            const pokemonListRef = doc(db, 'pokemonList', data.pokemonId)
-            const pokemonListDoc = await getDoc(pokemonListRef)
-            if (pokemonListDoc.exists()) {
-              const cardIds = pokemonListDoc.data().cardIds || []
-              totalCards = cardIds.length
+        // Load Japanese cards
+        if (cardJaIds.length > 0) {
+          const cardJaRef = collection(db, 'card_ja')
+          const batchSize = 10
+          
+          for (let i = 0; i < cardJaIds.length; i += batchSize) {
+            const batch = cardJaIds.slice(i, i + batchSize)
+            try {
+              const q = query(cardJaRef, where('id', 'in', batch))
+              const snapshot = await getDocs(q)
+              
+              const batchCards = snapshot.docs.map(doc => {
+                const cardData = doc.data()
+                const originalCardId = cardData.id || cardData.apiId
+                return {
+                  ...cardData,
+                  id: doc.id,
+                  cardId: originalCardId,
+                  language: 'ja'
+                }
+              })
+              
+              allCards.push(...batchCards)
+            } catch (error) {
+              console.error(`Error querying batch of Japanese cards:`, error)
             }
           }
         }
         
-        const checkedCards = collectorListSnapshot.docs.filter(d => d.data().checkedOff).length
-        data.progress = totalCards > 0 ? Math.round((checkedCards / totalCards) * 100) : 0
-        data.collected = checkedCards
-        data.total = totalCards
+        // Get collected card IDs
+        const cardIds = allCards.map(c => c.cardId || c.id).filter(Boolean)
+        const collectedCardsSet = await getCollectedCardIds(user.value.uid, cardIds)
         
-        return data
+        // Mark cards as collected
+        allCards.forEach(card => {
+          card.isCollected = collectedCardsSet.has(card.cardId || card.id)
+        })
+        
+        // Calculate progress
+        const collectedCount = Array.from(collectedCardsSet).length
+        const totalCards = allCards.length
+        const progress = totalCards > 0 ? Math.round((collectedCount / totalCards) * 100) : 0
+        
+        return {
+          ...masterSet,
+          cards: allCards,
+          collected: collectedCount,
+          total: totalCards,
+          progress: progress
+        }
       })
     )
+    
+    // Also keep assignments for backwards compatibility
+    assignments.value = Array.from(masterSetMap.values()).map(ms => ms.assignment)
   } catch (error) {
     console.error('Error loading assignments:', error)
   } finally {
@@ -451,151 +474,33 @@ const loadInvites = async () => {
   }
 }
 
-const loadChallenges = async () => {
+const selectCard = (card) => {
+  selectedCard.value = card
+}
+
+const toggleMasterSetExpand = (masterSetId) => {
+  expandedMasterSets.value[masterSetId] = !expandedMasterSets.value[masterSetId]
+}
+
+const toggleCard = async (card, masterSet) => {
   if (!user.value) return
   
-  isLoadingChallenges.value = true
   try {
-    // Load user document to get challenges array
-    const userRef = doc(db, 'users', user.value.uid)
-    const userSnap = await getDoc(userRef)
+    const cardId = card.cardId || card.id
+    await toggleCardCollected(user.value.uid, cardId)
     
-    if (userSnap.exists()) {
-      const userData = userSnap.data()
-      const challengeIds = userData.challenges || []
-      
-      if (challengeIds.length > 0) {
-        const challengesData = await Promise.all(
-          challengeIds.map(async (challengeId) => {
-            const challengeRef = doc(db, 'challenges', challengeId)
-            const challengeSnap = await getDoc(challengeRef)
-            if (challengeSnap.exists()) {
-              return { id: challengeSnap.id, ...challengeSnap.data() }
-            }
-            return null
-          })
-        )
-        userChallenges.value = challengesData.filter(Boolean)
-        
-        // Load member data for all challenges
-        await Promise.all(userChallenges.value.map(challenge => loadChallengeMembers(challenge.id)))
-      }
-    }
+    // Update local state
+    card.isCollected = !card.isCollected
+    
+    // Recalculate progress
+    const collectedCount = masterSet.cards.filter(c => c.isCollected).length
+    masterSet.collected = collectedCount
+    masterSet.progress = masterSet.total > 0 ? Math.round((collectedCount / masterSet.total) * 100) : 0
   } catch (error) {
-    console.error('Error loading challenges:', error)
-  } finally {
-    isLoadingChallenges.value = false
+    console.error('Error toggling card:', error)
   }
 }
 
-const loadChallengeMembers = async (challengeId) => {
-  try {
-    const challengeRef = doc(db, 'challenges', challengeId)
-    const challengeSnap = await getDoc(challengeRef)
-    
-    if (!challengeSnap.exists()) return
-    
-    const challengeData = challengeSnap.data()
-    const memberIds = challengeData.members || []
-    
-    // Load all assignments for this challenge
-    const assignmentsRef = collection(db, 'assignments')
-    const assignmentsQuery = query(assignmentsRef, where('challengeId', '==', challengeId))
-    const assignmentsSnapshot = await getDocs(assignmentsQuery)
-    
-    const membersData = []
-    
-    for (const assignmentDoc of assignmentsSnapshot.docs) {
-      const assignmentData = assignmentDoc.data()
-      const memberId = assignmentData.userId
-      
-      if (!memberId) continue // Skip email-only invites
-      
-      // Get user data
-      const userRef = doc(db, 'users', memberId)
-      const userSnap = await getDoc(userRef)
-      if (!userSnap.exists()) continue
-      
-      const userData = userSnap.data()
-      
-      // Calculate progress from collectorList
-      const collectorListRef = collection(db, 'collectorList')
-      const collectorListQuery = query(
-        collectorListRef,
-        where('userId', '==', memberId),
-        where('assignmentId', '==', assignmentDoc.id)
-      )
-      const collectorListSnapshot = await getDocs(collectorListQuery)
-      
-      // Get total cards for this assignment - use stored totalCards or cardIds
-      let totalCards = 0
-      
-      // Use stored totalCards if available (new assignments)
-      if (assignmentData.totalCards !== undefined) {
-        totalCards = assignmentData.totalCards
-      } else if (assignmentData.cardIds && assignmentData.cardIds.length > 0) {
-        // Use cardIds length if available
-        totalCards = assignmentData.cardIds.length
-      } else {
-        // Fallback for old assignments - query (but this is expensive, should migrate)
-        const pokemonRef = collection(db, 'pokemon')
-        if (assignmentData.type === 'set' && assignmentData.setId) {
-          const setQuery = query(pokemonRef, where('setId', '==', assignmentData.setId))
-          const setSnapshot = await getDocs(setQuery)
-          totalCards = setSnapshot.size
-        } else if (assignmentData.type === 'pokemon' && assignmentData.pokemonId) {
-          const pokemonListRef = doc(db, 'pokemonList', assignmentData.pokemonId)
-          const pokemonListDoc = await getDoc(pokemonListRef)
-          if (pokemonListDoc.exists()) {
-            const cardIds = pokemonListDoc.data().cardIds || []
-            totalCards = cardIds.length
-          }
-        }
-      }
-      
-      const checkedCards = collectorListSnapshot.docs.filter(d => d.data().checkedOff).length
-      const progress = totalCards > 0 ? Math.round((checkedCards / totalCards) * 100) : 0
-      
-      membersData.push({
-        id: memberId,
-        name: userData.displayName || userData.email || 'Unknown',
-        email: userData.email,
-        progress: progress,
-        assignmentId: assignmentDoc.id
-      })
-    }
-    
-    challengeMembers.value[challengeId] = membersData
-    
-    // Calculate challenge stats
-    const averageProgress = membersData.length > 0
-      ? Math.round(membersData.reduce((sum, m) => sum + m.progress, 0) / membersData.length)
-      : 0
-    
-    challengeStats.value[challengeId] = {
-      averageProgress,
-      totalAssignments: assignmentsSnapshot.size
-    }
-  } catch (error) {
-    console.error(`Error loading challenge members for ${challengeId}:`, error)
-  }
-}
-
-const copyInviteCode = (code) => {
-  navigator.clipboard.writeText(code)
-  alert(`Invite code copied: ${code}`)
-}
-
-const goToAssignment = (assignment) => {
-  // Navigate to challenge page
-  if (assignment.challengeId) {
-    router.push(`/challenge/${assignment.challengeId}`)
-  } else {
-    // Solo assignments should still have a challengeId, but fallback to profile
-    console.warn('Assignment missing challengeId:', assignment.id)
-    router.push(`/profile`)
-  }
-}
 
 const acceptInvite = async (invite) => {
   if (!user.value) {
@@ -614,25 +519,11 @@ const acceptInvite = async (invite) => {
       updatedAt: serverTimestamp()
     })
     
-    // Add user to challenge
-    const challengeRef = doc(db, 'challenges', invite.challengeId)
-    await updateDoc(challengeRef, {
-      members: arrayUnion(user.value.uid),
-      updatedAt: serverTimestamp()
-    })
-    
-    // Add challenge to user's challenges array
-    const userRef = doc(db, 'users', user.value.uid)
-    await updateDoc(userRef, {
-      challenges: arrayUnion(invite.challengeId),
-      updatedAt: serverTimestamp()
-    })
-    
     // Update assignment: find by email and update to userId
     const assignmentsRef = collection(db, 'assignments')
     const assignmentsQuery = query(
       assignmentsRef,
-      where('challengeId', '==', invite.challengeId),
+      where('masterSetId', '==', invite.masterSetId || invite.challengeId),
       where('email', '==', invite.email)
     )
     const assignmentsSnapshot = await getDocs(assignmentsQuery)
@@ -642,6 +533,8 @@ const acceptInvite = async (invite) => {
       await updateDoc(doc(db, 'assignments', assignmentDoc.id), {
         userId: user.value.uid,
         email: null, // Clear email since we now have userId
+        status: 'accepted',
+        acceptedAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       })
     }
@@ -649,11 +542,10 @@ const acceptInvite = async (invite) => {
     // Remove from pending invites
     pendingInvites.value = pendingInvites.value.filter(i => i.id !== invite.id)
     
-    // Reload challenges and assignments
-    await loadChallenges()
+    // Reload assignments
     await loadAssignments()
     
-    alert('Invite accepted! You can now start collecting cards for this challenge.')
+    alert('Invite accepted! You can now start collecting cards for this master set.')
   } catch (error) {
     console.error('Error accepting invite:', error)
     alert('Error accepting invite: ' + error.message)
@@ -687,63 +579,104 @@ const loadCollection = async () => {
   
   isLoadingCollection.value = true
   try {
-    const result = await getUserCollectedCards(user.value.uid)
-    if (result.success && result.data) {
-      // Load full card details for each collected card
-      const cardPromises = result.data.map(async (userCard) => {
-        try {
-          const cardDoc = await getDoc(doc(db, 'pokemon', userCard.cardId))
-          if (cardDoc.exists()) {
-            const cardData = cardDoc.data()
-            const enrichedCard = {
-              ...cardData,
-              id: cardDoc.id,
-              collectedAt: userCard.collectedAt,
-              quantity: userCard.quantity,
-              notes: userCard.notes
-            }
-            
-            // If card has nationalDexNumber, try to enrich with sprite from pokemonList
-            if (cardData.nationalDexNumber && !enrichedCard.spriteUrl) {
-              try {
-                const pokemonListRef = collection(db, 'pokemonList')
-                const pokemonQuery = query(
-                  pokemonListRef,
-                  where('nationalDexNumber', '==', cardData.nationalDexNumber)
-                )
-                const pokemonSnapshot = await getDocs(pokemonQuery)
-                
-                // Find the best entry with a sprite
-                for (const pokemonDoc of pokemonSnapshot.docs) {
-                  const pokemonData = pokemonDoc.data()
-                  const spriteUrl = pokemonData.spriteUrl || pokemonData.spriteUrls?.spriteUrl || pokemonData.spriteUrls?.normal
-                  
-                  if (spriteUrl) {
-                    enrichedCard.spriteUrl = spriteUrl
-                    enrichedCard.spriteUrls = pokemonData.spriteUrls
-                    break // Use first one with sprite
-                  }
-                }
-              } catch (error) {
-                // Silently fail - sprite enrichment is optional
-                console.debug(`Could not enrich sprite for card ${cardDoc.id}:`, error)
-              }
-            }
-            
-            return enrichedCard
-          }
-          return null
-        } catch (error) {
-          console.error(`Error loading card ${userCard.cardId}:`, error)
-          return null
-        }
-      })
-      
-      const cards = await Promise.all(cardPromises)
-      collectedCards.value = cards.filter(card => card !== null)
-    } else {
+    // Query userCards collection for current user's userId
+    const userCardsRef = collection(db, 'userCards')
+    const q = query(userCardsRef, where('userId', '==', user.value.uid))
+    const snapshot = await getDocs(q)
+    
+    if (snapshot.empty) {
       collectedCards.value = []
+      return
     }
+    
+    // Extract card IDs (API IDs like "me02-013")
+    const cardIds = snapshot.docs.map(doc => doc.data().cardId).filter(Boolean)
+    
+    if (cardIds.length === 0) {
+      collectedCards.value = []
+      return
+    }
+    
+    // Query card_en and card_ja collections for matching card IDs
+    const allCards = []
+    const userCardsMap = new Map()
+    
+    // Map userCards data by cardId for quick lookup
+    snapshot.docs.forEach(doc => {
+      const data = doc.data()
+      if (data.cardId) {
+        userCardsMap.set(data.cardId, {
+          collectedAt: data.collectedAt,
+          quantity: data.quantity,
+          notes: data.notes
+        })
+      }
+    })
+    
+    // Load English cards
+    const cardEnRef = collection(db, 'card_en')
+    const batchSize = 10
+    
+    for (let i = 0; i < cardIds.length; i += batchSize) {
+      const batch = cardIds.slice(i, i + batchSize)
+      try {
+        const q = query(cardEnRef, where('id', 'in', batch))
+        const cardSnapshot = await getDocs(q)
+        
+        cardSnapshot.docs.forEach(doc => {
+          const cardData = doc.data()
+          const cardId = cardData.id || cardData.apiId
+          const userCardData = userCardsMap.get(cardId)
+          
+          if (userCardData) {
+            allCards.push({
+              ...cardData,
+              id: doc.id,
+              cardId: cardId,
+              language: 'en',
+              collectedAt: userCardData.collectedAt,
+              quantity: userCardData.quantity,
+              notes: userCardData.notes
+            })
+          }
+        })
+      } catch (error) {
+        console.error(`Error querying batch of English cards:`, error)
+      }
+    }
+    
+    // Load Japanese cards
+    const cardJaRef = collection(db, 'card_ja')
+    
+    for (let i = 0; i < cardIds.length; i += batchSize) {
+      const batch = cardIds.slice(i, i + batchSize)
+      try {
+        const q = query(cardJaRef, where('id', 'in', batch))
+        const cardSnapshot = await getDocs(q)
+        
+        cardSnapshot.docs.forEach(doc => {
+          const cardData = doc.data()
+          const cardId = cardData.id || cardData.apiId
+          const userCardData = userCardsMap.get(cardId)
+          
+          if (userCardData) {
+            allCards.push({
+              ...cardData,
+              id: doc.id,
+              cardId: cardId,
+              language: 'ja',
+              collectedAt: userCardData.collectedAt,
+              quantity: userCardData.quantity,
+              notes: userCardData.notes
+            })
+          }
+        })
+      } catch (error) {
+        console.error(`Error querying batch of Japanese cards:`, error)
+      }
+    }
+    
+    collectedCards.value = allCards
   } catch (error) {
     console.error('Error loading collection:', error)
     collectedCards.value = []
@@ -828,12 +761,11 @@ watch(() => user.value, (newUser) => {
   if (newUser) {
     loadAssignments()
     loadInvites()
-    loadChallenges()
     loadCollection()
   } else {
     assignments.value = []
+    allMasterSets.value = []
     pendingInvites.value = []
-    userChallenges.value = []
     collectedCards.value = []
   }
 }, { immediate: true })
@@ -842,9 +774,33 @@ onMounted(() => {
   if (user.value) {
     loadAssignments()
     loadInvites()
-    loadChallenges()
     loadCollection()
   }
 })
 </script>
+
+<style scoped>
+/* Custom scrollbar styling for cards grid */
+.cards-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.cards-scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cards-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cards-scroll-container::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 4px;
+}
+
+.cards-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-border-hover);
+}
+</style>
 

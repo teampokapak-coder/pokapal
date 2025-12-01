@@ -386,6 +386,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Success Notification -->
+    <SuccessNotification
+      :show="showSuccessNotification"
+      title="Master Set Created!"
+      message="Redirecting to your master set..."
+      @close="showSuccessNotification = false"
+    />
   </div>
 </template>
 
@@ -402,9 +410,11 @@ import { getSetLogoUrl, formatSetDisplayName, formatSeriesDisplayName } from '..
 import { getSetIdInitials } from '../utils/cardImageFallback'
 import CardModal from '../components/CardModal.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
+import SuccessNotification from '../components/SuccessNotification.vue'
 import { createMasterSet, createAssignment, getCardIdsForSet } from '../utils/masterSetUtils'
 
 const route = useRoute()
+const router = useRouter()
 const { user } = useAuth()
 const setId = route.params.setId
 
@@ -726,8 +736,10 @@ const createMasterSetFromSet = async () => {
 
     // Close modal and show success
     showStartMasterSetModal.value = false
-    alert('Master set created successfully!')
-    // TODO: Navigate to master set detail page when created
+    showSuccessNotification.value = true
+    setTimeout(() => {
+      router.push(`/master-set/${masterSetId}`)
+    }, 1500) // Redirect after 1.5 seconds
   } catch (error) {
     console.error('Error creating master set:', error)
     alert('Error creating master set: ' + error.message)
