@@ -76,10 +76,10 @@
           <div class="relative section-container py-6 sm:py-8 md:py-12">
             <div class="max-w-3xl">
               <img src="/pokapal_white.svg" alt="Pokapal" class="h-8 md:h-12 w-auto mb-4" />
-              <p class="hero-subtitle mb-6 max-w-lg md:max-w-xl">
+              <p class="hero-subtitle mb-4 sm:mb-5 md:mb-6 max-w-lg md:max-w-xl">
                 Your collection companion for Pokémon TCG master sets. Track progress, compete with friends, and celebrate every card.
               </p>
-              <div v-if="!user" class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div v-if="!user" class="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-1 sm:mt-0">
                 <router-link to="/login" class="btn btn-h4 btn-primary">
                   Create Account
                 </router-link>
@@ -87,7 +87,7 @@
                   Browse Cards
                 </router-link>
               </div>
-              <div v-else class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div v-else class="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-1 sm:mt-0">
                 <router-link to="/start" class="btn btn-h4 btn-primary">
                   Start Master Set
                 </router-link>

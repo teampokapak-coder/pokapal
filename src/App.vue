@@ -5,6 +5,7 @@
       <router-view />
     </main>
     <Footer />
+    <FeedbackWidget />
   </div>
 </template>
 
@@ -12,6 +13,7 @@
 import { onMounted } from 'vue'
 import Navigation from './components/Navigation.vue'
 import Footer from './components/Footer.vue'
+import FeedbackWidget from './components/FeedbackWidget.vue'
 
 // Apply Material Design color scheme classes to root element based on system preference
 onMounted(() => {
