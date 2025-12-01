@@ -285,7 +285,7 @@
 
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
@@ -294,6 +294,7 @@ import PokemonCard from '../components/PokemonCard.vue'
 import PokemonCardMS from '../components/PokemonCardMS.vue'
 import CardModal from '../components/CardModal.vue'
 
+const route = useRoute()
 const router = useRouter()
 const { user } = useAuth()
 
@@ -767,6 +768,13 @@ watch(() => user.value, (newUser) => {
     allMasterSets.value = []
     pendingInvites.value = []
     collectedCards.value = []
+  }
+}, { immediate: true })
+
+// Update page title
+watch(() => route.name, () => {
+  if (route.name === 'Profile') {
+    document.title = 'PokaPal - Your Profile'
   }
 }, { immediate: true })
 

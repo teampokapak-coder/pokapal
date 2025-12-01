@@ -204,10 +204,13 @@ export const getAllPokemonCards = async (filters = {}) => {
     snapshots.forEach((snapshot, index) => {
       const collectionCards = snapshot.docs.map(doc => {
         const cardData = doc.data()
+        // Preserve API ID before overwriting with Firestore document ID
+        const apiId = cardData.id || cardData.apiId || cardData.cardId
         // Ensure Firestore document ID is preserved (don't let cardData.id overwrite it)
         return {
           ...cardData,
           id: doc.id, // Firestore document ID - must be last to override any id field in cardData
+          cardId: apiId, // Preserve API ID (like "me02-013") for userCards collection lookups
           collection: collections[index].name,
           language: collections[index].name === 'card_ja' ? 'ja' : 'en'
         }

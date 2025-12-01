@@ -665,7 +665,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
@@ -673,6 +673,7 @@ import { createMasterSet as createMasterSetUtil, createAssignment, getCardIdsFor
 import { getAllPokemonCards } from '../utils/firebasePokemon'
 import SuccessNotification from '../components/SuccessNotification.vue'
 
+const route = useRoute()
 const router = useRouter()
 const { user } = useAuth()
 
@@ -1327,6 +1328,13 @@ watch(user, (newUser) => {
     currentAssignmentTarget.value = 'all'
   }
 })
+
+// Update page title
+watch(() => route.name, () => {
+  if (route.name === 'StartMasterSet') {
+    document.title = 'PokaPal - Create Your Master Set'
+  }
+}, { immediate: true })
 
 onMounted(() => {
   if (user.value) {

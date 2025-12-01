@@ -964,6 +964,14 @@ watch(showStartMasterSetModal, (isOpen) => {
   }
 })
 
+// Update page title when pokemon loads
+watch(pokemon, (newPokemon) => {
+  if (newPokemon) {
+    const pokemonName = newPokemon.displayName || newPokemon.name || 'Pokemon'
+    document.title = `PokaPal - ${pokemonName}`
+  }
+}, { immediate: true })
+
 // Watch for user changes
 watch(() => user.value, async (newUser) => {
   if (newUser && cards.value.length > 0) {

@@ -220,7 +220,7 @@
                 :show-types="true"
                 icon-size="w-8 h-8"
                 @click="selectCard"
-                @toggle-collected="(card) => toggleCollected(card.id)"
+                @toggle-collected="toggleCollected"
               />
             </div>
 
@@ -238,7 +238,7 @@
       :card="selectedCard"
       :is-collected="selectedCard ? collectedCards.has(selectedCard.id) : false"
       @close="selectedCard = null"
-      @toggle-collected="(card) => toggleCollected(card.id)"
+      @toggle-collected="selectedCard ? toggleCollected(selectedCard) : null"
     />
 
     <!-- Start Master Set Modal -->
@@ -405,7 +405,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { doc, getDoc, Timestamp, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, Timestamp, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { getAllPokemonCards, getSet, getCardsBySet } from '../utils/firebasePokemon'
 import { useAuth } from '../composables/useAuth'
@@ -478,19 +478,27 @@ const selectCard = (card) => {
   selectedCard.value = card
 }
 
-const toggleCollected = async (cardId) => {
+const toggleCollected = async (card) => {
   if (!user.value) {
     alert('Please log in to mark cards as collected')
     return
   }
   
   try {
-    const result = await toggleCardCollected(user.value.uid, cardId)
+    // Get the API ID for the card (userCards stores by API ID)
+    const apiId = card.cardId || card.id || card.apiId
+    if (!apiId) {
+      console.error('Card missing API ID:', card)
+      return
+    }
+    
+    const result = await toggleCardCollected(user.value.uid, apiId)
     if (result.success) {
+      // Update local state using Firestore document ID for display
       if (result.isCollected) {
-        collectedCards.value.add(cardId)
+        collectedCards.value.add(card.id) // card.id is Firestore doc ID
       } else {
-        collectedCards.value.delete(cardId)
+        collectedCards.value.delete(card.id)
       }
     } else {
       alert('Error: ' + result.error)
@@ -505,9 +513,47 @@ const loadCollectedCards = async () => {
   if (!user.value || cards.value.length === 0) return
   
   try {
-    const cardIds = cards.value.map(card => card.id)
-    const collectedSet = await getCollectedCardIds(user.value.uid, cardIds)
-    collectedCards.value = collectedSet
+    // userCards stores cards by API ID (like "me02-013"), not Firestore document ID
+    // Extract API IDs from cards - check multiple possible fields
+    const apiIds = cards.value.map(card => {
+      // Cards might have cardId, id (API ID before overwrite), or apiId field
+      return card.cardId || card.id || card.apiId
+    }).filter(Boolean)
+    
+    if (apiIds.length === 0) return
+    
+    // Query userCards collection by userId and cardId field (which stores API IDs)
+    const userCardsRef = collection(db, 'userCards')
+    const collectedApiIds = new Set()
+    const batchSize = 10
+    
+    for (let i = 0; i < apiIds.length; i += batchSize) {
+      const batch = apiIds.slice(i, i + batchSize)
+      const q = query(
+        userCardsRef,
+        where('userId', '==', user.value.uid),
+        where('cardId', 'in', batch)
+      )
+      const snapshot = await getDocs(q)
+      
+      snapshot.docs.forEach(docSnap => {
+        const data = docSnap.data()
+        if (data.cardId) {
+          collectedApiIds.add(data.cardId)
+        }
+      })
+    }
+    
+    // Map collected API IDs back to Firestore document IDs for display
+    const collectedFirestoreIds = new Set()
+    cards.value.forEach(card => {
+      const apiId = card.cardId || card.id || card.apiId
+      if (apiId && collectedApiIds.has(apiId)) {
+        collectedFirestoreIds.add(card.id) // card.id is the Firestore document ID
+      }
+    })
+    
+    collectedCards.value = collectedFirestoreIds
   } catch (error) {
     console.error('Error loading collected cards:', error)
   }
@@ -771,6 +817,22 @@ watch(showStartMasterSetModal, (isOpen) => {
     masterSetForm.value.invites = []
   }
 })
+
+// Update page title when set loads
+watch(set, (newSet) => {
+  if (newSet) {
+    document.title = `PokaPal - ${formatSetDisplayName(newSet)}`
+  }
+}, { immediate: true })
+
+// Reload collected cards when user logs in or cards change
+watch([user, cards], ([newUser, newCards]) => {
+  if (newUser && newCards && newCards.length > 0) {
+    loadCollectedCards()
+  } else if (!newUser) {
+    collectedCards.value.clear()
+  }
+}, { immediate: true })
 
 onMounted(() => {
   loadSet()
