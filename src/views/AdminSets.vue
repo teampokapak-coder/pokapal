@@ -167,7 +167,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { addSet as addSetFirebase, getAllSets, updateSet, deleteSet as deleteSetFirebase } from '../utils/firebasePokemon'
+import { getAllSets } from '../utils/firebasePokemon'
 import { Timestamp } from 'firebase/firestore'
 
 const sets = ref([])
@@ -210,25 +210,9 @@ const formatDate = (date) => {
 const addSet = async () => {
   isSubmitting.value = true
   try {
-    const setData = {
-      ...form.value,
-      releaseDate: form.value.releaseDate ? Timestamp.fromDate(new Date(form.value.releaseDate)) : null
-    }
-    
-    let result
-    if (editingSet.value) {
-      result = await updateSet(editingSet.value.id, setData)
-    } else {
-      result = await addSetFirebase(setData)
-    }
-    
-    if (result.success) {
-      alert(editingSet.value ? 'Set updated successfully!' : 'Set added successfully!')
-      resetForm()
-      loadSets()
-    } else {
-      alert(`Error: ${result.error}`)
-    }
+    // Note: Set creation/editing should be done through the Admin panel or seeder
+    alert('Set management is handled through the Admin panel. Please use the simplified admin interface.')
+    resetForm()
   } catch (error) {
     alert(`Error: ${error.message}`)
   } finally {
@@ -253,17 +237,8 @@ const editSet = (set) => {
 const deleteSet = async (setId) => {
   if (!confirm('Are you sure you want to delete this set?')) return
   
-  try {
-    const result = await deleteSetFirebase(setId)
-    if (result.success) {
-      alert('Set deleted successfully!')
-      loadSets()
-    } else {
-      alert(`Error: ${result.error}`)
-    }
-  } catch (error) {
-    alert(`Error: ${error.message}`)
-  }
+  // Note: Set deletion should be done through Firestore console or Admin panel
+  alert('Set deletion is handled through the Admin panel. Please use the simplified admin interface.')
 }
 
 const loadSets = async () => {

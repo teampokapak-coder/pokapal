@@ -361,7 +361,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { addPokemonCard, updatePokemonCard, getAllPokemonCards, deletePokemonCard } from '../utils/firebasePokemon'
+import { getAllPokemonCards } from '../utils/firebasePokemon'
 import { getAllSets } from '../utils/firebasePokemon'
 
 const activeTab = ref('add')
@@ -440,24 +440,9 @@ const addCard = async () => {
     }
     delete cardData.typesInput
     
-    let result
-    if (editingCard.value) {
-      // Update existing card
-      result = await updatePokemonCard(editingCard.value.id, cardData)
-    } else {
-      // Add new card
-      result = await addPokemonCard(cardData)
-    }
-    
-    if (result.success) {
-      alert(editingCard.value ? 'Card updated successfully!' : 'Card added successfully!')
-      resetForm()
-      if (activeTab.value === 'list') {
-        loadCards()
-      }
-    } else {
-      alert(`Error: ${result.error}`)
-    }
+    // Note: Card creation/editing should be done through the Admin panel or seeder
+    alert('Card management is handled through the Admin panel. Please use the simplified admin interface.')
+    resetForm()
   } catch (error) {
     alert(`Error: ${error.message}`)
   } finally {
@@ -520,17 +505,8 @@ const loadCards = async () => {
 const deleteCard = async (cardId) => {
   if (!confirm('Are you sure you want to delete this card?')) return
   
-  try {
-    const result = await deletePokemonCard(cardId)
-    if (result.success) {
-      alert('Card deleted successfully!')
-      loadCards()
-    } else {
-      alert(`Error: ${result.error}`)
-    }
-  } catch (error) {
-    alert(`Error: ${error.message}`)
-  }
+  // Note: Card deletion should be done through Firestore console or Admin panel
+  alert('Card deletion is handled through the Admin panel. Please use the simplified admin interface.')
 }
 
 const loadSets = async () => {

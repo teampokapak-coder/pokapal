@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "deploy": "source ~/.nvm/nvm.sh && nvm use 22 && npm run build && firebase deploy --only hosting",
+    "deploy:hosting": "source ~/.nvm/nvm.sh && nvm use 22 && npm run build && firebase deploy --only hosting",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
