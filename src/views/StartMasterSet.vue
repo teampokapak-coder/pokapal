@@ -7,7 +7,20 @@
           <p class="section-subtitle">Create a new master set collection</p>
         </div>
 
-        <div class="max-w-3xl mx-auto">
+        <!-- Login Required Message -->
+        <div v-if="!user" class="max-w-3xl mx-auto">
+          <div class="card text-center py-12">
+            <h3 class="mb-4">Log in to start your master set</h3>
+            <p class="mb-6" style="color: var(--color-text-secondary);">
+              You need to be logged in to create a master set collection.
+            </p>
+            <router-link to="/login" class="btn btn-h4 btn-primary">
+              Go to Login
+            </router-link>
+          </div>
+        </div>
+
+        <div v-else class="max-w-3xl mx-auto">
           <!-- Step Indicator -->
           <div class="mb-8">
             <div class="flex items-center justify-between">
@@ -1306,11 +1319,22 @@ watch(() => currentStep.value, (newStep) => {
   }
 })
 
+// Watch for user authentication - only load data if logged in
+watch(user, (newUser) => {
+  if (newUser) {
+    loadSets()
+    loadPokemon()
+    currentAssignmentTarget.value = 'all'
+  }
+})
+
 onMounted(() => {
-  loadSets()
-  loadPokemon()
-  // Set initial default to "all"
-  currentAssignmentTarget.value = 'all'
+  if (user.value) {
+    loadSets()
+    loadPokemon()
+    // Set initial default to "all"
+    currentAssignmentTarget.value = 'all'
+  }
 })
 </script>
 

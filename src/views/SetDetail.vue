@@ -145,13 +145,18 @@
           </div>
 
           <!-- Start Master Set Button -->
-          <div v-if="user" class="mb-6">
+          <div class="mb-6">
             <button
-              @click="showStartMasterSetModal = true"
+              @click="handleStartMasterSetClick"
               class="btn btn-h4 btn-primary"
+              :disabled="!user"
+              :title="!user ? 'Log in to start your master set' : ''"
             >
               Start Master Set
             </button>
+            <p v-if="!user" class="text-sm mt-2" style="color: var(--color-text-secondary);">
+              Log in to start your master set
+            </p>
           </div>
 
           <!-- Cards Section -->
@@ -399,7 +404,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { doc, getDoc, Timestamp, serverTimestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { getAllPokemonCards, getSet, getCardsBySet } from '../utils/firebasePokemon'
@@ -746,6 +751,14 @@ const createMasterSetFromSet = async () => {
   } finally {
     isCreatingMasterSet.value = false
   }
+}
+
+const handleStartMasterSetClick = () => {
+  if (!user.value) {
+    router.push('/login')
+    return
+  }
+  showStartMasterSetModal.value = true
 }
 
 // Initialize form when modal opens

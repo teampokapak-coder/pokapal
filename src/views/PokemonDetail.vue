@@ -70,13 +70,18 @@
                   </div>
 
                   <!-- Start Master Set Button - Compact with light text -->
-                  <div v-if="user">
+                  <div>
                     <button
-                      @click="showStartMasterSetModal = true"
+                      @click="handleStartMasterSetClick"
                       class="btn btn-h5 btn-primary text-sm py-1.5 px-3"
+                      :disabled="!user"
+                      :title="!user ? 'Log in to start your master set' : ''"
                     >
                       Start Master Set
                     </button>
+                    <p v-if="!user" class="text-xs mt-1" style="color: var(--color-text-secondary);">
+                      Log in to start
+                    </p>
                   </div>
                 </div>
               </div>
@@ -150,13 +155,18 @@
                 </div>
 
                 <!-- Start Master Set Button -->
-                <div v-if="user" class="mb-4">
+                <div class="mb-4">
                   <button
-                    @click="showStartMasterSetModal = true"
+                    @click="handleStartMasterSetClick"
                     class="btn btn-h4 btn-primary"
+                    :disabled="!user"
+                    :title="!user ? 'Log in to start your master set' : ''"
                   >
                     Start Master Set
                   </button>
+                  <p v-if="!user" class="text-sm mt-2" style="color: var(--color-text-secondary);">
+                    Log in to start your master set
+                  </p>
                 </div>
 
                 <!-- Stats -->
@@ -934,6 +944,14 @@ const createMasterSetFromPokemon = async () => {
   } finally {
     isCreatingMasterSet.value = false
   }
+}
+
+const handleStartMasterSetClick = () => {
+  if (!user.value) {
+    router.push('/login')
+    return
+  }
+  showStartMasterSetModal.value = true
 }
 
 // Initialize form when modal opens
