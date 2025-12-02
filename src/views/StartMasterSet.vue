@@ -85,16 +85,37 @@
                     <div class="flex-1">
                       <input
                         v-model="invite.email"
-                        type="email"
-                        placeholder="friend@example.com or search for user..."
+                        type="text"
+                        placeholder="Search by name or email, or enter email address..."
                         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                         @input="searchUser(invite, index)"
+                        @focus="invite.showResults = true"
+                        @blur="setTimeout(() => { invite.showResults = false }, 200)"
                       />
-                      <div v-if="invite.userId" class="mt-1 text-xs text-green-600">
-                        ✓ User found: {{ invite.userName || invite.email }}
+                      <!-- Search Results Dropdown -->
+                      <div v-if="invite.searchResults && invite.searchResults.length > 0 && invite.showResults" class="mt-1 border border-gray-300 rounded-md bg-white shadow-lg z-10 max-h-48 overflow-y-auto">
+                        <div
+                          v-for="(result, resultIndex) in invite.searchResults"
+                          :key="resultIndex"
+                          @click="selectUser(invite, result)"
+                          class="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                          <div class="font-medium text-gray-900">{{ result.displayName || result.email }}</div>
+                          <div v-if="result.displayName && result.email" class="text-xs text-gray-500">{{ result.email }}</div>
+                        </div>
                       </div>
-                      <div v-else-if="invite.email && !invite.searching && invite.email.includes('@')" class="mt-1 text-xs text-gray-500">
+                      <!-- Status Messages -->
+                      <div v-if="invite.searching" class="mt-1 text-xs text-gray-500">
+                        Searching...
+                      </div>
+                      <div v-else-if="invite.userId && !invite.showResults" class="mt-1 text-xs text-green-600">
+                        ✓ Selected: {{ invite.userName || invite.email }}
+                      </div>
+                      <div v-else-if="invite.email && invite.email.includes('@') && !invite.userId && !invite.searchResults" class="mt-1 text-xs text-gray-500">
                         Will create invite for email (user can accept when they sign up)
+                      </div>
+                      <div v-else-if="invite.email && invite.email.length > 0 && !invite.email.includes('@') && !invite.searchResults" class="mt-1 text-xs text-gray-500">
+                        Enter an email address or search for a user by name
                       </div>
                     </div>
                     <button
@@ -321,9 +342,8 @@
                         </div>
                         <div class="flex-1 text-left">
                           <h4 class="mb-1">{{ form.selectedPokemon.displayName || form.selectedPokemon.name }}</h4>
-                          <p class="text-gray-600">
-                            {{ form.selectedPokemon.cardCount || 0 }} cards
-                            <span v-if="form.selectedPokemon.nationalDexNumber"> • #{{ form.selectedPokemon.nationalDexNumber }}</span>
+                          <p v-if="form.selectedPokemon.nationalDexNumber" class="text-gray-600">
+                            #{{ form.selectedPokemon.nationalDexNumber }}
                           </p>
                         </div>
                       </div>
@@ -405,9 +425,8 @@
                         </div>
                         <div class="flex-1 min-w-0">
                           <p class="font-medium text-gray-900 truncate">{{ pokemon.displayName || pokemon.name }}</p>
-                          <p class="text-xs text-gray-500">
-                            {{ pokemon.cardCount || 0 }} {{ (pokemon.cardCount || 0) === 1 ? 'card' : 'cards' }}
-                            <span v-if="pokemon.nationalDexNumber"> • #{{ pokemon.nationalDexNumber }}</span>
+                          <p v-if="pokemon.nationalDexNumber" class="text-xs text-gray-500">
+                            #{{ pokemon.nationalDexNumber }}
                           </p>
                         </div>
                       </div>
@@ -431,9 +450,8 @@
                         </div>
                         <div class="flex-1">
                           <h4 class="mb-1">{{ form.selectedPokemon.displayName || form.selectedPokemon.name }}</h4>
-                          <p class="text-gray-600">
-                            {{ form.selectedPokemon.cardCount || 0 }} cards
-                            <span v-if="form.selectedPokemon.nationalDexNumber"> • #{{ form.selectedPokemon.nationalDexNumber }}</span>
+                          <p v-if="form.selectedPokemon.nationalDexNumber" class="text-gray-600">
+                            #{{ form.selectedPokemon.nationalDexNumber }}
                           </p>
                         </div>
                         <button
@@ -709,30 +727,18 @@ const hasAssignToAll = ref(false)
 const loadSets = async () => {
   isLoadingSets.value = true
   try {
-    // Load from both set_en and set_ja collections
+    // Load only from set_en collection (English sets)
     const setsEnRef = collection(db, 'set_en')
-    const setsJaRef = collection(db, 'set_ja')
-    
-    const [enSnapshot, jaSnapshot] = await Promise.all([
-      getDocs(setsEnRef),
-      getDocs(setsJaRef)
-    ])
+    const enSnapshot = await getDocs(setsEnRef)
     
     const allSets = []
     
+    // Add English sets only
     enSnapshot.docs.forEach(doc => {
       allSets.push({
         id: doc.id,
         ...doc.data(),
         language: 'en'
-      })
-    })
-    
-    jaSnapshot.docs.forEach(doc => {
-      allSets.push({
-        id: doc.id,
-        ...doc.data(),
-        language: 'ja'
       })
     })
     
@@ -802,7 +808,14 @@ const getSetName = (setId) => {
 }
 
 const addInvite = () => {
-  form.value.invites.push({ email: '', userId: null, userName: null, searching: false })
+  form.value.invites.push({ 
+    email: '', 
+    userId: null, 
+    userName: null, 
+    searching: false,
+    searchResults: [],
+    showResults: false
+  })
 }
 
 const removeInvite = (index) => {
@@ -810,35 +823,103 @@ const removeInvite = (index) => {
 }
 
 const searchUser = async (invite, index) => {
-  if (!invite.email || !invite.email.includes('@')) {
+  const searchTerm = invite.email?.trim() || ''
+  
+  // If empty, clear results
+  if (!searchTerm) {
     invite.userId = null
     invite.userName = null
+    invite.searchResults = []
+    invite.searching = false
     return
   }
   
-  invite.searching = true
-  try {
-    // Search for user by email
-    const usersRef = collection(db, 'users')
-    const q = query(usersRef, where('email', '==', invite.email))
-    const snapshot = await getDocs(q)
-    
-    if (!snapshot.empty) {
-      const userDoc = snapshot.docs[0]
-      const userData = userDoc.data()
-      invite.userId = userDoc.id
-      invite.userName = userData.displayName || userData.email
-    } else {
+  // Debounce search (wait 300ms after user stops typing)
+  clearTimeout(invite.searchTimeout)
+  invite.searchTimeout = setTimeout(async () => {
+    invite.searching = true
+    try {
+      const usersRef = collection(db, 'users')
+      
+      // If it looks like an email, search by email first
+      if (searchTerm.includes('@')) {
+        const emailQuery = query(usersRef, where('email', '==', searchTerm.toLowerCase()))
+        const emailSnapshot = await getDocs(emailQuery)
+        
+        if (!emailSnapshot.empty) {
+          const userDoc = emailSnapshot.docs[0]
+          const userData = userDoc.data()
+          // Auto-select if exact email match
+          invite.userId = userDoc.id
+          invite.userName = userData.displayName || userData.email
+          invite.email = userData.email // Set the email field
+          invite.searchResults = []
+          invite.searching = false
+          return
+        }
+      }
+      
+      // Search by displayName (case-insensitive partial match)
+      // Note: Firestore doesn't support case-insensitive or partial matches natively,
+      // so we'll fetch users and filter client-side
+      const allUsersSnapshot = await getDocs(usersRef)
+      const searchLower = searchTerm.toLowerCase()
+      
+      // Find all matching users by displayName or email
+      const matchingUsers = allUsersSnapshot.docs
+        .map(doc => {
+          const userData = doc.data()
+          const displayName = (userData.displayName || '').toLowerCase()
+          const email = (userData.email || '').toLowerCase()
+          
+          if (displayName.includes(searchLower) || email.includes(searchLower)) {
+            return {
+              userId: doc.id,
+              displayName: userData.displayName,
+              email: userData.email
+            }
+          }
+          return null
+        })
+        .filter(Boolean)
+        .slice(0, 5) // Limit to 5 results
+      
+      if (matchingUsers.length > 0) {
+        // Show results dropdown
+        invite.searchResults = matchingUsers
+        invite.userId = null // Don't auto-select, let user choose
+        invite.userName = null
+      } else {
+        // No user found - if it's an email, allow it as a non-user invite
+        if (searchTerm.includes('@')) {
+          invite.userId = null
+          invite.userName = null
+          invite.searchResults = []
+          // Keep the email for non-user invite
+        } else {
+          // Not an email and no user found - clear
+          invite.userId = null
+          invite.userName = null
+          invite.searchResults = []
+        }
+      }
+    } catch (error) {
+      console.error('Error searching user:', error)
       invite.userId = null
       invite.userName = null
+      invite.searchResults = []
+    } finally {
+      invite.searching = false
     }
-  } catch (error) {
-    console.error('Error searching user:', error)
-    invite.userId = null
-    invite.userName = null
-  } finally {
-    invite.searching = false
-  }
+  }, 300)
+}
+
+const selectUser = (invite, user) => {
+  invite.userId = user.userId
+  invite.userName = user.displayName || user.email
+  invite.email = user.email // Set the email field
+  invite.searchResults = []
+  invite.showResults = false
 }
 
 const loadPokemon = async () => {
