@@ -73,27 +73,33 @@
       <main class="flex-1 overflow-y-auto">
         <!-- Hero Banner -->
         <div class="relative bg-cover bg-center bg-no-repeat overflow-hidden" style="background-image: url('/pokabanner.png');">
-          <div class="relative section-container py-6 sm:py-8 md:py-12">
-            <div class="max-w-3xl">
-              <img src="/pokapal_white.svg" alt="Pokapal" class="h-8 md:h-12 w-auto mb-4" />
-              <p class="hero-subtitle mb-4 sm:mb-5 md:mb-6 max-w-lg md:max-w-xl">
-                Your collection companion for Pokémon TCG master sets. Track progress, compete with friends, and celebrate every card.
-              </p>
-              <div v-if="!user" class="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-1 sm:mt-0">
-                <router-link to="/login" class="btn btn-h4 btn-primary">
-                  Create Account
-                </router-link>
-                <router-link to="/browse" class="btn btn-h4 btn-secondary">
-                  Browse Cards
-                </router-link>
+          <div class="relative section-container py-6 sm:py-8 md:py-12 min-h-[280px] sm:min-h-[320px] md:min-h-[400px] flex flex-col">
+            <div class="max-w-3xl flex-1 flex flex-col">
+              <div class="flex-shrink-0">
+                <img src="/pokapal_white.svg" alt="Pokapal" class="h-8 md:h-12 w-auto mb-4" />
               </div>
-              <div v-else class="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-1 sm:mt-0">
-                <router-link to="/start" class="btn btn-h4 btn-primary">
-                  Start Master Set
-                </router-link>
-                <router-link to="/profile" class="btn btn-h4 btn-secondary">
-                  My Profile
-                </router-link>
+              <div class="mt-auto">
+                <p class="hero-subtitle mb-4 sm:mb-5 md:mb-6 max-w-[400px] leading-tight sm:leading-normal">
+                  <span class="font-bold">Your collection companion for Pokémon TCG master sets.</span> Track progress, compete with friends, and celebrate every card.
+                </p>
+                <div class="flex flex-row gap-2 sm:gap-4">
+                  <div v-if="!user" class="flex flex-row gap-2 sm:gap-4 w-full">
+                    <router-link to="/login" class="btn btn-h4 btn-primary flex-1 sm:flex-none">
+                      Create Account
+                    </router-link>
+                    <router-link to="/browse" class="btn btn-h4 btn-secondary flex-1 sm:flex-none">
+                      Browse Cards
+                    </router-link>
+                  </div>
+                  <div v-else class="flex flex-row gap-2 sm:gap-4 w-full">
+                    <router-link to="/start" class="btn btn-h4 btn-primary flex-1 sm:flex-none">
+                      Start Master Set
+                    </router-link>
+                    <router-link to="/profile" class="btn btn-h4 btn-secondary flex-1 sm:flex-none">
+                      My Profile
+                    </router-link>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -520,21 +526,14 @@ const loadFeaturedPokemon = async () => {
     // Use the grouping utility to get only base Pokemon (no variations like "Erika's Pikachu")
     const allPokemon = groupPokemonByBase(allPokemonRaw)
 
-    // Sort by nationalDexNumber if available, otherwise alphabetically
-    allPokemon.sort((a, b) => {
-      if (a.nationalDexNumber && b.nationalDexNumber) {
-        return a.nationalDexNumber - b.nationalDexNumber
-      }
-      if (a.nationalDexNumber) return -1
-      if (b.nationalDexNumber) return 1
-      return (a.displayName || a.name).localeCompare(b.displayName || a.name)
-    })
-
-    // Take first 6 Pokemon for featured section
-    featuredPokemon.value = allPokemon.slice(0, 6)
+    // Shuffle Pokemon array randomly for trending section (lightweight)
+    const shuffledPokemon = [...allPokemon].sort(() => Math.random() - 0.5)
     
-    // Set trending Pokemon (first 12 by dex number - card counts not displayed on this page)
-    trendingPokemon.value = allPokemon.slice(0, 12)
+    // Take first 6 Pokemon for featured section (random)
+    featuredPokemon.value = shuffledPokemon.slice(0, 6)
+    
+    // Set trending Pokemon (random 12 Pokemon)
+    trendingPokemon.value = shuffledPokemon.slice(0, 12)
     
     // Set trending types (most common Pokemon types)
     const typeCounts = new Map()
