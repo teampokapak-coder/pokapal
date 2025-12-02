@@ -68,12 +68,21 @@ export const getAllPokemon = async (filters = {}) => {
     const pokemonRef = collection(db, 'pokemon')
     let q = query(pokemonRef)
     
+    // Server-side filtering for types (if single type)
+    if (filters.type && typeof filters.type === 'string') {
+      q = query(pokemonRef, where('types', 'array-contains', filters.type))
+    }
+    
     // Order by nationalDexNumber if available
     try {
-      q = query(pokemonRef, orderBy('nationalDexNumber', 'asc'))
+      q = query(q, orderBy('nationalDexNumber', 'asc'))
     } catch (e) {
-      // If ordering fails (no index), just get all without ordering
-      q = query(pokemonRef)
+      // If ordering fails (no index), continue without ordering
+    }
+    
+    // Apply limit server-side if specified (more efficient than client-side)
+    if (filters.limit && filters.limit > 0) {
+      q = query(q, limit(filters.limit))
     }
     
     const snapshot = await getDocs(q)
@@ -82,16 +91,11 @@ export const getAllPokemon = async (filters = {}) => {
       ...doc.data()
     }))
     
-    // Apply filters
-    if (filters.types && filters.types.length > 0) {
+    // Client-side filtering for multiple types (Firestore doesn't support array-contains-any easily)
+    if (filters.types && Array.isArray(filters.types) && filters.types.length > 0) {
       pokemon = pokemon.filter(p => 
         p.types && p.types.some(type => filters.types.includes(type))
       )
-    }
-    
-    // Apply limit
-    if (filters.limit && filters.limit > 0) {
-      pokemon = pokemon.slice(0, filters.limit)
     }
     
     return { success: true, data: pokemon }
@@ -117,6 +121,48 @@ export const getCard = async (cardId, language = 'en') => {
     }
   } catch (error) {
     console.error('Error getting card:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Get card counts by nationalDexNumber (lightweight - only loads IDs and dex numbers)
+ * Much faster than loading all card data when you only need counts
+ */
+export const getCardCountsByDexNumber = async (language = 'all') => {
+  try {
+    const collections = []
+    if (language === 'all' || language === 'en') {
+      collections.push(collection(db, 'card_en'))
+    }
+    if (language === 'all' || language === 'ja') {
+      collections.push(collection(db, 'card_ja'))
+    }
+    
+    const countsByDex = new Map()
+    
+    // Query each collection and count by nationalDexNumber
+    // Note: We still need to load all cards, but this is much faster than loading full card data
+    // and doing N separate queries per Pokemon
+    for (const cardsRef of collections) {
+      const q = query(cardsRef)
+      const snapshot = await getDocs(q)
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data()
+        // Only count cards that have a nationalDexNumber
+        if (data.nationalDexNumber != null) {
+          countsByDex.set(
+            data.nationalDexNumber,
+            (countsByDex.get(data.nationalDexNumber) || 0) + 1
+          )
+        }
+      })
+    }
+    
+    return { success: true, data: countsByDex }
+  } catch (error) {
+    console.error('Error getting card counts:', error)
     return { success: false, error: error.message }
   }
 }

@@ -110,21 +110,6 @@
                   />
                 </div>
 
-                <!-- Card Count Filter -->
-                <div>
-                  <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
-                    Min Cards
-                  </label>
-                  <input
-                    v-model.number="filters.minCards"
-                    type="number"
-                    placeholder="e.g. 5"
-                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
-                    style="border-color: var(--color-border);"
-                    @input="applyFilters"
-                  />
-                </div>
-
                 <!-- Sort By -->
                 <div>
                   <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
@@ -138,7 +123,6 @@
                   >
                     <option value="dex">National Dex #</option>
                     <option value="name">Name (A-Z)</option>
-                    <option value="cards">Most Cards</option>
                   </select>
                 </div>
 
@@ -159,9 +143,6 @@
             <div class="mb-3 sm:mb-4">
               <p class="text-xs sm:text-sm" style="color: var(--color-text-secondary);">
                 Showing {{ filteredPokemon.length }} of {{ pokemon.length }} Pokemon
-                <span v-if="pokemon.length > 0" class="text-xs" style="color: var(--color-text-tertiary);">
-                  ({{ pokemon.filter(p => p.cardCount > 0).length }} with cards)
-                </span>
               </p>
             </div>
 
@@ -218,13 +199,12 @@ const filters = ref({
   search: '',
   type: '',
   dexNumber: null,
-  minCards: null,
   sortBy: 'dex'
 })
 
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
-  return !!(filters.value.search || filters.value.type || filters.value.dexNumber || filters.value.minCards)
+  return !!(filters.value.search || filters.value.type || filters.value.dexNumber)
 })
 
 // Count active filters
@@ -233,7 +213,6 @@ const activeFilterCount = computed(() => {
   if (filters.value.search) count++
   if (filters.value.type) count++
   if (filters.value.dexNumber) count++
-  if (filters.value.minCards) count++
   return count
 })
 
@@ -263,13 +242,6 @@ const filteredPokemon = computed(() => {
     )
   }
 
-  // Min cards filter
-  if (filters.value.minCards) {
-    filtered = filtered.filter(p =>
-      (p.cardCount || 0) >= filters.value.minCards
-    )
-  }
-
   // Sort
   filtered = [...filtered].sort((a, b) => {
     if (filters.value.sortBy === 'dex') {
@@ -281,8 +253,6 @@ const filteredPokemon = computed(() => {
       return (a.displayName || a.name).localeCompare(b.displayName || b.name)
     } else if (filters.value.sortBy === 'name') {
       return (a.displayName || a.name).localeCompare(b.displayName || b.name)
-    } else if (filters.value.sortBy === 'cards') {
-      return (b.cardCount || 0) - (a.cardCount || 0)
     }
     return 0
   })
@@ -336,22 +306,8 @@ const loadPokemon = async () => {
     
     const allPokemonRaw = result.data || []
     
-    // Get card counts for each Pokemon
-    const enrichedPokemon = await Promise.all(
-      allPokemonRaw.map(async (pokemon) => {
-        const cardsResult = await getAllPokemonCards({ 
-          nationalDexNumber: pokemon.nationalDexNumber,
-          language: 'all'
-        })
-        return {
-          ...pokemon,
-          cardCount: cardsResult.success ? cardsResult.data.length : 0
-        }
-      })
-    )
-    
     // Use the grouping utility to get only base Pokemon (no variations like "Erika's Pikachu")
-    const allPokemon = groupPokemonByBase(enrichedPokemon)
+    const allPokemon = groupPokemonByBase(allPokemonRaw)
     
     // Sort by national dex number
     allPokemon.sort((a, b) => {
@@ -364,7 +320,7 @@ const loadPokemon = async () => {
     })
 
     pokemon.value = allPokemon
-    console.log(`Loaded ${allPokemon.length} Pokemon (${enrichedPokemon.length} documents from Firestore)`)
+    console.log(`Loaded ${allPokemon.length} Pokemon (${allPokemonRaw.length} documents from Firestore)`)
   } catch (error) {
     console.error('Error loading Pokemon:', error)
   } finally {

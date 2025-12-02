@@ -517,29 +517,8 @@ const loadFeaturedPokemon = async () => {
     const allPokemonRaw = result.data || []
     console.log(`Loaded ${allPokemonRaw.length} Pokemon from pokemon collection`)
     
-    // Load all cards once and count by nationalDexNumber (much faster than individual queries)
-    const allCardsResult = await getAllPokemonCards({ language: 'all' })
-    const cardCountsByDex = new Map()
-    
-    if (allCardsResult.success && allCardsResult.data) {
-      allCardsResult.data.forEach(card => {
-        if (card.nationalDexNumber) {
-          cardCountsByDex.set(
-            card.nationalDexNumber, 
-            (cardCountsByDex.get(card.nationalDexNumber) || 0) + 1
-          )
-        }
-      })
-    }
-    
-    // Add card counts to Pokemon
-    const pokemonWithCounts = allPokemonRaw.map(pokemon => ({
-      ...pokemon,
-      cardCount: cardCountsByDex.get(pokemon.nationalDexNumber) || 0
-    }))
-    
     // Use the grouping utility to get only base Pokemon (no variations like "Erika's Pikachu")
-    const allPokemon = groupPokemonByBase(pokemonWithCounts)
+    const allPokemon = groupPokemonByBase(allPokemonRaw)
 
     // Sort by nationalDexNumber if available, otherwise alphabetically
     allPokemon.sort((a, b) => {
@@ -554,20 +533,8 @@ const loadFeaturedPokemon = async () => {
     // Take first 6 Pokemon for featured section
     featuredPokemon.value = allPokemon.slice(0, 6)
     
-    // Set trending Pokemon (popular/iconic Pokemon with most cards)
-    trendingPokemon.value = allPokemon
-      .filter(p => p.cardCount > 0) // Only show Pokemon that have cards
-      .sort((a, b) => {
-        // Sort by card count (most cards first), then by dex number
-        if (b.cardCount !== a.cardCount) {
-          return b.cardCount - a.cardCount
-        }
-        if (a.nationalDexNumber && b.nationalDexNumber) {
-          return a.nationalDexNumber - b.nationalDexNumber
-        }
-        return 0
-      })
-      .slice(0, 12) // Top 12 most popular (6 on mobile, 12 on desktop)
+    // Set trending Pokemon (first 12 by dex number - card counts not displayed on this page)
+    trendingPokemon.value = allPokemon.slice(0, 12)
     
     // Set trending types (most common Pokemon types)
     const typeCounts = new Map()
