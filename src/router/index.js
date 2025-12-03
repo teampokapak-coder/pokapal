@@ -79,6 +79,21 @@ const routes = [
     name: 'AdminSets',
     component: () => import('../views/AdminSets.vue')
   },
+  {
+    path: '/admin/blog',
+    name: 'AdminBlog',
+    component: () => import('../views/AdminBlog.vue')
+  },
+  {
+    path: '/blog',
+    name: 'BlogList',
+    component: () => import('../views/BlogList.vue')
+  },
+  {
+    path: '/blog/:slug',
+    name: 'BlogDetail',
+    component: () => import('../views/BlogDetail.vue')
+  },
 ]
 
 const router = createRouter({

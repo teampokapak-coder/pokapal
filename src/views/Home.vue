@@ -252,39 +252,6 @@
           </div>
         </div>
 
-        <!-- Trending Collections (if user has collections) -->
-        <div v-if="user && userCollections.length > 0" class="section-container py-8" style="border-top: 1px solid var(--color-border);">
-          <div class="mb-6">
-            <h2>Your Collections</h2>
-            <p class="text-sm mt-1" style="color: var(--color-text-secondary);">Continue your master sets</p>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <router-link
-              v-for="collection in userCollections.slice(0, 6)"
-              :key="collection.id"
-              :to="collection.challengeId ? `/challenge/${collection.challengeId}` : `/profile`"
-              class="card hover:shadow-lg transition-all cursor-pointer"
-            >
-              <div class="card-body">
-                <h3 class="card-title mb-2">{{ collection.name }}</h3>
-                <p class="text-sm mb-3">{{ collection.targetSetName || 'Custom Collection' }}</p>
-                <div class="mb-2">
-                  <div class="flex justify-between text-xs mb-1">
-                    <span>Progress</span>
-                    <span>{{ collection.progress || 0 }}%</span>
-                  </div>
-                  <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      class="bg-gray-900 h-2 rounded-full transition-all"
-                      :style="{ width: `${collection.progress || 0}%` }"
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </router-link>
-          </div>
-        </div>
       </main>
     </div>
 
@@ -301,7 +268,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
 import { getAllSets, getAllPokemonCards, getAllPokemon } from '../utils/firebasePokemon'
@@ -318,7 +284,6 @@ const { user } = useAuth()
 
 const sets = ref([])
 const isLoadingSets = ref(false)
-const userCollections = ref([])
 const featuredPokemon = ref([])
 const isLoadingPokemon = ref(false)
 const trendingSets = ref([])
@@ -344,7 +309,6 @@ onMounted(() => {
   loadFeaturedPokemon()
   loadTrendingCards()
   if (user.value) {
-    loadUserCollections()
   }
 })
 
@@ -555,59 +519,6 @@ const loadFeaturedPokemon = async () => {
   }
 }
 
-const loadUserCollections = async () => {
-  if (!user.value) return
-  
-  try {
-    // Use assignments instead of old collections structure
-    const assignmentsRef = collection(db, 'assignments')
-    const q = query(
-      assignmentsRef,
-      where('userId', '==', user.value.uid),
-      orderBy('createdAt', 'desc')
-    )
-    const snapshot = await getDocs(q)
-    
-    userCollections.value = await Promise.all(
-      snapshot.docs.map(async (docSnap) => {
-        const data = { id: docSnap.id, ...docSnap.data() }
-        
-        // Calculate progress from collectorList
-        const collectorListRef = collection(db, 'collectorList')
-        const collectorListQuery = query(
-          collectorListRef,
-          where('userId', '==', user.value.uid),
-          where('assignmentId', '==', docSnap.id)
-        )
-        const collectorListSnapshot = await getDocs(collectorListQuery)
-        
-        // Get total cards for this assignment
-        let totalCards = 0
-        if (data.type === 'set' && data.setId) {
-          const setRef = doc(db, 'sets', data.setId)
-          const setDoc = await getDoc(setRef)
-          if (setDoc.exists()) {
-            totalCards = setDoc.data().totalCards || 0
-          }
-        } else if (data.type === 'pokemon' && data.pokemonId) {
-          const pokemonListRef = doc(db, 'pokemonList', data.pokemonId)
-          const pokemonListDoc = await getDoc(pokemonListRef)
-          if (pokemonListDoc.exists()) {
-            const cardIds = pokemonListDoc.data().cardIds || []
-            totalCards = cardIds.length
-          }
-        }
-        
-        const checkedCards = collectorListSnapshot.docs.filter(d => d.data().checkedOff).length
-        data.progress = totalCards > 0 ? Math.round((checkedCards / totalCards) * 100) : 0
-        
-        return data
-      })
-    )
-  } catch (error) {
-    console.error('Error loading user collections:', error)
-  }
-}
 
 // Watch for user changes to reload collected cards
 watch(() => user.value?.uid, async (newUid) => {

@@ -147,6 +147,17 @@
     }
   }
 
+  /* Select and Option Dark Mode Support */
+  select {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+  }
+
+  select option {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+  }
+
   /* ============================================
      BUTTON SYSTEM (h1-h6 buttons)
      ============================================ */
@@ -515,7 +526,8 @@
   }
 
   .section-spacing-md {
-    @apply py-12;
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
   }
 
   .section-spacing-lg {

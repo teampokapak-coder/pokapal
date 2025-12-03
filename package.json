@@ -12,6 +12,10 @@
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
+    "@tiptap/extension-image": "^3.11.1",
+    "@tiptap/extension-link": "^3.11.1",
+    "@tiptap/starter-kit": "^3.11.1",
+    "@tiptap/vue-3": "^3.11.1",
     "firebase": "^12.6.0",
     "vue": "^3.5.24",
     "vue-router": "^4.6.3"
