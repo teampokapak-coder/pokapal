@@ -135,16 +135,18 @@
                     <p class="text-sm text-gray-600">
                       {{ collectedCards.length }} {{ collectedCards.length === 1 ? 'card' : 'cards' }} collected
                     </p>
-                    <div class="flex gap-2">
+                    <div class="flex flex-col sm:flex-row gap-2">
                       <input
                         v-model="collectionSearchQuery"
                         type="text"
                         placeholder="Search cards..."
-                        class="px-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                        class="flex-1 px-3 sm:px-4 py-2 text-sm border rounded-md focus:outline-none focus:ring-2"
+                        style="border-color: var(--color-border); background-color: var(--color-bg-secondary); color: var(--color-text-primary);"
                       />
                       <select
                         v-model="collectionFilterSet"
-                        class="px-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                        class="w-full sm:w-auto px-3 sm:px-4 py-2 text-sm border rounded-md focus:outline-none focus:ring-2"
+                        style="border-color: var(--color-border); background-color: var(--color-bg-secondary); color: var(--color-text-primary);"
                       >
                         <option value="">All Sets</option>
                         <option v-for="set in uniqueCollectionSets" :key="set" :value="set">
@@ -257,8 +259,46 @@
                     <p class="text-gray-900 dark:text-gray-100">{{ user?.email || 'Not set' }}</p>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Display Name</label>
-                    <p class="text-gray-900 dark:text-gray-100">{{ user?.displayName || 'Not set' }}</p>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Trainer Name</label>
+                    <div v-if="!isEditingTrainerName" class="flex items-center gap-2">
+                      <p class="text-gray-900 dark:text-gray-100 flex-1">{{ user?.displayName || 'Not set' }}</p>
+                      <button
+                        @click="isEditingTrainerName = true"
+                        class="text-sm px-2 py-1 rounded transition-colors"
+                        style="color: var(--color-accent);"
+                        @mouseenter="$event.target.style.backgroundColor = 'var(--color-bg-secondary)'"
+                        @mouseleave="$event.target.style.backgroundColor = 'transparent'"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                    <div v-else class="flex items-center gap-2">
+                      <input
+                        v-model="editingTrainerName"
+                        type="text"
+                        placeholder="Enter trainer name"
+                        class="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2"
+                        style="border-color: var(--color-border); background-color: var(--color-bg-secondary); color: var(--color-text-primary);"
+                        @keyup.enter="saveTrainerName"
+                        @keyup.esc="cancelEditTrainerName"
+                      />
+                      <button
+                        @click="saveTrainerName"
+                        class="px-3 py-2 text-sm rounded transition-colors"
+                        style="background-color: var(--color-accent); color: white;"
+                        :disabled="isSavingTrainerName"
+                      >
+                        {{ isSavingTrainerName ? 'Saving...' : 'Save' }}
+                      </button>
+                      <button
+                        @click="cancelEditTrainerName"
+                        class="px-3 py-2 text-sm rounded transition-colors"
+                        style="color: var(--color-text-secondary);"
+                        :disabled="isSavingTrainerName"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Master Sets</label>
@@ -267,6 +307,82 @@
                 </div>
               </div>
             </div>
+
+            <!-- Hearts Section -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title flex items-center gap-2">
+                  <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  Hearts
+                </h3>
+              </div>
+              <div class="card-body">
+                <div v-if="isLoadingHearts" class="text-center py-4">
+                  <p style="color: var(--color-text-secondary);">Loading hearts...</p>
+                </div>
+                <div v-else>
+                  <!-- Hearted Pokemon -->
+                  <div v-if="heartedPokemon.length > 0" class="mb-6">
+                    <h4 class="text-sm font-semibold mb-3" style="color: var(--color-text-primary);">Hearted Pokemon</h4>
+                    <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                      <div
+                        v-for="pokemon in heartedPokemon"
+                        :key="pokemon.nationalDexNumber"
+                        class="aspect-square rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                        style="background-color: var(--color-bg-tertiary);"
+                        @click="$router.push(`/pokemon/${pokemon.nationalDexNumber}`)"
+                      >
+                        <img
+                          v-if="pokemon.spriteUrl"
+                          :src="pokemon.spriteUrl"
+                          :alt="pokemon.pokemonName"
+                          class="w-full h-full object-contain p-1"
+                        />
+                        <div v-else class="w-full h-full flex items-center justify-center text-xs font-medium" style="color: var(--color-text-tertiary);">
+                          #{{ pokemon.nationalDexNumber }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Hearted Cards -->
+                  <div v-if="heartedCards.length > 0">
+                    <h4 class="text-sm font-semibold mb-3" style="color: var(--color-text-primary);">Hearted Cards</h4>
+                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                      <div
+                        v-for="heart in heartedCards"
+                        :key="heart.id"
+                        class="aspect-[3/4] rounded overflow-hidden cursor-pointer hover:scale-105 transition-transform border-2"
+                        style="background-color: var(--color-bg-tertiary); border-color: var(--color-border);"
+                        @click="selectHeartedCard(heart)"
+                      >
+                        <img
+                          v-if="heart.cardImageUrl"
+                          :src="heart.cardImageUrl"
+                          :alt="heart.cardName"
+                          class="w-full h-full object-contain"
+                        />
+                        <div v-else class="w-full h-full flex items-center justify-center text-xs font-medium p-1" style="color: var(--color-text-tertiary);">
+                          {{ heart.cardName || 'Card' }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Empty State -->
+                  <div v-if="heartedPokemon.length === 0 && heartedCards.length === 0" class="text-center py-8">
+                    <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--color-text-tertiary);">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <p style="color: var(--color-text-secondary);">No hearted items yet</p>
+                    <p class="text-xs mt-1" style="color: var(--color-text-tertiary);">Heart Pokemon and cards to see them here</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
 
           </div>
         </div>
@@ -287,9 +403,12 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
-import { db } from '../config/firebase'
+import { updateProfile } from 'firebase/auth'
+import { db, auth } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
 import { getUserCollectedCards, removeCardFromCollection, toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
+import { getHeartedPokemon, getHeartedCards } from '../utils/hearts'
+import { getPokemonByDexNumber } from '../utils/firebasePokemon'
 import PokemonCard from '../components/PokemonCard.vue'
 import PokemonCardMS from '../components/PokemonCardMS.vue'
 import CardModal from '../components/CardModal.vue'
@@ -305,6 +424,13 @@ const isLoadingAssignments = ref(false)
 const isLoadingInvites = ref(false)
 const isProcessingInvite = ref(false)
 const collectedCards = ref([])
+const heartedPokemon = ref([])
+const heartedCards = ref([])
+const isLoadingHearts = ref(false)
+const selectedHeartedCard = ref(null)
+const isEditingTrainerName = ref(false)
+const editingTrainerName = ref('')
+const isSavingTrainerName = ref(false)
 const isLoadingCollection = ref(false)
 const collectionSearchQuery = ref('')
 const collectionFilterSet = ref('')
@@ -758,11 +884,61 @@ const handleImageError = (event) => {
 }
 
 // Watch for user changes
+// Save trainer name
+const saveTrainerName = async () => {
+  if (!user.value) return
+  
+  isSavingTrainerName.value = true
+  try {
+    const newName = editingTrainerName.value.trim()
+    if (!newName) {
+      alert('Trainer name cannot be empty')
+      return
+    }
+    
+    // Update Firebase Auth profile
+    if (auth.currentUser) {
+      await updateProfile(auth.currentUser, { displayName: newName })
+    }
+    
+    // Update Firestore user document
+    const userRef = doc(db, 'users', user.value.uid)
+    await updateDoc(userRef, {
+      displayName: newName,
+      updatedAt: serverTimestamp()
+    })
+    
+    // Update local user state
+    user.value.displayName = newName
+    
+    isEditingTrainerName.value = false
+  } catch (error) {
+    console.error('Error saving trainer name:', error)
+    alert('Error saving trainer name: ' + error.message)
+  } finally {
+    isSavingTrainerName.value = false
+  }
+}
+
+// Cancel editing trainer name
+const cancelEditTrainerName = () => {
+  editingTrainerName.value = user.value?.displayName || ''
+  isEditingTrainerName.value = false
+}
+
+// Initialize editing trainer name when entering edit mode
+watch(isEditingTrainerName, (isEditing) => {
+  if (isEditing && user.value) {
+    editingTrainerName.value = user.value.displayName || ''
+  }
+})
+
 watch(() => user.value, (newUser) => {
   if (newUser) {
     loadAssignments()
     loadInvites()
     loadCollection()
+    loadHearts()
   } else {
     assignments.value = []
     allMasterSets.value = []
@@ -783,6 +959,7 @@ onMounted(() => {
     loadAssignments()
     loadInvites()
     loadCollection()
+    loadHearts()
   }
 })
 </script>

@@ -20,21 +20,26 @@
             Browse
           </router-link>
           <router-link 
+            to="/blog" 
+            class="btn btn-h6 btn-ghost router-link-active-nav"
+          >
+            Blog
+          </router-link>
+          <router-link 
             to="/start" 
             class="btn btn-h6 btn-ghost router-link-active-nav"
           >
             Start Master Set
           </router-link>
-          <router-link 
-            to="/profile" 
-            class="btn btn-h6 btn-ghost router-link-active-nav"
-          >
-            Profile
-          </router-link>
           
           <!-- Auth Section -->
           <div v-if="user" class="flex items-center gap-3 ml-4 pl-4" style="border-left: 1px solid var(--color-border);">
-            <span class="text-sm" style="color: var(--color-text-secondary);">{{ user.displayName || user.email }}</span>
+            <router-link 
+              to="/profile"
+              class="trainer-badge"
+            >
+              Trainer {{ user.displayName || user.email }}
+            </router-link>
             <button 
               @click="handleLogout"
               class="btn btn-h6 btn-ghost"
@@ -112,6 +117,14 @@
               Browse
             </router-link>
             <router-link 
+              to="/blog" 
+              class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
+              style="color: var(--color-text-primary);"
+              @click="mobileMenuOpen = false"
+            >
+              Blog
+            </router-link>
+            <router-link 
               to="/start" 
               class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
               style="color: var(--color-text-primary);"
@@ -119,22 +132,18 @@
             >
               Start Master Set
             </router-link>
-            <router-link 
-              to="/profile" 
-              class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
-              style="color: var(--color-text-primary);"
-              @click="mobileMenuOpen = false"
-            >
-              Profile
-            </router-link>
           </nav>
 
           <!-- Auth Section -->
           <div class="p-4" style="border-top: 1px solid var(--color-border);">
             <div v-if="user" class="space-y-2">
-              <div class="px-4 py-2 text-sm" style="color: var(--color-text-secondary);">
-                {{ user.displayName || user.email }}
-              </div>
+              <router-link 
+                to="/profile"
+                class="trainer-badge block text-center"
+                @click="mobileMenuOpen = false"
+              >
+                Trainer {{ user.displayName || user.email }}
+              </router-link>
               <button 
                 @click="handleLogout"
                 class="w-full px-4 py-3 rounded-lg sidebar-hover transition-colors text-left"

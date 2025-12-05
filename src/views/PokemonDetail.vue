@@ -56,6 +56,24 @@
                     <span v-if="pokemon.nationalDexNumber" class="text-base sm:text-lg whitespace-nowrap" style="color: var(--color-text-tertiary);">
                       #{{ String(pokemon.nationalDexNumber).padStart(3, '0') }}
                     </span>
+                    <!-- Heart Icon -->
+                    <button
+                      v-if="user"
+                      @click="handleTogglePokemonHeart"
+                      class="ml-auto flex-shrink-0 cursor-pointer hover:scale-110 transition-transform"
+                      :title="isPokemonHearted ? 'Hearted - Click to unheart' : 'Click to heart'"
+                    >
+                      <svg
+                        class="w-6 h-6"
+                        :fill="isPokemonHearted ? '#ef4444' : 'none'"
+                        :stroke="isPokemonHearted ? '#ef4444' : 'currentColor'"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        style="color: var(--color-text-primary); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </button>
                   </div>
 
                   <!-- Types -->
@@ -141,6 +159,24 @@
                   <span v-if="pokemon.nationalDexNumber" class="text-xl" style="color: var(--color-text-tertiary);">
                     #{{ String(pokemon.nationalDexNumber).padStart(3, '0') }}
                   </span>
+                  <!-- Heart Icon -->
+                  <button
+                    v-if="user"
+                    @click="handleTogglePokemonHeart"
+                    class="ml-auto flex-shrink-0 cursor-pointer hover:scale-110 transition-transform"
+                    :title="isPokemonHearted ? 'Hearted - Click to unheart' : 'Click to heart'"
+                  >
+                    <svg
+                      class="w-7 h-7"
+                      :fill="isPokemonHearted ? '#ef4444' : 'none'"
+                      :stroke="isPokemonHearted ? '#ef4444' : 'currentColor'"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      style="color: var(--color-text-primary); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </button>
                 </div>
 
                 <!-- Types -->
@@ -449,6 +485,7 @@ import { db } from '../config/firebase'
 import { getAllPokemonCards, getPokemon, getAllPokemon, getPokemonByDexNumber } from '../utils/firebasePokemon'
 import { useAuth } from '../composables/useAuth'
 import { toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
+import { heartPokemon, unheartPokemon, isPokemonHearted as checkPokemonHearted } from '../utils/hearts'
 import PokemonCard from '../components/PokemonCard.vue'
 import CardModal from '../components/CardModal.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
@@ -470,6 +507,7 @@ const filterSet = ref('')
 const filterRarity = ref('')
 const collectedCards = ref(new Set())
 const japaneseCards = ref([])
+const isPokemonHearted = ref(false)
 const showStartMasterSetModal = ref(false)
 const isCreatingMasterSet = ref(false)
 const showSuccessNotification = ref(false)
@@ -760,10 +798,57 @@ const loadCards = async () => {
     if (user.value && (cards.value.length > 0 || japaneseCards.value.length > 0)) {
       await loadCollectedStatus()
     }
+    
+    // Load heart status for Pokemon
+    if (user.value && pokemon.value?.nationalDexNumber) {
+      await loadPokemonHeartStatus()
+    }
   } catch (error) {
     console.error('Error loading cards:', error)
   } finally {
     isLoadingCards.value = false
+  }
+}
+
+// Load Pokemon heart status
+const loadPokemonHeartStatus = async () => {
+  if (!user.value || !pokemon.value?.nationalDexNumber) {
+    isPokemonHearted.value = false
+    return
+  }
+  
+  try {
+    isPokemonHearted.value = await checkPokemonHearted(user.value.uid, pokemon.value.nationalDexNumber)
+  } catch (error) {
+    console.error('Error loading Pokemon heart status:', error)
+    isPokemonHearted.value = false
+  }
+}
+
+// Toggle Pokemon heart
+const handleTogglePokemonHeart = async () => {
+  if (!user.value || !pokemon.value?.nationalDexNumber) {
+    return
+  }
+  
+  try {
+    if (isPokemonHearted.value) {
+      const result = await unheartPokemon(user.value.uid, pokemon.value.nationalDexNumber)
+      if (result.success) {
+        isPokemonHearted.value = false
+      }
+    } else {
+      const result = await heartPokemon(
+        user.value.uid,
+        pokemon.value.nationalDexNumber,
+        pokemon.value.displayName || pokemon.value.name
+      )
+      if (result.success) {
+        isPokemonHearted.value = true
+      }
+    }
+  } catch (error) {
+    console.error('Error toggling Pokemon heart:', error)
   }
 }
 
@@ -978,6 +1063,19 @@ watch(() => user.value, async (newUser) => {
     await loadCollectedStatus()
   } else {
     collectedCards.value.clear()
+  }
+  
+  if (newUser && pokemon.value?.nationalDexNumber) {
+    await loadPokemonHeartStatus()
+  } else {
+    isPokemonHearted.value = false
+  }
+})
+
+// Watch for pokemon changes
+watch(() => pokemon.value?.nationalDexNumber, async () => {
+  if (user.value && pokemon.value?.nationalDexNumber) {
+    await loadPokemonHeartStatus()
   }
 })
 

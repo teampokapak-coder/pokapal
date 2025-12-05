@@ -22,6 +22,9 @@
             <router-link to="/browse" class="transition-colors footer-link">
               Browse
             </router-link>
+            <router-link to="/blog" class="transition-colors footer-link">
+              Blog
+            </router-link>
             <router-link v-if="user" to="/start" class="transition-colors footer-link">
               Start Master Set
             </router-link>

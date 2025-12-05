@@ -272,6 +272,21 @@
     background-color: var(--color-bg-tertiary);
   }
 
+  /* Trainer Badge */
+  .trainer-badge {
+    @apply px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:opacity-90;
+    background-color: #ffffff;
+    color: rgb(50 105 65); /* Primary dark green */
+    border: 1px solid rgb(50 105 65); /* Green border */
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .trainer-badge {
+      background-color: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+    }
+  }
+
   /* Disabled button states */
   button:disabled,
   .btn:disabled {
@@ -423,8 +438,8 @@
   }
 
   .pokemon-type-electric {
-    background-color: #ca8a04;
-    color: #ffffff !important;
+    background-color: #eab308; /* Yellow */
+    color: #000000 !important; /* Black text */
   }
 
   .pokemon-type-psychic {
@@ -458,8 +473,8 @@
   }
 
   .pokemon-type-colorless {
-    background-color: #64748b;
-    color: #000000 !important;
+    background-color: #64748b; /* Dark gray */
+    color: #ffffff !important; /* White text */
   }
 
   /* Dark mode adjustments for better contrast */
