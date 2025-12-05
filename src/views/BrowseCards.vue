@@ -222,15 +222,12 @@
                 :key="card.id"
                 :card="card"
                 :is-collected="collectedCards.has(card.id)"
-                :is-hearted="heartedCards.has(card.id)"
                 :show-collection-icon="true"
-                :show-heart-icon="!!user"
                 :show-types="true"
                 :compact="cardViewMode === 'compact'"
                 icon-size="w-6 h-6 sm:w-8 sm:h-8"
                 @click="selectCard"
                 @toggle-collected="(card) => toggleCollected(card.id)"
-                @toggle-heart="toggleCardHeart"
               />
             </div>
 
@@ -254,9 +251,7 @@
     <!-- Card Detail Modal -->
     <CardModal
       :card="selectedCard"
-      :is-collected="selectedCard ? collectedCards.has(selectedCard.id) : false"
       @close="selectedCard = null"
-      @toggle-collected="selectedCard ? toggleCollected(selectedCard.id) : null"
     />
   </div>
 </template>
@@ -267,7 +262,6 @@ import { getAllPokemonCards } from '../utils/firebasePokemon'
 import { getAllSets } from '../utils/firebasePokemon'
 import { useAuth } from '../composables/useAuth'
 import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
-import { heartCard, unheartCard, getHeartedCardsSet } from '../utils/hearts'
 import PokemonCard from '../components/PokemonCard.vue'
 import CardModal from '../components/CardModal.vue'
 
@@ -278,7 +272,6 @@ const isLoading = ref(false)
 const selectedCard = ref(null)
 const searchTimeout = ref(null)
 const collectedCards = ref(new Set())
-const heartedCards = ref(new Set())
 
 const showMobileFilters = ref(false)
 const cardViewMode = ref('standard') // 'standard' or 'compact'
@@ -375,54 +368,6 @@ const loadCollectedCards = async () => {
   }
 }
 
-// Load hearted cards status
-const loadHeartedCards = async () => {
-  if (!user.value || cards.value.length === 0) {
-    heartedCards.value.clear()
-    return
-  }
-  
-  try {
-    const cardIds = cards.value.map(card => card.id).filter(Boolean)
-    if (cardIds.length === 0) return
-    
-    const heartedSet = await getHeartedCardsSet(user.value.uid, cardIds)
-    heartedCards.value = heartedSet
-  } catch (error) {
-    console.error('Error loading hearted cards:', error)
-    heartedCards.value.clear()
-  }
-}
-
-// Toggle card heart
-const toggleCardHeart = async (card) => {
-  if (!user.value) {
-    return
-  }
-  
-  try {
-    const isHearted = heartedCards.value.has(card.id)
-    
-    if (isHearted) {
-      const result = await unheartCard(user.value.uid, card.id)
-      if (result.success) {
-        heartedCards.value.delete(card.id)
-      }
-    } else {
-      const result = await heartCard(
-        user.value.uid,
-        card.id,
-        card.cardId || card.apiId || '',
-        card.name || ''
-      )
-      if (result.success) {
-        heartedCards.value.add(card.id)
-      }
-    }
-  } catch (error) {
-    console.error('Error toggling card heart:', error)
-  }
-}
 
 const debouncedSearch = () => {
   clearTimeout(searchTimeout.value)
@@ -532,15 +477,9 @@ watch(() => user.value?.uid, async (newUid) => {
     await loadHeartedCards()
   } else {
     collectedCards.value.clear()
-    heartedCards.value.clear()
   }
 })
 
-watch(() => cards.value.length, async () => {
-  if (user.value && cards.value.length > 0) {
-    await loadHeartedCards()
-  }
-})
 
 onMounted(() => {
   loadCards()

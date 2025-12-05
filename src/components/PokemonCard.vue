@@ -19,46 +19,6 @@
     <div v-else class="w-full h-full flex items-center justify-center font-bold text-lg" style="color: var(--color-text-tertiary); background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary));">
       {{ getCardFallbackText(card) }}
     </div>
-    <!-- Card Name Tooltip -->
-    <div v-if="showNameTooltip" class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs px-1 py-0.5 text-center truncate opacity-0 group-hover:opacity-100 transition-opacity">
-      {{ formatCardName(card) }}
-    </div>
-    <!-- Heart Icon - Top Left (if logged in) -->
-    <div
-      v-if="showHeartIcon && user"
-      class="heart-icon-container absolute top-2 left-2 cursor-pointer hover:scale-110 transition-transform z-50"
-      @click.stop="handleToggleHeart"
-      @mousedown.stop
-      @mouseup.stop
-      :title="isHearted ? 'Hearted - Click to unheart' : 'Click to heart'"
-    >
-      <svg
-        :class="iconSize"
-        :fill="isHearted ? '#ef4444' : 'none'"
-        :stroke="isHearted ? '#ef4444' : 'currentColor'"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        style="color: var(--color-text-primary); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-      </svg>
-    </div>
-    <!-- Poké Ball Icon - Top Right (if collection enabled) -->
-    <div
-      v-if="showCollectionIcon"
-      class="pokeball-icon-container absolute top-2 right-2 cursor-pointer hover:scale-110 transition-transform z-50"
-      @click.stop="handleToggleCollected"
-      @mousedown.stop
-      @mouseup.stop
-      :title="isCollected ? 'Collected - Click to remove' : 'Click to collect'"
-    >
-      <img
-        :src="currentPokeballIcon"
-        alt="Poké Ball"
-        :class="iconSize"
-        draggable="false"
-      />
-    </div>
   </div>
 
   <!-- Standard Mode -->
@@ -114,43 +74,6 @@
           </span>
         </div>
         <div v-else class="flex-1"></div>
-        
-        <!-- Heart Icon (if logged in) -->
-        <div
-          v-if="showHeartIcon && user"
-          class="heart-icon-container flex-shrink-0 cursor-pointer hover:scale-110 transition-transform mr-1"
-          @click.stop="handleToggleHeart"
-          @mousedown.stop
-          @mouseup.stop
-          :title="isHearted ? 'Hearted - Click to unheart' : 'Click to heart'"
-        >
-          <svg
-            class="w-5 h-5 sm:w-6 sm:h-6"
-            :fill="isHearted ? '#ef4444' : 'none'"
-            :stroke="isHearted ? '#ef4444' : 'currentColor'"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            style="color: var(--color-text-primary); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </div>
-        <!-- Collection Icon SVG -->
-        <div
-          v-if="showCollectionIcon"
-          class="pokeball-icon-container flex-shrink-0 cursor-pointer hover:scale-110 transition-transform"
-          @click.stop="handleToggleCollected"
-          @mousedown.stop
-          @mouseup.stop
-          :title="isCollected ? 'Collected - Click to remove' : 'Click to collect'"
-        >
-          <img
-            :src="currentPokeballIcon"
-            alt="Poké Ball"
-            :class="iconSize"
-            draggable="false"
-          />
-        </div>
       </div>
     </div>
   </div>
@@ -215,10 +138,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  isHearted: {
-    type: Boolean,
-    default: false
-  },
   showCollectionIcon: {
     type: Boolean,
     default: true
@@ -226,6 +145,10 @@ const props = defineProps({
   showHeartIcon: {
     type: Boolean,
     default: true
+  },
+  showCollectedIndicator: {
+    type: Boolean,
+    default: false
   },
   showTypes: {
     type: Boolean,
@@ -249,7 +172,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['click', 'toggle-collected', 'toggle-heart'])
+const emit = defineEmits(['click', 'toggle-collected'])
 
 const imageError = ref(false)
 
@@ -284,11 +207,6 @@ const handleToggleCollected = (event) => {
   emit('toggle-collected', props.card)
 }
 
-const handleToggleHeart = (event) => {
-  event.stopPropagation()
-  event.preventDefault()
-  emit('toggle-heart', props.card)
-}
 
 const formattedSetName = computed(() => formatSetName(props.card))
 </script>

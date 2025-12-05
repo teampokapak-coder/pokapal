@@ -108,13 +108,13 @@
                 </div>
                 <div class="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div class="flex gap-2">
-                    <button
-                      v-if="isCreator"
-                      @click="showInviteModal = true"
-                      class="btn btn-h4 btn-primary"
-                    >
-                      + Invite
-                    </button>
+                <button
+                  v-if="isCreator"
+                  @click="showInviteModal = true"
+                  class="btn btn-h4 btn-primary"
+                >
+                  + Invite
+                </button>
                     <router-link to="/profile" class="btn btn-h4 btn-ghost hidden sm:inline-flex">
                       ← Back
                     </router-link>
@@ -291,9 +291,7 @@
     <CardModal
       v-if="selectedCard"
       :card="selectedCard"
-      :is-collected="selectedCard ? memberAssignments.find(a => a.userId === user?.uid)?.cards?.find(c => c.id === selectedCard.id)?.isCollected || false : false"
       @close="selectedCard = null"
-      @toggle-collected="selectedCard ? toggleCard(selectedCard, memberAssignments.find(a => a.userId === user?.uid)) : null"
     />
   </div>
 </template>

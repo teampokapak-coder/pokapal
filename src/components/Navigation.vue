@@ -38,7 +38,7 @@
               to="/profile"
               class="trainer-badge"
             >
-              Trainer {{ user.displayName || user.email }}
+              <span class="font-semibold">Trainer</span> {{ user.displayName || user.email }}
             </router-link>
             <button 
               @click="handleLogout"
@@ -107,31 +107,62 @@
           </div>
 
           <!-- Navigation Links -->
-          <nav class="flex-1 overflow-y-auto p-4 space-y-2">
-            <router-link 
-              to="/browse" 
-              class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
-              style="color: var(--color-text-primary);"
-              @click="mobileMenuOpen = false"
-            >
-              Browse
-            </router-link>
-            <router-link 
-              to="/blog" 
-              class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
-              style="color: var(--color-text-primary);"
-              @click="mobileMenuOpen = false"
-            >
-              Blog
-            </router-link>
-            <router-link 
-              to="/start" 
-              class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
-              style="color: var(--color-text-primary);"
-              @click="mobileMenuOpen = false"
-            >
-              Start Master Set
-            </router-link>
+          <nav class="flex-1 overflow-y-auto p-4 space-y-4">
+            <!-- View By Section -->
+            <div>
+              <h6 class="section-label mb-2 px-4">View By</h6>
+              <div class="space-y-1">
+                <router-link 
+                  to="/browse-pokemon" 
+                  class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
+                  style="color: var(--color-text-primary);"
+                  @click="mobileMenuOpen = false"
+                >
+                  Pokemon
+                </router-link>
+                <router-link 
+                  to="/sets" 
+                  class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
+                  style="color: var(--color-text-primary);"
+                  @click="mobileMenuOpen = false"
+                >
+                  Sets
+                </router-link>
+                <router-link 
+                  to="/browse" 
+                  class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
+                  style="color: var(--color-text-primary);"
+                  @click="mobileMenuOpen = false"
+                >
+                  Cards
+                </router-link>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="my-2" style="border-top: 1px solid var(--color-border);"></div>
+
+            <!-- Other Links Section -->
+            <div>
+              <div class="space-y-1">
+                <router-link 
+                  to="/start" 
+                  class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
+                  style="color: var(--color-text-primary);"
+                  @click="mobileMenuOpen = false"
+                >
+                  Start a Master Set
+                </router-link>
+                <router-link 
+                  to="/blog" 
+                  class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
+                  style="color: var(--color-text-primary);"
+                  @click="mobileMenuOpen = false"
+                >
+                  Blog
+                </router-link>
+              </div>
+            </div>
           </nav>
 
           <!-- Auth Section -->
@@ -142,7 +173,7 @@
                 class="trainer-badge block text-center"
                 @click="mobileMenuOpen = false"
               >
-                Trainer {{ user.displayName || user.email }}
+                <span class="font-bold">Trainer</span> {{ user.displayName || user.email }}
               </router-link>
               <button 
                 @click="handleLogout"

@@ -33,20 +33,43 @@
             </div>
           </div>
           <div class="space-y-4">
-            <!-- Collected Button -->
-            <div v-if="user">
+            <!-- Action Buttons -->
+            <div v-if="user" class="flex gap-3">
+              <!-- Collected Button -->
               <button
                 @click="handleToggleCollected"
+                :disabled="isLoadingCollected"
                 :class="isCollected 
                   ? 'btn btn-h4 btn-secondary' 
                   : 'btn btn-h4 btn-primary'"
+                class="flex-1 flex items-center justify-center gap-2"
               >
                 <img
                   :src="isCollected ? pokeballFillIconPath : pokeballIconPath"
                   alt="Poké Ball"
-                  class="w-5 h-5 inline mr-2"
+                  class="w-5 h-5"
                 />
-                {{ isCollected ? 'Remove from Collection' : 'Mark as Collected' }}
+                <span>{{ isCollected ? 'Collected' : 'Collect' }}</span>
+              </button>
+              <!-- Heart Button -->
+              <button
+                @click="handleToggleHeart"
+                :disabled="isLoadingHeart"
+                :class="isHearted 
+                  ? 'btn btn-h4 btn-secondary' 
+                  : 'btn btn-h4 btn-primary'"
+                class="flex-1 flex items-center justify-center gap-2"
+              >
+                <svg
+                  class="w-5 h-5"
+                  :fill="isHearted ? '#ef4444' : 'none'"
+                  :stroke="isHearted ? '#ef4444' : 'currentColor'"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span>{{ isHearted ? 'Hearted' : 'Heart' }}</span>
               </button>
             </div>
             <div>
@@ -121,12 +144,14 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { getTypeColorClass } from '../utils/pokemonTypes'
 import { formatCardName } from '../utils/cardNameFormatter'
 import { formatSetName, formatSeriesName } from '../utils/setNameFormatter'
 import { getCardFallbackText } from '../utils/cardImageFallback'
+import { heartCard, unheartCard, isCardHearted } from '../utils/hearts'
+import { toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
 
 // Get card image URL - prefer English image for Japanese cards if available
 const getCardImageUrl = (card) => {
@@ -150,23 +175,76 @@ const props = defineProps({
   card: {
     type: Object,
     default: null
-  },
-  isCollected: {
-    type: Boolean,
-    default: false
   }
 })
 
-const emit = defineEmits(['close', 'toggle-collected'])
+const emit = defineEmits(['close'])
 
 const { user } = useAuth()
 
 const imageError = ref(false)
+const isHearted = ref(false)
+const isCollected = ref(false)
+const isLoadingHeart = ref(false)
+const isLoadingCollected = ref(false)
 
-// Reset image error when card changes
-watch(() => props.card?.id, () => {
+// Load both heart and collected status when card changes
+watch(() => props.card?.id, async () => {
   imageError.value = false
+  if (props.card && user.value) {
+    await Promise.all([loadHeartStatus(), loadCollectedStatus()])
+  } else {
+    isHearted.value = false
+    isCollected.value = false
+  }
 })
+
+// Load status when user changes
+watch(() => user.value, async () => {
+  if (props.card && user.value) {
+    await Promise.all([loadHeartStatus(), loadCollectedStatus()])
+  } else {
+    isHearted.value = false
+    isCollected.value = false
+  }
+})
+
+// Load status on mount
+onMounted(async () => {
+  if (props.card && user.value) {
+    await Promise.all([loadHeartStatus(), loadCollectedStatus()])
+  }
+})
+
+const loadHeartStatus = async () => {
+  if (!user.value || !props.card?.id) {
+    isHearted.value = false
+    return
+  }
+  
+  try {
+    isHearted.value = await isCardHearted(user.value.uid, props.card.id)
+  } catch (error) {
+    console.error('Error loading heart status:', error)
+    isHearted.value = false
+  }
+}
+
+const loadCollectedStatus = async () => {
+  if (!user.value || !props.card) {
+    isCollected.value = false
+    return
+  }
+  
+  try {
+    const cardApiId = props.card.cardId || props.card.apiId || props.card.id
+    const collectedSet = await getCollectedCardIds(user.value.uid, [cardApiId])
+    isCollected.value = collectedSet.has(cardApiId)
+  } catch (error) {
+    console.error('Error loading collected status:', error)
+    isCollected.value = false
+  }
+}
 
 const getTypeColor = (type) => {
   return getTypeColorClass(type)
@@ -186,8 +264,49 @@ const handleClose = () => {
   imageError.value = false
 }
 
-const handleToggleCollected = () => {
-  emit('toggle-collected', props.card)
+const handleToggleCollected = async () => {
+  if (!user.value || !props.card || isLoadingCollected.value) return
+  
+  isLoadingCollected.value = true
+  try {
+    const cardApiId = props.card.cardId || props.card.apiId || props.card.id
+    const result = await toggleCardCollected(user.value.uid, cardApiId)
+    if (result.success) {
+      isCollected.value = !isCollected.value
+    }
+  } catch (error) {
+    console.error('Error toggling collected:', error)
+  } finally {
+    isLoadingCollected.value = false
+  }
+}
+
+const handleToggleHeart = async () => {
+  if (!user.value || !props.card || isLoadingHeart.value) return
+  
+  isLoadingHeart.value = true
+  try {
+    if (isHearted.value) {
+      const result = await unheartCard(user.value.uid, props.card.id)
+      if (result.success) {
+        isHearted.value = false
+      }
+    } else {
+      const result = await heartCard(
+        user.value.uid,
+        props.card.id,
+        props.card.cardId || props.card.apiId || '',
+        props.card.name || ''
+      )
+      if (result.success) {
+        isHearted.value = true
+      }
+    }
+  } catch (error) {
+    console.error('Error toggling heart:', error)
+  } finally {
+    isLoadingHeart.value = false
+  }
 }
 
 // Check if card has any variants

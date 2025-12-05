@@ -216,14 +216,11 @@
                 :key="card.id"
                 :card="card"
                 :is-collected="collectedCards.has(card.id)"
-                :is-hearted="heartedCards.has(card.id)"
                 :show-collection-icon="true"
-                :show-heart-icon="!!user"
                 :show-types="true"
                 icon-size="w-8 h-8"
                 @click="selectCard"
                 @toggle-collected="toggleCollected"
-                @toggle-heart="toggleCardHeart"
               />
             </div>
 
@@ -239,9 +236,7 @@
     <!-- Card Detail Modal -->
     <CardModal
       :card="selectedCard"
-      :is-collected="selectedCard ? collectedCards.has(selectedCard.id) : false"
       @close="selectedCard = null"
-      @toggle-collected="selectedCard ? toggleCollected(selectedCard) : null"
     />
 
     <!-- Start Master Set Modal -->
@@ -412,7 +407,6 @@ import { doc, getDoc, Timestamp, serverTimestamp, collection, query, where, getD
 import { db } from '../config/firebase'
 import { getAllPokemonCards, getSet, getCardsBySet } from '../utils/firebasePokemon'
 import { useAuth } from '../composables/useAuth'
-import { heartCard, unheartCard, getHeartedCardsSet } from '../utils/hearts'
 import { toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
 import { getSetLogoUrl, formatSetDisplayName, formatSeriesDisplayName } from '../utils/setDisplayHelper'
@@ -436,7 +430,6 @@ const filterType = ref('')
 const filterRarity = ref('')
 const filterCardType = ref('')
 const collectedCards = ref(new Set())
-const heartedCards = ref(new Set())
 const showStartMasterSetModal = ref(false)
 const isCreatingMasterSet = ref(false)
 const masterSetForm = ref({
@@ -675,54 +668,6 @@ const loadCards = async () => {
   }
 }
 
-// Load hearted cards status
-const loadHeartedCards = async () => {
-  if (!user.value || cards.value.length === 0) {
-    heartedCards.value.clear()
-    return
-  }
-  
-  try {
-    const cardIds = cards.value.map(card => card.id).filter(Boolean)
-    if (cardIds.length === 0) return
-    
-    const heartedSet = await getHeartedCardsSet(user.value.uid, cardIds)
-    heartedCards.value = heartedSet
-  } catch (error) {
-    console.error('Error loading hearted cards:', error)
-    heartedCards.value.clear()
-  }
-}
-
-// Toggle card heart
-const toggleCardHeart = async (card) => {
-  if (!user.value) {
-    return
-  }
-  
-  try {
-    const isHearted = heartedCards.value.has(card.id)
-    
-    if (isHearted) {
-      const result = await unheartCard(user.value.uid, card.id)
-      if (result.success) {
-        heartedCards.value.delete(card.id)
-      }
-    } else {
-      const result = await heartCard(
-        user.value.uid,
-        card.id,
-        card.cardId || card.apiId || '',
-        card.name || ''
-      )
-      if (result.success) {
-        heartedCards.value.add(card.id)
-      }
-    }
-  } catch (error) {
-    console.error('Error toggling card heart:', error)
-  }
-}
 
 // Add invite
 const addInvite = () => {
@@ -886,10 +831,8 @@ watch(set, (newSet) => {
 watch([user, cards], ([newUser, newCards]) => {
   if (newUser && newCards && newCards.length > 0) {
     loadCollectedCards()
-    loadHeartedCards()
   } else if (!newUser) {
     collectedCards.value.clear()
-    heartedCards.value.clear()
   }
 }, { immediate: true })
 

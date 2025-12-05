@@ -35,11 +35,11 @@
                   >
                     <div class="card-body">
                       <!-- Header (always visible) -->
-                      <div class="flex justify-between items-start mb-3">
+                      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0 mb-3">
                         <div class="flex-1 cursor-pointer" @click="toggleMasterSetExpand(masterSet.id)">
                           <div class="flex items-center gap-2">
                             <svg 
-                              class="w-5 h-5 text-gray-500 transition-transform"
+                              class="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 transition-transform flex-shrink-0"
                               :class="{ 'rotate-90': expandedMasterSets[masterSet.id] }"
                               fill="none" 
                               stroke="currentColor" 
@@ -47,9 +47,9 @@
                             >
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>
-                            <div>
-                              <h4 class="card-title mb-1">{{ masterSet.name }}</h4>
-                              <p class="text-sm text-gray-600">
+                            <div class="min-w-0 flex-1">
+                              <h4 class="text-base sm:text-lg font-semibold mb-0.5 sm:mb-1 truncate">{{ masterSet.name }}</h4>
+                              <p class="text-xs sm:text-sm text-gray-600 truncate">
                                 <span v-if="masterSet.type === 'set'">{{ masterSet.targetSetName || 'Set' }}</span>
                                 <span v-else-if="masterSet.type === 'pokemon'">{{ masterSet.targetPokemonName || 'Pokemon' }}</span>
                                 <span v-else>Custom Collection</span>
@@ -59,7 +59,7 @@
                         </div>
                         <router-link
                           :to="`/master-set/${masterSet.id}`"
-                          class="btn btn-h5 btn-primary"
+                          class="btn btn-h5 btn-primary w-full sm:w-auto flex-shrink-0"
                           @click.stop
                         >
                           View Details
@@ -131,16 +131,13 @@
                 </div>
 
                 <div v-else-if="collectedCards.length > 0" class="space-y-4">
-                  <div class="flex justify-between items-center mb-4">
-                    <p class="text-sm text-gray-600">
-                      {{ collectedCards.length }} {{ collectedCards.length === 1 ? 'card' : 'cards' }} collected
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-2">
+                  <div class="mb-4">
+                    <div class="flex flex-col sm:flex-row gap-2 mb-2">
                       <input
                         v-model="collectionSearchQuery"
                         type="text"
                         placeholder="Search cards..."
-                        class="flex-1 px-3 sm:px-4 py-2 text-sm border rounded-md focus:outline-none focus:ring-2"
+                        class="w-full px-3 sm:px-4 py-2 text-sm border rounded-md focus:outline-none focus:ring-2"
                         style="border-color: var(--color-border); background-color: var(--color-bg-secondary); color: var(--color-text-primary);"
                       />
                       <select
@@ -154,6 +151,9 @@
                         </option>
                       </select>
                     </div>
+                    <p class="text-xs text-gray-600 text-right">
+                      {{ collectedCards.length }} {{ collectedCards.length === 1 ? 'card' : 'cards' }} collected
+                    </p>
                   </div>
 
                   <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
@@ -162,12 +162,12 @@
                       :key="card.id"
                       :card="card"
                       :is-collected="true"
-                      :show-collection-icon="true"
+                      :show-collection-icon="false"
+                      :show-collected-indicator="true"
                       :compact="true"
                       :show-name-tooltip="true"
                       icon-size="w-6 h-6"
-                      @click="viewCard"
-                      @toggle-collected="(card) => removeFromCollection(card.id)"
+                      @click="selectCard"
                     />
                   </div>
                 </div>
@@ -394,7 +394,6 @@
       v-if="selectedCard"
       :card="selectedCard"
       @close="selectedCard = null"
-      @toggle-collected="selectedCard ? toggleCard(selectedCard, allMasterSets.find(ms => ms.cards?.some(c => c.id === selectedCard.id))) : null"
     />
   </div>
 </template>
@@ -425,7 +424,7 @@ const isLoadingInvites = ref(false)
 const isProcessingInvite = ref(false)
 const collectedCards = ref([])
 const heartedPokemon = ref([])
-const heartedCards = ref([])
+const heartedCards = ref([]) // Array for displaying in Hearts section
 const isLoadingHearts = ref(false)
 const selectedHeartedCard = ref(null)
 const isEditingTrainerName = ref(false)
@@ -628,6 +627,26 @@ const toggleCard = async (card, masterSet) => {
   }
 }
 
+// Handle card modal toggle collected (for collection cards)
+const handleCardModalToggleCollected = async (card) => {
+  if (!user.value) return
+  
+  try {
+    const cardId = card.cardId || card.id
+    const result = await toggleCardCollected(user.value.uid, cardId)
+    
+    if (result.success) {
+      // Remove from collection if uncollected
+      if (!result.isCollected) {
+        collectedCards.value = collectedCards.value.filter(c => c.id !== card.id)
+      }
+      // Reload collection to refresh
+      await loadCollection()
+    }
+  } catch (error) {
+    console.error('Error toggling card from modal:', error)
+  }
+}
 
 const acceptInvite = async (invite) => {
   if (!user.value) {
@@ -804,6 +823,8 @@ const loadCollection = async () => {
     }
     
     collectedCards.value = allCards
+    
+    // Load heart status for collection cards
   } catch (error) {
     console.error('Error loading collection:', error)
     collectedCards.value = []
@@ -811,6 +832,7 @@ const loadCollection = async () => {
     isLoadingCollection.value = false
   }
 }
+
 
 const uniqueCollectionSets = computed(() => {
   const sets = new Set()
@@ -882,6 +904,86 @@ const removeFromCollection = async (cardId) => {
 const handleImageError = (event) => {
   event.target.style.display = 'none'
 }
+
+// Load hearted items
+const loadHearts = async () => {
+  if (!user.value) {
+    heartedPokemon.value = []
+    heartedCards.value = []
+    return
+  }
+  
+  isLoadingHearts.value = true
+  try {
+    // Load hearted Pokemon
+    const pokemonResult = await getHeartedPokemon(user.value.uid)
+    if (pokemonResult.success && pokemonResult.data) {
+      // Fetch Pokemon details for sprites
+      const pokemonPromises = pokemonResult.data.map(async (heart) => {
+        const pokemonResult = await getPokemonByDexNumber(heart.nationalDexNumber)
+        if (pokemonResult.success && pokemonResult.data) {
+          return {
+            ...heart,
+            spriteUrl: pokemonResult.data.spriteUrl,
+            gifUrl: pokemonResult.data.gifUrl,
+            displayName: pokemonResult.data.displayName || pokemonResult.data.name
+          }
+        }
+        return heart
+      })
+      heartedPokemon.value = await Promise.all(pokemonPromises)
+    }
+    
+    // Load hearted Cards
+    const cardsResult = await getHeartedCards(user.value.uid)
+    if (cardsResult.success && cardsResult.data) {
+      // Fetch card details for images
+      const cardPromises = cardsResult.data.map(async (heart) => {
+        try {
+          // Try to get card from card_en or card_ja collections
+          const cardEnRef = doc(db, 'card_en', heart.cardId)
+          const cardEnSnap = await getDoc(cardEnRef)
+          
+          if (cardEnSnap.exists()) {
+            const cardData = cardEnSnap.data()
+            return {
+              ...heart,
+              cardImageUrl: cardData.imageUrl || cardData.thumbnailUrl || cardData.image
+            }
+          }
+          
+          const cardJaRef = doc(db, 'card_ja', heart.cardId)
+          const cardJaSnap = await getDoc(cardJaRef)
+          
+          if (cardJaSnap.exists()) {
+            const cardData = cardJaSnap.data()
+            return {
+              ...heart,
+              cardImageUrl: cardData.imageUrl || cardData.thumbnailUrl || cardData.image || cardData.englishImageUrl
+            }
+          }
+          
+          return heart
+        } catch (error) {
+          console.error('Error loading card details:', error)
+          return heart
+        }
+      })
+      heartedCards.value = await Promise.all(cardPromises)
+    }
+  } catch (error) {
+    console.error('Error loading hearts:', error)
+  } finally {
+    isLoadingHearts.value = false
+  }
+}
+
+const selectHeartedCard = (heart) => {
+  // Try to find the card in the database to show in modal
+  // For now, just set it for potential modal display
+  selectedHeartedCard.value = heart
+}
+
 
 // Watch for user changes
 // Save trainer name

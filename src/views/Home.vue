@@ -258,9 +258,7 @@
     <!-- Card Detail Modal -->
     <CardModal
       :card="selectedCard"
-      :is-collected="selectedCard ? collectedCards.has(selectedCard.id) : false"
       @close="selectedCard = null"
-      @toggle-collected="selectedCard ? toggleCollected(selectedCard.id) : null"
     />
   </div>
 </template>
