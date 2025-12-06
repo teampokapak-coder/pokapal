@@ -658,8 +658,6 @@ const loadCards = async () => {
     // Load collected cards
     await loadCollectedCards()
     
-    // Load heart status
-    await loadHeartedCards()
   } catch (error) {
     console.error('Error loading cards:', error)
     cards.value = []

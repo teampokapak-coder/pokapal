@@ -182,7 +182,7 @@
                         ? 'btn-primary' 
                         : 'btn-ghost'
                     ]"
-                    :style="cardViewMode === 'standard' ? { color: '#ffffff !important' } : {}"
+                    :style="cardViewMode === 'standard' ? (isDarkMode ? { color: '#000000 !important' } : { color: '#ffffff !important' }) : {}"
                   >
                     Standard
                   </button>
@@ -194,7 +194,7 @@
                         ? 'btn-primary' 
                         : 'btn-ghost'
                     ]"
-                    :style="cardViewMode === 'compact' ? { color: '#ffffff !important' } : {}"
+                    :style="cardViewMode === 'compact' ? (isDarkMode ? { color: '#000000 !important' } : { color: '#ffffff !important' }) : {}"
                   >
                     Compact
                   </button>
@@ -275,6 +275,33 @@ const collectedCards = ref(new Set())
 
 const showMobileFilters = ref(false)
 const cardViewMode = ref('standard') // 'standard' or 'compact'
+
+// Check for dark mode
+const isDarkMode = ref(false)
+onMounted(() => {
+  // Check system preference
+  const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  isDarkMode.value = darkModeQuery.matches
+  
+  // Listen for changes
+  darkModeQuery.addEventListener('change', (e) => {
+    isDarkMode.value = e.matches
+  })
+  
+  // Also check for dark class on html element (if using class-based dark mode)
+  const checkDarkClass = () => {
+    isDarkMode.value = document.documentElement.classList.contains('dark') || 
+                       window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+  checkDarkClass()
+  
+  // Watch for class changes
+  const observer = new MutationObserver(checkDarkClass)
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class']
+  })
+})
 
 const filters = ref({
   search: '',
