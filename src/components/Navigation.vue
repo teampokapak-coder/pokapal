@@ -4,8 +4,7 @@
       <div class="flex justify-between items-center h-16">
         <router-link to="/" class="flex items-center gap-2 md:gap-4">
           <picture class="h-[28px] w-auto flex items-center justify-center">
-            <source srcset="/pokapal_light.svg" media="(prefers-color-scheme: dark)" />
-            <img src="/pokapal_color.svg" alt="Pokapal" class="h-[28px] w-auto object-contain" />
+            <img src="/pokapal.png" alt="Pokapal" class="h-[28px] w-auto object-contain" />
           </picture>
           <img 
             src="/pokapal_black.svg" 
@@ -93,8 +92,7 @@
           <div class="flex items-center justify-between p-4" style="border-bottom: 1px solid var(--color-border);">
             <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
               <picture class="h-[28px] w-auto flex items-center justify-center">
-                <source srcset="/pokapal_light.svg" media="(prefers-color-scheme: dark)" />
-                <img src="/pokapal_color.svg" alt="Pokapal" class="h-[28px] w-auto object-contain" />
+                <img src="/pokapal.png" alt="Pokapal" class="h-[28px] w-auto object-contain" />
               </picture>
               <img src="/pokapal_black.svg" alt="Pokapal" class="h-6 w-auto pokapal-logo-text" />
             </router-link>

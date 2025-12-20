@@ -6,8 +6,7 @@
           <!-- Brand -->
           <div class="flex items-center gap-3">
             <picture class="h-6 w-auto bg-transparent">
-              <source srcset="/pokapal_light.svg" media="(prefers-color-scheme: dark)" />
-              <img src="/pokapal.svg" alt="Pokapal" class="h-6 w-auto bg-transparent" />
+              <img src="/pokapal.png" alt="Pokapal" class="h-6 w-auto bg-transparent" />
             </picture>
             <img 
               src="/pokapal_type.png" 
