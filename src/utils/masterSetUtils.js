@@ -12,7 +12,8 @@ import {
   query,
   where,
   doc,
-  serverTimestamp
+  serverTimestamp,
+  arrayUnion
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { getAllPokemonCards } from './firebasePokemon'
@@ -346,5 +347,112 @@ export const updateAssignmentStats = async (assignmentId) => {
     }
   } catch (error) {
     console.error('Error updating assignment stats:', error)
+  }
+}
+
+/**
+ * Sync cards for a Pokemon master set - adds any missing cards that have been added since creation
+ * @param {string} masterSetId - Master set ID
+ * @returns {Promise<{success: boolean, addedCards?: number, error?: string}>}
+ */
+export const syncPokemonMasterSetCards = async (masterSetId) => {
+  try {
+    // 1. Get the master set
+    const masterSetRef = doc(db, 'masterSets', masterSetId)
+    const masterSetDoc = await getDoc(masterSetRef)
+    
+    if (!masterSetDoc.exists()) {
+      return { success: false, error: 'Master set not found' }
+    }
+    
+    const masterSetData = masterSetDoc.data()
+    
+    // 2. Only sync Pokemon master sets
+    if (masterSetData.type !== 'pokemon' || !masterSetData.targetPokemonId) {
+      return { success: false, error: 'This master set is not a Pokemon master set' }
+    }
+    
+    // 3. Get the Pokemon's national dex number
+    const nationalDexNumber = parseInt(masterSetData.targetPokemonId)
+    if (isNaN(nationalDexNumber)) {
+      return { success: false, error: 'Invalid Pokemon ID' }
+    }
+    
+    // 4. Get current full card list for this Pokemon
+    const languages = masterSetData.languages || ['en', 'ja']
+    const currentCardIds = await getCardIdsForPokemon(nationalDexNumber, languages)
+    
+    // 5. Get all assignments for this master set
+    const assignmentsRef = collection(db, 'assignments')
+    const assignmentsQuery = query(
+      assignmentsRef,
+      where('masterSetId', '==', masterSetId)
+    )
+    const assignmentsSnapshot = await getDocs(assignmentsQuery)
+    
+    if (assignmentsSnapshot.empty) {
+      return { success: false, error: 'No assignments found for this master set' }
+    }
+    
+    let totalAddedCards = 0
+    
+    // 6. Update each assignment with missing cards
+    for (const assignmentDoc of assignmentsSnapshot.docs) {
+      const assignmentData = assignmentDoc.data()
+      const assignmentRef = doc(db, 'assignments', assignmentDoc.id)
+      
+      const existingCardEn = new Set(assignmentData.card_en || [])
+      const existingCardJa = new Set(assignmentData.card_ja || [])
+      
+      // Find missing cards
+      const missingCardEn = currentCardIds.card_en.filter(id => !existingCardEn.has(id))
+      const missingCardJa = currentCardIds.card_ja.filter(id => !existingCardJa.has(id))
+      
+      if (missingCardEn.length > 0 || missingCardJa.length > 0) {
+        const updateData = {
+          updatedAt: serverTimestamp()
+        }
+        
+        // Add missing cards using arrayUnion (works even if array doesn't exist yet)
+        if (missingCardEn.length > 0) {
+          // arrayUnion can take multiple arguments
+          updateData.card_en = arrayUnion(...missingCardEn)
+        }
+        if (missingCardJa.length > 0) {
+          updateData.card_ja = arrayUnion(...missingCardJa)
+        }
+        
+        // Calculate new total cards count
+        // Note: After arrayUnion, the arrays will have the new cards added
+        const currentTotalEn = (assignmentData.card_en || []).length
+        const currentTotalJa = (assignmentData.card_ja || []).length
+        const newTotalEn = currentTotalEn + missingCardEn.length
+        const newTotalJa = currentTotalJa + missingCardJa.length
+        updateData.totalCards = newTotalEn + newTotalJa
+        
+        await updateDoc(assignmentRef, updateData)
+        
+        totalAddedCards += missingCardEn.length + missingCardJa.length
+        
+        // Update assignment stats (will recalculate progress)
+        await updateAssignmentStats(assignmentDoc.id)
+      }
+    }
+    
+    // 7. Update master set timestamp
+    await updateDoc(masterSetRef, {
+      updatedAt: serverTimestamp()
+    })
+    
+    return { 
+      success: true, 
+      addedCards: totalAddedCards,
+      message: totalAddedCards > 0 
+        ? `Added ${totalAddedCards} new card(s) to all assignments` 
+        : 'All cards are already up to date'
+    }
+  } catch (error) {
+    console.error('Error syncing Pokemon master set cards:', error)
+    return { success: false, error: error.message }
   }
 }

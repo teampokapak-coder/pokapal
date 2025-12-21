@@ -166,12 +166,25 @@
           <!-- Master Set Summary -->
           <div class="card mb-6">
             <div class="card-body">
-              <h3 class="mb-4">Master Set Summary</h3>
-              <div v-if="challengeData.type === 'set' && challengeData.targetSetName" class="mb-4">
-                <p class="text-lg font-medium">Set: {{ challengeData.targetSetName }}</p>
-              </div>
-              <div v-else-if="challengeData.type === 'pokemon' && challengeData.targetPokemonName" class="mb-4">
-                <p class="text-lg font-medium">Pokemon: {{ challengeData.targetPokemonName }}</p>
+              <div class="flex items-start justify-between gap-4 mb-4 flex-wrap">
+                <div class="flex-1 min-w-0">
+                  <h3 class="mb-2 sm:mb-0">Master Set Summary</h3>
+                  <div v-if="challengeData.type === 'set' && challengeData.targetSetName" class="mt-2">
+                    <p class="text-lg font-medium">Set: {{ challengeData.targetSetName }}</p>
+                  </div>
+                  <div v-else-if="challengeData.type === 'pokemon' && challengeData.targetPokemonName" class="mt-2">
+                    <p class="text-lg font-medium">Pokemon: {{ challengeData.targetPokemonName }}</p>
+                  </div>
+                </div>
+                <button
+                  v-if="(isCreator || isAdmin) && challengeData.type === 'pokemon'"
+                  @click="syncCards"
+                  class="btn btn-h5 btn-secondary flex-shrink-0"
+                  :disabled="isSyncingCards"
+                  title="Sync cards - add any new cards that have been added for this Pokemon"
+                >
+                  {{ isSyncingCards ? 'Syncing...' : '🔄 Sync Cards' }}
+                </button>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div
@@ -302,13 +315,16 @@ import { useRoute, useRouter } from 'vue-router'
 import { collection, getDocs, query, where, doc, getDoc, setDoc, addDoc, updateDoc, serverTimestamp, FieldPath } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
+import { useAdmin } from '../composables/useAdmin'
 import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
+import { syncPokemonMasterSetCards } from '../utils/masterSetUtils'
 import PokemonCardMS from '../components/PokemonCardMS.vue'
 import CardModal from '../components/CardModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { user } = useAuth()
+const { isAdmin } = useAdmin()
 
 const challengeId = route.params.challengeId || route.params.masterSetId
 const isMasterSet = !!route.params.masterSetId
@@ -324,6 +340,7 @@ const editingDescription = ref('')
 const showInviteModal = ref(false)
 const inviteEmail = ref('')
 const isSendingInvite = ref(false)
+const isSyncingCards = ref(false)
 
 // Poké Ball icon paths (static assets from public folder)
 const pokeballIconPath = '/pokeball.svg'
@@ -791,6 +808,38 @@ const toggleCard = async (card, assignment) => {
   } catch (error) {
     console.error('Error toggling card:', error)
     alert('Error updating collection')
+  }
+}
+
+const syncCards = async () => {
+  if ((!isCreator.value && !isAdmin.value) || !challengeId || challengeData.value?.type !== 'pokemon') {
+    return
+  }
+  
+  if (!confirm('This will sync all cards for this Pokemon master set. Any new cards that have been added will be added to all assignments. Continue?')) {
+    return
+  }
+  
+  isSyncingCards.value = true
+  try {
+    const result = await syncPokemonMasterSetCards(challengeId)
+    
+    if (result.success) {
+      if (result.addedCards > 0) {
+        alert(`Successfully synced cards! Added ${result.addedCards} new card(s) to all assignments.`)
+        // Reload the challenge data to show new cards
+        await loadChallengeDetails()
+      } else {
+        alert('All cards are already up to date!')
+      }
+    } else {
+      alert('Error syncing cards: ' + result.error)
+    }
+  } catch (error) {
+    console.error('Error syncing cards:', error)
+    alert('Error syncing cards: ' + error.message)
+  } finally {
+    isSyncingCards.value = false
   }
 }
 
