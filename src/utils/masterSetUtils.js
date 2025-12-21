@@ -136,7 +136,9 @@ export const getCardIdsForSet = async (setId, language) => {
     })
     
     if (result.success && result.data) {
-      return result.data.map(card => card.id)
+      // Use cardId (API ID like "me02-013") instead of id (Firestore document ID)
+      // ChallengeDetails.vue queries by the 'id' field in documents, which is the API ID
+      return result.data.map(card => card.cardId || card.id || card.apiId)
     }
     
     return []
@@ -167,10 +169,13 @@ export const getCardIdsForPokemon = async (nationalDexNumber, languages = ['en',
     const card_ja = []
     
     result.data.forEach(card => {
+      // Use cardId (API ID like "me02-013") instead of id (Firestore document ID)
+      // ChallengeDetails.vue queries by the 'id' field in documents, which is the API ID
+      const cardId = card.cardId || card.id || card.apiId
       if (card.language === 'en' && languages.includes('en')) {
-        card_en.push(card.id)
+        card_en.push(cardId)
       } else if (card.language === 'ja' && languages.includes('ja')) {
-        card_ja.push(card.id)
+        card_ja.push(cardId)
       }
     })
     
