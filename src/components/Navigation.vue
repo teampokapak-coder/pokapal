@@ -117,7 +117,7 @@
               <h6 class="section-label mb-2 px-4">View By</h6>
               <div class="space-y-1">
                 <router-link 
-                  to="/browse-pokemon" 
+                  to="/pokemon" 
                   class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
                   style="color: var(--color-text-primary);"
                   @click="mobileMenuOpen = false"

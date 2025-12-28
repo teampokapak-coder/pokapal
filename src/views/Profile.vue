@@ -1062,6 +1062,22 @@ onMounted(() => {
     loadInvites()
     loadCollection()
     loadHearts()
+    
+    // Track Google Ads conversion for signup (only once per user)
+    if (typeof window !== 'undefined' && window.gtag) {
+      const conversionKey = `ads_conversion_fired_${user.value.uid}`
+      const hasFiredConversion = localStorage.getItem(conversionKey)
+      
+      if (!hasFiredConversion) {
+        // Fire the conversion event
+        window.gtag('event', 'ads_conversion_SIGNUP_1', {
+          // <event_parameters>
+        })
+        
+        // Mark as fired so we don't fire it again for this user
+        localStorage.setItem(conversionKey, 'true')
+      }
+    }
   }
 })
 </script>

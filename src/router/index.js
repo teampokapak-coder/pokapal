@@ -45,7 +45,7 @@ const routes = [
     component: () => import('../views/BrowseCards.vue')
   },
   {
-    path: '/browse-pokemon',
+    path: '/pokemon',
     name: 'BrowsePokemon',
     component: () => import('../views/BrowsePokemon.vue')
   },

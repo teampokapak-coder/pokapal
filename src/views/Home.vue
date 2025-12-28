@@ -174,7 +174,7 @@
               <h2>Trending Pokemon</h2>
               <p class="section-subtitle">Popular Pokemon to collect</p>
             </div>
-            <router-link to="/browse-pokemon" class="btn btn-h5 btn-primary">
+            <router-link to="/pokemon" class="btn btn-h5 btn-primary">
               View All
             </router-link>
           </div>
