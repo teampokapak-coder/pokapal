@@ -53,6 +53,17 @@
                   <div v-if="set.series">
                     <span class="text-xs" style="color: var(--color-text-secondary);">{{ formatSeriesDisplayName(set) }}</span>
                   </div>
+                  
+                  <!-- Start Master Set Button -->
+                  <div class="mt-2">
+                    <button
+                      @click="handleStartMasterSetClick"
+                      class="btn btn-h5 btn-primary text-sm py-1.5 px-3"
+                      :title="!user ? 'Log in to start your master set' : ''"
+                    >
+                      Start Master Set
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -113,6 +124,17 @@
                   <span class="text-sm" style="color: var(--color-text-secondary);">{{ formatSeriesDisplayName(set) }}</span>
                 </div>
 
+                <!-- Start Master Set Button -->
+                <div class="mb-4">
+                  <button
+                    @click="handleStartMasterSetClick"
+                    class="btn btn-h4 btn-primary"
+                    :title="!user ? 'Log in to start your master set' : ''"
+                  >
+                    Start Master Set
+                  </button>
+                </div>
+
                 <!-- Stats -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
                   <div class="card">
@@ -144,20 +166,6 @@
             </div>
           </div>
 
-          <!-- Start Master Set Button -->
-          <div class="mb-6">
-            <button
-              @click="handleStartMasterSetClick"
-              class="btn btn-h4 btn-primary"
-              :disabled="!user"
-              :title="!user ? 'Log in to start your master set' : ''"
-            >
-              Start Master Set
-            </button>
-            <p v-if="!user" class="text-sm mt-2" style="color: var(--color-text-secondary);">
-              Log in to start your master set
-            </p>
-          </div>
 
           <!-- Cards Section -->
           <div class="mt-8">
@@ -240,155 +248,16 @@
     />
 
     <!-- Start Master Set Modal -->
-    <div
-      v-if="showStartMasterSetModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      @click="showStartMasterSetModal = false"
-    >
-      <div
-        class="rounded-lg max-w-md w-full"
-        style="background-color: var(--color-bg-secondary);"
-        @click.stop
-      >
-        <div class="p-6">
-          <div class="flex justify-between items-start mb-4">
-            <h3 style="color: var(--color-text-primary);">Start Master Set</h3>
-            <button
-              @click="showStartMasterSetModal = false"
-              style="color: var(--color-text-tertiary);"
-            >
-              ✕
-            </button>
-          </div>
-          
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
-                Master Set Name
-              </label>
-              <input
-                v-model="masterSetForm.name"
-                type="text"
-                :placeholder="`${set?.name || 'Set'} Master Set`"
-                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
-                style="border-color: var(--color-border); background-color: var(--color-bg-primary); color: var(--color-text-primary);"
-              />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
-                Description (Optional)
-              </label>
-              <textarea
-                v-model="masterSetForm.description"
-                rows="3"
-                placeholder="Add a description for your master set..."
-                class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
-                style="border-color: var(--color-border); background-color: var(--color-bg-primary); color: var(--color-text-primary);"
-              ></textarea>
-            </div>
-
-            <!-- Language Selection -->
-            <div>
-              <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
-                Languages
-              </label>
-              <div class="flex gap-4">
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    v-model="masterSetForm.languages"
-                    value="en"
-                    class="w-4 h-4"
-                    :disabled="set?.language === 'ja'"
-                  />
-                  <span style="color: var(--color-text-primary);">English</span>
-                  <span v-if="set?.language === 'en' && cards.length > 0" class="text-xs" style="color: var(--color-text-tertiary);">
-                    ({{ cards.length }} cards)
-                  </span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    v-model="masterSetForm.languages"
-                    value="ja"
-                    class="w-4 h-4"
-                    :disabled="set?.language === 'en'"
-                  />
-                  <span style="color: var(--color-text-primary);">Japanese</span>
-                  <span v-if="set?.language === 'ja' && cards.length > 0" class="text-xs" style="color: var(--color-text-tertiary);">
-                    ({{ cards.length }} cards)
-                  </span>
-                </label>
-              </div>
-              <p v-if="masterSetForm.languages.length === 0" class="text-xs text-red-500 mt-1">
-                Please select at least one language
-              </p>
-              <p v-if="set?.language" class="text-xs mt-1" style="color: var(--color-text-tertiary);">
-                This set contains {{ set.language === 'en' ? 'English' : 'Japanese' }} cards
-              </p>
-            </div>
-
-            <!-- Invite Users -->
-            <div>
-              <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
-                Invite Friends (Optional)
-              </label>
-              <div class="space-y-2">
-                <div v-for="(invite, index) in masterSetForm.invites" :key="index" class="flex gap-2">
-                  <input
-                    v-model="invite.email"
-                    type="email"
-                    placeholder="friend@example.com"
-                    class="flex-1 px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
-                    style="border-color: var(--color-border); background-color: var(--color-bg-primary); color: var(--color-text-primary);"
-                    @input="searchUserForInvite(invite, index)"
-                  />
-                  <button
-                    @click="removeInvite(index)"
-                    class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <button
-                  @click="addInvite"
-                  class="btn btn-h5 btn-secondary w-full text-sm"
-                >
-                  + Add Friend
-                </button>
-              </div>
-            </div>
-
-            <div class="text-sm" style="color: var(--color-text-secondary);">
-              <p class="mb-2">This will create a master set for:</p>
-              <p class="font-medium" style="color: var(--color-text-primary);">
-                {{ set?.name }}
-              </p>
-              <p class="text-xs mt-1">
-                {{ cards.length }} cards will be included
-              </p>
-            </div>
-
-            <div class="flex gap-3 pt-4">
-              <button
-                @click="showStartMasterSetModal = false"
-                class="btn btn-h4 btn-ghost flex-1"
-              >
-                Cancel
-              </button>
-              <button
-                @click="createMasterSetFromSet"
-                class="btn btn-h4 btn-primary flex-1"
-                :disabled="!masterSetForm.name.trim() || masterSetForm.languages.length === 0 || isCreatingMasterSet"
-              >
-                {{ isCreatingMasterSet ? 'Creating...' : 'Create Master Set' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <StartMasterSetModal
+      :show="showStartMasterSetModal"
+      type="set"
+      :set="set"
+      :english-card-count="set?.language === 'en' ? cards.length : 0"
+      :japanese-card-count="set?.language === 'ja' ? cards.length : 0"
+      :is-creating="isCreatingMasterSet"
+      @close="showStartMasterSetModal = false"
+      @create="handleCreateMasterSet"
+    />
 
     <!-- Success Notification -->
     <SuccessNotification
@@ -396,6 +265,13 @@
       title="Master Set Created!"
       message="Redirecting to your master set..."
       @close="showSuccessNotification = false"
+    />
+
+    <!-- Login Modal -->
+    <LoginModal
+      :show="showLoginModal"
+      @close="showLoginModal = false"
+      @success="handleLoginSuccess"
     />
   </div>
 </template>
@@ -414,6 +290,8 @@ import { getSetIdInitials } from '../utils/cardImageFallback'
 import CardModal from '../components/CardModal.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import SuccessNotification from '../components/SuccessNotification.vue'
+import LoginModal from '../components/LoginModal.vue'
+import StartMasterSetModal from '../components/StartMasterSetModal.vue'
 import { createMasterSet, createAssignment, getCardIdsForSet } from '../utils/masterSetUtils'
 
 const route = useRoute()
@@ -431,13 +309,9 @@ const filterRarity = ref('')
 const filterCardType = ref('')
 const collectedCards = ref(new Set())
 const showStartMasterSetModal = ref(false)
+const showLoginModal = ref(false)
 const isCreatingMasterSet = ref(false)
-const masterSetForm = ref({
-  name: '',
-  description: '',
-  languages: [],
-  invites: []
-})
+const showSuccessNotification = ref(false)
 
 // Poké Ball icon paths (static assets from public folder)
 const pokeballIconPath = '/pokeball.svg'
@@ -668,34 +542,19 @@ const loadCards = async () => {
 
 
 // Add invite
-const addInvite = () => {
-  masterSetForm.value.invites.push({ email: '', userId: null, userName: null })
-}
-
-// Remove invite
-const removeInvite = (index) => {
-  masterSetForm.value.invites.splice(index, 1)
-}
-
-// Search for user by email (optional - can enhance later)
-const searchUserForInvite = async (invite, index) => {
-  // TODO: Implement user search by email
-  // For now, just store the email
-}
-
-// Create master set from Set page
-const createMasterSetFromSet = async () => {
+// Handle master set creation from modal
+const handleCreateMasterSet = async (formData) => {
   if (!user.value) {
     alert('Please log in to create a master set')
     return
   }
 
-  if (!masterSetForm.value.name.trim()) {
+  if (!formData.name.trim()) {
     alert('Please enter a master set name')
     return
   }
 
-  if (masterSetForm.value.languages.length === 0) {
+  if (formData.languages.length === 0) {
     alert('Please select at least one language')
     return
   }
@@ -711,7 +570,7 @@ const createMasterSetFromSet = async () => {
     // Get card IDs for selected languages
     const cardIds = { card_en: [], card_ja: [] }
     
-    for (const lang of masterSetForm.value.languages) {
+    for (const lang of formData.languages) {
       const ids = await getCardIdsForSet(set.value.id, lang)
       if (lang === 'en') {
         cardIds.card_en = ids
@@ -728,15 +587,15 @@ const createMasterSetFromSet = async () => {
 
     // Create master set
     const masterSetData = {
-      name: masterSetForm.value.name.trim(),
-      description: masterSetForm.value.description.trim() || null,
+      name: formData.name,
+      description: formData.description,
       type: 'set',
       targetSetId: set.value.id,
       targetSetCollection: `set_${set.value.language || 'en'}`,
       targetSetName: set.value.name,
       targetPokemonId: null,
       targetPokemonName: null,
-      languages: masterSetForm.value.languages,
+      languages: formData.languages,
       createdBy: user.value.uid
     }
 
@@ -767,7 +626,7 @@ const createMasterSetFromSet = async () => {
     }
 
     // Create assignments for invitees
-    for (const invite of masterSetForm.value.invites) {
+    for (const invite of formData.invites) {
       if (invite.email && invite.email.includes('@')) {
         await createAssignment({
           masterSetId,
@@ -801,22 +660,22 @@ const createMasterSetFromSet = async () => {
 
 const handleStartMasterSetClick = () => {
   if (!user.value) {
-    router.push('/login')
+    showLoginModal.value = true
     return
   }
   showStartMasterSetModal.value = true
 }
 
-// Initialize form when modal opens
-watch(showStartMasterSetModal, (isOpen) => {
-  if (isOpen && set.value) {
-    masterSetForm.value.name = `${set.value.name} Master Set`
-    masterSetForm.value.description = ''
-    // Default to set's language
-    masterSetForm.value.languages = set.value.language === 'ja' ? ['ja'] : ['en']
-    masterSetForm.value.invites = []
+const handleLoginSuccess = async () => {
+  // Refresh page data after login
+  if (set.value) {
+    await loadCards()
+    await loadCollectedCards()
   }
-})
+  // Now show the master set modal
+  showStartMasterSetModal.value = true
+}
+
 
 // Update page title when set loads
 watch(set, (newSet) => {
@@ -834,7 +693,14 @@ watch([user, cards], ([newUser, newCards]) => {
   }
 }, { immediate: true })
 
+// Watch for route parameter changes to scroll to top when navigating between Sets
+watch(() => route.params.setId, () => {
+  window.scrollTo(0, 0)
+})
+
 onMounted(() => {
+  // Scroll to top when component mounts
+  window.scrollTo(0, 0)
   loadSet()
 })
 </script>

@@ -220,17 +220,17 @@
   
   @media (prefers-color-scheme: dark) {
     .btn-primary {
-      background-color: #ffffff;
-      color: #171717 !important;
+      background-color: #22c55e;
+      color: #ffffff !important;
     }
     
     .btn-primary:hover {
-      background-color: #e5e5e5;
-      color: #171717 !important;
+      background-color: #16a34a;
+      color: #ffffff !important;
     }
     
     .btn-primary.text-sm {
-      color: #171717 !important;
+      color: #ffffff !important;
     }
   }
 
@@ -474,7 +474,7 @@
 
   .pokemon-type-colorless {
     background-color: #64748b; /* Dark gray */
-    color: #ffffff !important; /* White text */
+    color: #000000 !important; /* White text */
   }
 
   /* Dark mode adjustments for better contrast */
