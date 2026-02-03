@@ -6,7 +6,7 @@
   >
     <div
       class="rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-      style="background-color: var(--color-bg-secondary);"
+      style="background-color: var(--color-bg-tertiary);"
       @click.stop
     >
       <div class="p-6">
@@ -26,7 +26,7 @@
               :src="getCardImageUrl(card)"
               :alt="card.name"
               class="w-full rounded-lg"
-              @error="handleImageError"
+              @error="handleImageErrorWithFallback"
             />
             <div v-else class="text-6xl font-bold" style="color: var(--color-text-tertiary);">
               {{ getCardFallbackText(card) }}
@@ -34,7 +34,7 @@
           </div>
           <div class="space-y-4">
             <!-- Action Buttons -->
-            <div v-if="user" class="flex gap-3">
+            <div v-if="user && user.uid" class="flex gap-3">
               <!-- Collected Button -->
               <button
                 @click="handleToggleCollected"
@@ -70,6 +70,15 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
                 <span>{{ isHearted ? 'Hearted' : 'Heart' }}</span>
+              </button>
+            </div>
+            <!-- Login Prompt Button (when not logged in) -->
+            <div v-else>
+              <button
+                @click="handleLoginClick"
+                class="btn btn-h4 btn-outline w-full"
+              >
+                Login to start collecting
               </button>
             </div>
             <div>
@@ -166,6 +175,36 @@ const getCardImageUrl = (card) => {
   return card.imageUrl || card.thumbnailUrl || card.image || null
 }
 
+// Handle image errors by trying fallback formats
+const handleImageErrorWithFallback = (event) => {
+  const img = event.target
+  const currentSrc = img.src
+  
+  // If it's a .webp URL, try .jpg instead
+  if (currentSrc.includes('.webp')) {
+    const jpgUrl = currentSrc.replace('.webp', '.jpg')
+    img.src = jpgUrl
+    return
+  }
+  
+  // If it's a /high.webp URL, try /high.jpg
+  if (currentSrc.includes('/high.webp')) {
+    const jpgUrl = currentSrc.replace('/high.webp', '/high.jpg')
+    img.src = jpgUrl
+    return
+  }
+  
+  // If it's a /low.webp URL, try /low.jpg
+  if (currentSrc.includes('/low.webp')) {
+    const jpgUrl = currentSrc.replace('/low.webp', '/low.jpg')
+    img.src = jpgUrl
+    return
+  }
+  
+  // If all else fails, hide the image
+  handleImageError(event)
+}
+
 // Poké Ball icon paths (static assets from public folder)
 const pokeballIconPath = '/pokeball.svg'
 const pokeballFillIconPath = '/pokeball_fill.svg'
@@ -178,7 +217,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'collection-changed', 'login'])
 
 const { user } = useAuth()
 
@@ -191,7 +230,7 @@ const isLoadingCollected = ref(false)
 // Load both heart and collected status when card changes
 watch(() => props.card?.id, async () => {
   imageError.value = false
-  if (props.card && user.value) {
+  if (props.card && user.value && user.value.uid) {
     await Promise.all([loadHeartStatus(), loadCollectedStatus()])
   } else {
     isHearted.value = false
@@ -200,24 +239,24 @@ watch(() => props.card?.id, async () => {
 })
 
 // Load status when user changes
-watch(() => user.value, async () => {
-  if (props.card && user.value) {
+watch(() => user.value, async (newUser) => {
+  if (props.card && newUser && newUser.uid) {
     await Promise.all([loadHeartStatus(), loadCollectedStatus()])
   } else {
     isHearted.value = false
     isCollected.value = false
   }
-})
+}, { immediate: true })
 
 // Load status on mount
 onMounted(async () => {
-  if (props.card && user.value) {
+  if (props.card && user.value && user.value.uid) {
     await Promise.all([loadHeartStatus(), loadCollectedStatus()])
   }
 })
 
 const loadHeartStatus = async () => {
-  if (!user.value || !props.card?.id) {
+  if (!user.value || !user.value.uid || !props.card?.id) {
     isHearted.value = false
     return
   }
@@ -231,7 +270,7 @@ const loadHeartStatus = async () => {
 }
 
 const loadCollectedStatus = async () => {
-  if (!user.value || !props.card) {
+  if (!user.value || !user.value.uid || !props.card) {
     isCollected.value = false
     return
   }
@@ -264,15 +303,27 @@ const handleClose = () => {
   imageError.value = false
 }
 
+const handleLoginClick = () => {
+  emit('login')
+  emit('close') // Close card modal when opening login modal
+}
+
 const handleToggleCollected = async () => {
-  if (!user.value || !props.card || isLoadingCollected.value) return
+  if (!user.value || !user.value.uid || !props.card || isLoadingCollected.value) return
   
   isLoadingCollected.value = true
   try {
     const cardApiId = props.card.cardId || props.card.apiId || props.card.id
     const result = await toggleCardCollected(user.value.uid, cardApiId)
     if (result.success) {
-      isCollected.value = !isCollected.value
+      const newCollectedState = !isCollected.value
+      isCollected.value = newCollectedState
+      
+      // Emit event to parent with the card and new collection state
+      emit('collection-changed', {
+        card: props.card,
+        isCollected: newCollectedState
+      })
     }
   } catch (error) {
     console.error('Error toggling collected:', error)
@@ -282,7 +333,7 @@ const handleToggleCollected = async () => {
 }
 
 const handleToggleHeart = async () => {
-  if (!user.value || !props.card || isLoadingHeart.value) return
+  if (!user.value || !user.value.uid || !props.card || isLoadingHeart.value) return
   
   isLoadingHeart.value = true
   try {

@@ -7,7 +7,7 @@
             <img src="/pokapal.png" alt="Pokapal" class="h-[28px] w-auto object-contain" />
           </picture>
           <img 
-            src="/pokapal_black.svg" 
+            src="/pokepal.svg" 
             alt="Pokapal" 
             class="h-6 sm:h-7 w-auto pokapal-logo-text"
           />
@@ -94,7 +94,7 @@
               <picture class="h-[28px] w-auto flex items-center justify-center">
                 <img src="/pokapal.png" alt="Pokapal" class="h-[28px] w-auto object-contain" />
               </picture>
-              <img src="/pokapal_black.svg" alt="Pokapal" class="h-6 w-auto pokapal-logo-text" />
+              <img src="/pokepal.svg" alt="Pokapal" class="h-6 w-auto pokapal-logo-text" />
             </router-link>
             <button 
               @click="mobileMenuOpen = false"

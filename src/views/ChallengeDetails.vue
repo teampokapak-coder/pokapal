@@ -276,7 +276,7 @@
                   v-if="getFilteredCards(assignment).length > 0" 
                   class="cards-scroll-container max-h-[600px] sm:max-h-[500px] overflow-y-auto overflow-x-hidden pr-2"
                 >
-                  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2 sm:gap-3 pb-2">
+                  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-8 gap-2 sm:gap-3 pb-2">
                     <PokemonCardMS
                     v-for="card in getFilteredCards(assignment)"
                     :key="card.id"
@@ -305,6 +305,7 @@
       v-if="selectedCard"
       :card="selectedCard"
       @close="selectedCard = null"
+      @collection-changed="handleModalCollectionChange"
     />
   </div>
 </template>
@@ -701,13 +702,15 @@ const loadChallengeDetails = async () => {
       })
       
       // Merge card data with collected status
+      // Use reactive refs to ensure Vue tracks changes
       const cards = allCards.map(card => {
         const isCollected = collectedCardFirestoreIds.has(card.id)
         if (isCollected) {
           console.log(`Card ${card.id} (${card.name || card.cardId}) is collected`)
         }
+        // Create a new object with isCollected property to ensure reactivity
         return {
-        ...card,
+          ...card,
           isCollected
         }
       })
@@ -786,22 +789,34 @@ const toggleCard = async (card, assignment) => {
   }
   
   try {
+    // Use API ID (cardId) for userCards collection, not Firestore document ID
+    const cardApiId = card.cardId || card.apiId || card.id
     // Toggle card in global userCards collection
-    const result = await toggleCardCollected(user.value.uid, card.id)
+    const result = await toggleCardCollected(user.value.uid, cardApiId)
     
     if (result.success) {
-      // Update local state
-      card.isCollected = result.isCollected
+      // Update local state - ensure reactivity by updating the card object
+      // Find the card in the assignment's cards array and update it
+      const cardIndex = assignment.cards.findIndex(c => c.id === card.id)
+      if (cardIndex !== -1) {
+        // Update the card in the array to trigger reactivity
+        assignment.cards[cardIndex].isCollected = result.isCollected
+        // Also update the card reference passed to component
+        card.isCollected = result.isCollected
+      } else {
+        // Fallback: update card directly
+        card.isCollected = result.isCollected
+      }
     
-    // Update progress
+      // Update progress
       if (result.isCollected) {
-      assignment.collected = (assignment.collected || 0) + 1
-    } else {
-      assignment.collected = Math.max(0, (assignment.collected || 0) - 1)
-    }
-    assignment.progress = assignment.total > 0 
-      ? Math.round((assignment.collected / assignment.total) * 100) 
-      : 0
+        assignment.collected = (assignment.collected || 0) + 1
+      } else {
+        assignment.collected = Math.max(0, (assignment.collected || 0) - 1)
+      }
+      assignment.progress = assignment.total > 0 
+        ? Math.round((assignment.collected / assignment.total) * 100) 
+        : 0
     } else {
       alert('Error: ' + result.error)
     }
@@ -968,6 +983,45 @@ const selectedCard = ref(null)
 
 const selectCard = (card) => {
   selectedCard.value = card
+}
+
+const handleModalCollectionChange = ({ card, isCollected }) => {
+  // Find the assignment that contains this card and update it
+  // Match by both Firestore ID and API ID to handle different card formats
+  for (const assignment of memberAssignments.value) {
+    const cardApiId = card.cardId || card.apiId || card.id
+    const cardIndex = assignment.cards.findIndex(c => {
+      // Match by Firestore document ID or API ID
+      return c.id === card.id || 
+             (c.cardId || c.apiId) === cardApiId ||
+             c.id === cardApiId
+    })
+    
+    if (cardIndex !== -1) {
+      // Update the card in the assignment's cards array
+      assignment.cards[cardIndex].isCollected = isCollected
+      
+      // Update progress
+      if (isCollected) {
+        assignment.collected = (assignment.collected || 0) + 1
+      } else {
+        assignment.collected = Math.max(0, (assignment.collected || 0) - 1)
+      }
+      assignment.progress = assignment.total > 0 
+        ? Math.round((assignment.collected / assignment.total) * 100) 
+        : 0
+      
+      // Also update the selectedCard reference if it's the same card
+      if (selectedCard.value) {
+        const selectedCardApiId = selectedCard.value.cardId || selectedCard.value.apiId || selectedCard.value.id
+        if (selectedCard.value.id === card.id || selectedCardApiId === cardApiId) {
+          selectedCard.value.isCollected = isCollected
+        }
+      }
+      
+      break
+    }
+  }
 }
 
 const handleImageError = (event) => {

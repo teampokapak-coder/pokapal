@@ -394,6 +394,14 @@
       v-if="selectedCard"
       :card="selectedCard"
       @close="selectedCard = null"
+      @collection-changed="handleCardModalToggleCollected"
+      @login="showLoginModal = true"
+    />
+
+    <!-- Login Modal -->
+    <LoginModal
+      :show="showLoginModal"
+      @close="showLoginModal = false"
     />
   </div>
 </template>
@@ -411,6 +419,7 @@ import { getPokemonByDexNumber } from '../utils/firebasePokemon'
 import PokemonCard from '../components/PokemonCard.vue'
 import PokemonCardMS from '../components/PokemonCardMS.vue'
 import CardModal from '../components/CardModal.vue'
+import LoginModal from '../components/LoginModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -434,6 +443,7 @@ const isLoadingCollection = ref(false)
 const collectionSearchQuery = ref('')
 const collectionFilterSet = ref('')
 const selectedCard = ref(null)
+const showLoginModal = ref(false)
 const expandedMasterSets = ref({})
 
 const loadAssignments = async () => {
@@ -1052,7 +1062,7 @@ watch(() => user.value, (newUser) => {
 // Update page title
 watch(() => route.name, () => {
   if (route.name === 'Profile') {
-    document.title = 'PokaPal - Your Profile'
+    document.title = 'Poképal - Your Profile'
   }
 }, { immediate: true })
 

@@ -76,7 +76,7 @@
           <div class="relative section-container py-6 sm:py-8 md:py-12 min-h-[280px] sm:min-h-[320px] md:min-h-[400px] flex flex-col">
             <div class="max-w-3xl flex-1 flex flex-col">
               <div class="flex-shrink-0">
-                <img src="/pokapal_white.svg" alt="Pokapal" class="h-8 md:h-12 w-auto mb-4" />
+                <img src="/pokepal_white.svg" alt="Pokapal" class="h-8 md:h-12 w-auto mb-4" />
               </div>
               <div class="mt-auto">
                 <p class="hero-subtitle mb-4 sm:mb-5 md:mb-6 max-w-[400px] leading-tight sm:leading-normal">
@@ -259,6 +259,13 @@
     <CardModal
       :card="selectedCard"
       @close="selectedCard = null"
+      @login="showLoginModal = true"
+    />
+
+    <!-- Login Modal -->
+    <LoginModal
+      :show="showLoginModal"
+      @close="showLoginModal = false"
     />
   </div>
 </template>
@@ -272,6 +279,7 @@ import { getAllSets, getAllPokemonCards, getAllPokemon } from '../utils/firebase
 import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
 import CardModal from '../components/CardModal.vue'
+import LoginModal from '../components/LoginModal.vue'
 import { groupPokemonByBase } from '../utils/pokemonGrouping'
 import PokemonListItem from '../components/PokemonListItem.vue'
 import { getSetLogoUrl, formatSetDisplayName, formatSeriesDisplayName } from '../utils/setDisplayHelper'
@@ -290,6 +298,7 @@ const trendingTypes = ref([])
 const trendingCards = ref([])
 const isLoadingCards = ref(false)
 const selectedCard = ref(null)
+const showLoginModal = ref(false)
 const collectedCards = ref(new Set())
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 768)
 

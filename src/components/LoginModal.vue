@@ -4,21 +4,28 @@
     class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
     @click.self="$emit('close')"
   >
-    <div class="bg-white rounded-lg max-w-md w-full mx-4" style="background-color: var(--color-bg-secondary);">
+    <div class="rounded-lg max-w-md w-full mx-4" style="background-color: var(--color-bg-secondary);">
       <div class="p-6">
         <div class="flex justify-between items-start mb-6">
-          <div class="text-center flex-1">
-            <img 
-              src="/pokapal_white.svg" 
-              alt="Pokapal" 
-              class="pokapal-login-logo mx-auto mb-4 h-12 w-auto"
-            />
-            <p class="login-subtitle">Sign in to your account</p>
+          <div class="flex-1">
+            <div class="text-center mb-4">
+              <picture class="pokapal-login-logo mx-auto mb-4 h-9 w-auto block">
+                <source media="(prefers-color-scheme: dark)" srcset="/pokepal_white.svg" />
+                <img 
+                  src="/pokepal.svg" 
+                  alt="Pokapal" 
+                  class="h-9 w-auto mx-auto"
+                />
+              </picture>
+              <p class="login-subtitle">Sign in to your account</p>
+            </div>
           </div>
           <button
             @click="$emit('close')"
-            class="text-gray-400 hover:text-gray-600 ml-4"
+            class="ml-4 transition-colors flex-shrink-0"
             style="color: var(--color-text-tertiary);"
+            @mouseenter="$event.target.style.color = 'var(--color-text-secondary)'"
+            @mouseleave="$event.target.style.color = 'var(--color-text-tertiary)'"
           >
             ✕
           </button>
@@ -147,10 +154,14 @@ const props = defineProps({
   show: {
     type: Boolean,
     default: false
+  },
+  showMasterSetOnSuccess: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['close', 'success'])
+const emit = defineEmits(['close', 'success', 'success-with-master-set'])
 
 const { login, register, resetPassword, error: authError } = useAuth()
 
@@ -183,7 +194,11 @@ const handleLogin = async () => {
   isSubmitting.value = false
   
   if (result.success) {
-    emit('success')
+    if (props.showMasterSetOnSuccess) {
+      emit('success-with-master-set')
+    } else {
+      emit('success')
+    }
     emit('close')
   }
 }
@@ -194,7 +209,11 @@ const handleRegister = async () => {
   isSubmitting.value = false
   
   if (result.success) {
-    emit('success')
+    if (props.showMasterSetOnSuccess) {
+      emit('success-with-master-set')
+    } else {
+      emit('success')
+    }
     emit('close')
   }
 }
@@ -230,6 +249,14 @@ const handleForgotPassword = async () => {
   background-color: rgba(239, 68, 68, 0.1);
   color: #dc2626;
   border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  .error-message {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.3);
+  }
 }
 </style>
 

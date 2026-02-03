@@ -310,6 +310,7 @@
       :card="selectedCard"
       @close="selectedCard = null"
       @toggle-collected="(card) => toggleCollected(card.id)"
+      @login="showLoginModal = true"
     />
 
     <!-- Success Notification -->
@@ -323,8 +324,10 @@
     <!-- Login Modal -->
     <LoginModal
       :show="showLoginModal"
-      @close="showLoginModal = false"
-      @success="handleLoginSuccess"
+      :show-master-set-on-success="loginFromMasterSetButton"
+      @close="showLoginModal = false; loginFromMasterSetButton = false"
+      @success-with-master-set="handleLoginSuccess"
+      @success="loginFromMasterSetButton = false"
     />
 
     <!-- Start Master Set Modal -->
@@ -376,6 +379,7 @@ const collectedCards = ref(new Set())
 const japaneseCards = ref([])
 const isPokemonHearted = ref(false)
 const showStartMasterSetModal = ref(false)
+const loginFromMasterSetButton = ref(false)
 const showLoginModal = ref(false)
 const isCreatingMasterSet = ref(false)
 const showSuccessNotification = ref(false)
@@ -862,6 +866,7 @@ const handleCreateMasterSet = async (formData) => {
 
 const handleStartMasterSetClick = () => {
   if (!user.value) {
+    loginFromMasterSetButton.value = true
     showLoginModal.value = true
     return
   }
@@ -884,7 +889,7 @@ const handleLoginSuccess = async () => {
 watch(pokemon, (newPokemon) => {
   if (newPokemon) {
     const pokemonName = newPokemon.displayName || newPokemon.name || 'Pokemon'
-    document.title = `PokaPal - ${pokemonName}`
+    document.title = `Poképal - ${pokemonName}`
   }
 }, { immediate: true })
 

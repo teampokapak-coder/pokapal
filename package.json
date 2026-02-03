@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "dev": "source ~/.nvm/nvm.sh && nvm use 22 && vite",
+    "build": "source ~/.nvm/nvm.sh && nvm use 22 && vite build",
+    "preview": "vite preview",
     "deploy": "source ~/.nvm/nvm.sh && nvm use 22 && npm run build && firebase deploy --only hosting",
-    "deploy:hosting": "source ~/.nvm/nvm.sh && nvm use 22 && npm run build && firebase deploy --only hosting",
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "deploy:hosting": "source ~/.nvm/nvm.sh && nvm use 22 && npm run build && firebase deploy --only hosting"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",

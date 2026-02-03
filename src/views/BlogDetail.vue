@@ -116,7 +116,7 @@ const loadPost = async () => {
       post.value = result.data
       
       // Update page title and meta tags for SEO
-      const title = post.value.metaTitle || `${post.value.title} | PokaPal Blog`
+      const title = post.value.metaTitle || `${post.value.title} | Poképal Blog`
       const description = post.value.metaDescription || post.value.excerpt || ''
       
       document.title = title

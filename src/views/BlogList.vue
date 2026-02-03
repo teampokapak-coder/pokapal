@@ -130,8 +130,8 @@ const formatDate = (timestamp) => {
 }
 
 const updateMetaTags = () => {
-  const title = 'Blog - PokaPal | Pokemon TCG Guides & Articles'
-  const description = 'Discover guides, tips, and articles about Pokemon TCG collecting, master sets, and more on PokaPal.'
+  const title = 'Blog - Poképal | Pokemon TCG Guides & Articles'
+  const description = 'Discover guides, tips, and articles about Pokemon TCG collecting, master sets, and more on Poképal.'
   
   document.title = title
   

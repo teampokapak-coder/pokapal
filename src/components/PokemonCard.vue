@@ -186,10 +186,34 @@ const getTypeColor = (type) => {
 }
 
 const handleImageError = (event) => {
+  const img = event.target
+  const currentSrc = img.src
+  
+  // If it's a .webp URL, try .jpg instead
+  if (currentSrc.includes('.webp')) {
+    const jpgUrl = currentSrc.replace('.webp', '.jpg')
+    img.src = jpgUrl
+    return
+  }
+  
+  // If it's a /high.webp URL, try /high.jpg
+  if (currentSrc.includes('/high.webp')) {
+    const jpgUrl = currentSrc.replace('/high.webp', '/high.jpg')
+    img.src = jpgUrl
+    return
+  }
+  
+  // If it's a /low.webp URL, try /low.jpg
+  if (currentSrc.includes('/low.webp')) {
+    const jpgUrl = currentSrc.replace('/low.webp', '/low.jpg')
+    img.src = jpgUrl
+    return
+  }
+  
+  // If all else fails, mark as error and hide
   imageError.value = true
-  // Hide the broken image
-  if (event.target) {
-    event.target.style.display = 'none'
+  if (img) {
+    img.style.display = 'none'
   }
 }
 

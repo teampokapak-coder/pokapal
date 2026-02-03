@@ -252,6 +252,13 @@
     <CardModal
       :card="selectedCard"
       @close="selectedCard = null"
+      @login="showLoginModal = true"
+    />
+
+    <!-- Login Modal -->
+    <LoginModal
+      :show="showLoginModal"
+      @close="showLoginModal = false"
     />
   </div>
 </template>
@@ -264,12 +271,14 @@ import { useAuth } from '../composables/useAuth'
 import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
 import CardModal from '../components/CardModal.vue'
+import LoginModal from '../components/LoginModal.vue'
 
 const { user } = useAuth()
 const cards = ref([])
 const availableSets = ref([])
 const isLoading = ref(false)
 const selectedCard = ref(null)
+const showLoginModal = ref(false)
 const searchTimeout = ref(null)
 const collectedCards = ref(new Set())
 

@@ -3,7 +3,7 @@
     <div class="max-w-md w-full">
       <div class="text-center mb-8">
         <img 
-          src="/pokapal_white.svg" 
+          src="/pokepal_white.svg" 
           alt="Pokapal" 
           class="pokapal-login-logo mx-auto mb-4 h-12 w-auto"
         />

@@ -209,7 +209,27 @@ export const seedSets = async (language = 'en') => {
         }
         
         if (existingDocId) {
-          await updateDoc(doc(db, collectionName, existingDocId), finalData)
+          // When updating, preserve existing logo/symbol if new data doesn't have valid ones
+          const existingDocRef = doc(db, collectionName, existingDocId)
+          const existingDoc = await getDoc(existingDocRef)
+          
+          if (existingDoc.exists()) {
+            const existingData = existingDoc.data()
+            
+            // Only update logo if we have a valid new logo value
+            // If logo is null/undefined/missing in new data, preserve existing value
+            if (!finalData.logo && existingData.logo) {
+              finalData.logo = existingData.logo
+            }
+            
+            // Only update symbol if we have a valid new symbol value
+            // If symbol is null/undefined/missing in new data, preserve existing value
+            if (!finalData.symbol && existingData.symbol) {
+              finalData.symbol = existingData.symbol
+            }
+          }
+          
+          await updateDoc(existingDocRef, finalData)
           updated++
         } else {
           await addDoc(setsRef, {

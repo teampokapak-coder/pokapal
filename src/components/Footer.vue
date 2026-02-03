@@ -8,11 +8,14 @@
             <picture class="h-6 w-auto bg-transparent">
               <img src="/pokapal.png" alt="Pokapal" class="h-6 w-auto bg-transparent" />
             </picture>
-            <img 
-              src="/pokapal_type.png" 
-              alt="Pokapal" 
-              class="h-8 w-auto bg-transparent pokapal-footer-logo"
-            />
+            <picture class="h-6 w-auto bg-transparent pokapal-footer-logo">
+              <source media="(prefers-color-scheme: dark)" srcset="/pokepal_white.svg" />
+              <img 
+                src="/pokepal.svg" 
+                alt="Pokapal" 
+                class="h-6 w-auto bg-transparent"
+              />
+            </picture>
             <span class="text-xs" style="color: var(--color-text-tertiary);">© {{ currentYear }}</span>
           </div>
 

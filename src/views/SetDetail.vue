@@ -245,6 +245,7 @@
     <CardModal
       :card="selectedCard"
       @close="selectedCard = null"
+      @login="showLoginModal = true"
     />
 
     <!-- Start Master Set Modal -->
@@ -270,8 +271,10 @@
     <!-- Login Modal -->
     <LoginModal
       :show="showLoginModal"
-      @close="showLoginModal = false"
-      @success="handleLoginSuccess"
+      :show-master-set-on-success="loginFromMasterSetButton"
+      @close="showLoginModal = false; loginFromMasterSetButton = false"
+      @success-with-master-set="handleLoginSuccess"
+      @success="loginFromMasterSetButton = false"
     />
   </div>
 </template>
@@ -309,6 +312,7 @@ const filterRarity = ref('')
 const filterCardType = ref('')
 const collectedCards = ref(new Set())
 const showStartMasterSetModal = ref(false)
+const loginFromMasterSetButton = ref(false)
 const showLoginModal = ref(false)
 const isCreatingMasterSet = ref(false)
 const showSuccessNotification = ref(false)
@@ -660,6 +664,7 @@ const handleCreateMasterSet = async (formData) => {
 
 const handleStartMasterSetClick = () => {
   if (!user.value) {
+    loginFromMasterSetButton.value = true
     showLoginModal.value = true
     return
   }
@@ -680,7 +685,7 @@ const handleLoginSuccess = async () => {
 // Update page title when set loads
 watch(set, (newSet) => {
   if (newSet) {
-    document.title = `PokaPal - ${formatSetDisplayName(newSet)}`
+    document.title = `Poképal - ${formatSetDisplayName(newSet)}`
   }
 }, { immediate: true })
 
