@@ -17,8 +17,16 @@
                 class="w-full text-left px-3 py-2 text-sm rounded sidebar-hover transition-colors"
               >
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded flex-shrink-0 flex items-center justify-center text-xs font-medium" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
-                    {{ set.code?.substring(0, 2).toUpperCase() || '?' }}
+                  <div class="w-8 h-8 rounded flex-shrink-0 flex items-center justify-center" style="background-color: var(--color-bg-tertiary);">
+                    <img 
+                      v-if="getSetSymbolUrl(set)" 
+                      :src="getSetSymbolUrl(set)" 
+                      :alt="set.name"
+                      class="max-w-full max-h-full object-contain p-1"
+                    />
+                    <span v-else class="text-xs font-medium" style="color: var(--color-text-secondary);">
+                      {{ set.code?.substring(0, 2).toUpperCase() || '?' }}
+                    </span>
                   </div>
                   <div class="flex-1 min-w-0">
                     <p class="truncate list-item-title">{{ set.name }}</p>
@@ -46,6 +54,23 @@
             </div>
             <div v-if="trendingPokemon.length === 0 && !isLoadingPokemon" class="text-center py-4">
               <p class="text-xs">No Pokemon yet</p>
+            </div>
+          </div>
+
+          <!-- Trending Trainers -->
+          <div class="mb-6">
+            <h6 class="section-label mb-3">Popular Trainers</h6>
+            <div class="space-y-1">
+              <TrainerListItem
+                v-for="trainer in trendingTrainers"
+                :key="trainer.id"
+                :trainer="trainer"
+                mode="list"
+                @click="handleTrainerClick"
+              />
+            </div>
+            <div v-if="trendingTrainers.length === 0 && !isLoadingTrainers" class="text-center py-4">
+              <p class="text-xs">No trainers yet</p>
             </div>
           </div>
 
@@ -207,6 +232,46 @@
           </div>
         </div>
 
+        <!-- Trending Trainers -->
+        <div class="section-container py-4 sm:py-6 md:py-8" style="border-top: 1px solid var(--color-border);">
+          <!-- Section Header -->
+          <div class="section-header flex justify-between items-center">
+            <div>
+              <h2>Trending Trainers</h2>
+              <p class="section-subtitle">Popular trainers to collect</p>
+            </div>
+            <router-link to="/trainers" class="btn btn-h5 btn-primary">
+              View All
+            </router-link>
+          </div>
+
+          <!-- Trainers Grid -->
+          <div v-if="isLoadingTrainers" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5 sm:gap-2 md:gap-3">
+            <div v-for="i in 12" :key="i" class="card animate-pulse">
+              <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
+              <div class="card-body p-1.5 sm:p-2">
+                <div class="h-3 bg-gray-200 rounded mb-1"></div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="trendingTrainers.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5 sm:gap-2 md:gap-3">
+            <TrainerListItem
+              v-for="trainer in displayTrainers"
+              :key="trainer.id"
+              :trainer="trainer"
+              mode="card"
+              @click="handleTrainerClick"
+            />
+          </div>
+
+          <!-- Empty State -->
+          <div v-else class="text-center py-12">
+            <p style="color: var(--color-text-secondary);">No trainers have been loaded yet.</p>
+            <p class="text-sm mt-2" style="color: var(--color-text-tertiary);">Trainers will appear here once they've been added to the database.</p>
+          </div>
+        </div>
+
         <!-- Trending Cards -->
         <div class="section-container py-4 sm:py-6 md:py-8" style="border-top: 1px solid var(--color-border);">
           <!-- Section Header -->
@@ -282,7 +347,9 @@ import CardModal from '../components/CardModal.vue'
 import LoginModal from '../components/LoginModal.vue'
 import { groupPokemonByBase } from '../utils/pokemonGrouping'
 import PokemonListItem from '../components/PokemonListItem.vue'
-import { getSetLogoUrl, formatSetDisplayName, formatSeriesDisplayName } from '../utils/setDisplayHelper'
+import TrainerListItem from '../components/TrainerListItem.vue'
+import { getAllTrainers } from '../utils/firebaseTrainers'
+import { getSetLogoUrl, getSetSymbolUrl, formatSetDisplayName, formatSeriesDisplayName } from '../utils/setDisplayHelper'
 import { getSetIdInitials } from '../utils/cardImageFallback'
 
 const router = useRouter()
@@ -294,6 +361,8 @@ const featuredPokemon = ref([])
 const isLoadingPokemon = ref(false)
 const trendingSets = ref([])
 const trendingPokemon = ref([])
+const trendingTrainers = ref([])
+const isLoadingTrainers = ref(false)
 const trendingTypes = ref([])
 const trendingCards = ref([])
 const isLoadingCards = ref(false)
@@ -314,6 +383,7 @@ onMounted(() => {
   }
   loadSets()
   loadFeaturedPokemon()
+  loadTrendingTrainers()
   loadTrendingCards()
   if (user.value) {
   }
@@ -335,6 +405,12 @@ const displayPokemon = computed(() => {
   // Show 6 on mobile (3x2 grid), 12 on desktop (6x2 grid)
   const isMobile = windowWidth.value < 768 // md breakpoint
   return trendingPokemon.value.slice(0, isMobile ? 6 : 12)
+})
+
+const displayTrainers = computed(() => {
+  // Show 6 on mobile (3x2 grid), 12 on desktop (6x2 grid)
+  const isMobile = windowWidth.value < 768 // md breakpoint
+  return trendingTrainers.value.slice(0, isMobile ? 6 : 12)
 })
 
 const displayCards = computed(() => {
@@ -364,6 +440,10 @@ const handlePokemonClick = (pokemon) => {
     const searchName = pokemon.displayName || pokemon.name
     router.push(`/browse?name=${encodeURIComponent(searchName)}`)
   }
+}
+
+const handleTrainerClick = (trainer) => {
+  router.push(`/trainer/${trainer.id}`)
 }
 
 const selectCard = (card) => {
@@ -523,6 +603,26 @@ const loadFeaturedPokemon = async () => {
     console.error('Error loading featured Pokemon:', error)
   } finally {
     isLoadingPokemon.value = false
+  }
+}
+
+const loadTrendingTrainers = async () => {
+  isLoadingTrainers.value = true
+  try {
+    const allTrainers = await getAllTrainers()
+    
+    // Filter out hidden trainers
+    const visibleTrainers = allTrainers.filter(t => !t.hide)
+    
+    // Shuffle trainers randomly for trending section
+    const shuffledTrainers = [...visibleTrainers].sort(() => Math.random() - 0.5)
+    
+    // Set trending trainers (random 12 trainers)
+    trendingTrainers.value = shuffledTrainers.slice(0, 12)
+  } catch (error) {
+    console.error('Error loading trending trainers:', error)
+  } finally {
+    isLoadingTrainers.value = false
   }
 }
 

@@ -4,9 +4,9 @@
       <div class="py-8">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
           <!-- Brand -->
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <picture class="h-6 w-auto bg-transparent">
-              <img src="/pokapal.png" alt="Pokapal" class="h-6 w-auto bg-transparent" />
+              <img src="/pokepalPika.svg" alt="Poképal" class="h-6 w-auto bg-transparent" />
             </picture>
             <picture class="h-6 w-auto bg-transparent pokapal-footer-logo">
               <source media="(prefers-color-scheme: dark)" srcset="/pokepal_white.svg" />

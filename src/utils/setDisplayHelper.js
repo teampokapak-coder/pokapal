@@ -23,6 +23,16 @@ export const getSetLogoUrl = (set) => {
 }
 
 /**
+ * Get set symbol URL
+ * @param {Object} set - Set object with symbol field
+ * @returns {string|null} - Symbol URL or null if not available
+ */
+export const getSetSymbolUrl = (set) => {
+  if (!set) return null
+  return set.symbol || null
+}
+
+/**
  * Format set name for display
  * For Japanese sets: Shows "English Name (Japanese Name)" if englishName exists
  * For English sets: Shows name as-is

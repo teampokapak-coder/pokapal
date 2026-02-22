@@ -162,13 +162,17 @@ const props = defineProps({
   type: {
     type: String,
     required: true,
-    validator: (value) => ['pokemon', 'set'].includes(value)
+    validator: (value) => ['pokemon', 'set', 'trainer'].includes(value)
   },
   pokemon: {
     type: Object,
     default: null
   },
   set: {
+    type: Object,
+    default: null
+  },
+  trainer: {
     type: Object,
     default: null
   },
@@ -200,6 +204,8 @@ const namePlaceholder = computed(() => {
     return `${props.pokemon.displayName || props.pokemon.name} Master Set`
   } else if (props.type === 'set' && props.set) {
     return `${props.set.name || 'Set'} Master Set`
+  } else if (props.type === 'trainer' && props.trainer) {
+    return `${props.trainer.trainerName || 'Trainer'} Master Set`
   }
   return 'Master Set'
 })
@@ -209,6 +215,8 @@ const targetName = computed(() => {
     return props.pokemon.displayName || props.pokemon.name
   } else if (props.type === 'set' && props.set) {
     return props.set.name
+  } else if (props.type === 'trainer' && props.trainer) {
+    return props.trainer.trainerName
   }
   return ''
 })
@@ -263,6 +271,11 @@ watch(() => props.show, (isOpen) => {
       form.value.description = ''
       // Default to set's language
       form.value.languages = props.set.language === 'ja' ? ['ja'] : ['en']
+      form.value.invites = []
+    } else if (props.type === 'trainer' && props.trainer) {
+      form.value.name = `${props.trainer.trainerName} Master Set`
+      form.value.description = ''
+      form.value.languages = ['en'] // Default to English
       form.value.invites = []
     }
   }

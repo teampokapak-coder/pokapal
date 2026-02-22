@@ -55,6 +55,16 @@ const routes = [
     component: () => import('../views/PokemonDetail.vue')
   },
   {
+    path: '/trainers',
+    name: 'BrowseTrainers',
+    component: () => import('../views/BrowseTrainers.vue')
+  },
+  {
+    path: '/trainer/:trainerId',
+    name: 'TrainerDetail',
+    component: () => import('../views/TrainerDetail.vue')
+  },
+  {
     path: '/set/:setId',
     name: 'SetDetail',
     component: () => import('../views/SetDetail.vue')

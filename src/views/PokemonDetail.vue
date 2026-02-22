@@ -549,6 +549,12 @@ const filteredCards = computed(() => {
   // Combine English and Japanese cards
   let allCards = [...cards.value, ...japaneseCards.value]
 
+  // Filter out Trainer cards (only show Pokemon cards)
+  allCards = allCards.filter(card => {
+    const category = card.category || card.cardType || card.supertype
+    return category !== 'Trainer'
+  })
+
   // Filter by language
   if (filterLanguage.value === 'en') {
     allCards = allCards.filter(card => card.language === 'en' || !card.language)

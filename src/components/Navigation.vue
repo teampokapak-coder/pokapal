@@ -2,9 +2,9 @@
   <nav style="background-color: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border);">
     <div class="section-container">
       <div class="flex justify-between items-center h-16">
-        <router-link to="/" class="flex items-center gap-2 md:gap-4">
+        <router-link to="/" class="flex items-center gap-1.5 md:gap-3">
           <picture class="h-[28px] w-auto flex items-center justify-center">
-            <img src="/pokapal.png" alt="Pokapal" class="h-[28px] w-auto object-contain" />
+            <img src="/pokepalPika.svg" alt="Poképal" class="h-[28px] w-auto object-contain" />
           </picture>
           <img 
             src="/pokepal.svg" 
@@ -20,6 +20,18 @@
             class="btn btn-h6 btn-ghost router-link-active-nav"
           >
             Browse
+          </router-link>
+          <router-link 
+            to="/pokemon" 
+            class="btn btn-h6 btn-ghost router-link-active-nav"
+          >
+            Pokemon
+          </router-link>
+          <router-link 
+            to="/trainers" 
+            class="btn btn-h6 btn-ghost router-link-active-nav"
+          >
+            Trainers
           </router-link>
           <router-link 
             to="/blog" 
@@ -90,9 +102,9 @@
         <div class="flex flex-col h-full">
           <!-- Header -->
           <div class="flex items-center justify-between p-4" style="border-bottom: 1px solid var(--color-border);">
-            <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
+            <router-link to="/" class="flex items-center gap-1.5" @click="mobileMenuOpen = false">
               <picture class="h-[28px] w-auto flex items-center justify-center">
-                <img src="/pokapal.png" alt="Pokapal" class="h-[28px] w-auto object-contain" />
+                <img src="/pokepalPika.svg" alt="Poképal" class="h-[28px] w-auto object-contain" />
               </picture>
               <img src="/pokepal.svg" alt="Pokapal" class="h-6 w-auto pokapal-logo-text" />
             </router-link>
@@ -123,6 +135,14 @@
                   @click="mobileMenuOpen = false"
                 >
                   Pokemon
+                </router-link>
+                <router-link 
+                  to="/trainers" 
+                  class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
+                  style="color: var(--color-text-primary);"
+                  @click="mobileMenuOpen = false"
+                >
+                  Trainers
                 </router-link>
                 <router-link 
                   to="/sets" 

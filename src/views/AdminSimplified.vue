@@ -55,6 +55,151 @@
             </div>
           </div>
 
+          <!-- Trainers Collection -->
+          <div class="card">
+            <div class="card-header flex items-center justify-between">
+              <h3 class="card-title">Trainers Collection</h3>
+              <button
+                @click="openAddTrainerModal"
+                class="btn btn-h6 btn-primary"
+              >
+                + Add Trainer
+              </button>
+            </div>
+            <div class="card-body">
+              <!-- Search -->
+              <div class="mb-4">
+                <input
+                  v-model="trainerSearchQuery"
+                  type="text"
+                  placeholder="Search trainers..."
+                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+                  style="border-color: var(--color-border); background-color: var(--color-bg-secondary); color: var(--color-text-primary);"
+                />
+              </div>
+
+              <!-- Loading State -->
+              <div v-if="loadingTrainers" class="text-center py-8">
+                <p class="text-sm" style="color: var(--color-text-secondary);">Loading trainers...</p>
+              </div>
+
+              <!-- Trainers Table -->
+              <div v-else class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr style="border-bottom: 1px solid var(--color-border);">
+                      <th class="text-left py-2 px-3 font-medium" style="color: var(--color-text-primary);">Image</th>
+                      <th class="text-left py-2 px-3 font-medium" style="color: var(--color-text-primary);">Name</th>
+                      <th class="text-left py-2 px-3 font-medium" style="color: var(--color-text-primary);">Icon URL</th>
+                      <th class="text-left py-2 px-3 font-medium" style="color: var(--color-text-primary);">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="trainer in paginatedTrainers"
+                      :key="trainer.id"
+                      style="border-bottom: 1px solid var(--color-border);"
+                      class="hover:opacity-80 transition-opacity"
+                    >
+                      <td class="py-2 px-3">
+                        <div class="w-12 h-12 pokemon-image-bg rounded flex items-center justify-center overflow-hidden">
+                          <img
+                            v-if="trainer.icon"
+                            :src="trainer.icon"
+                            :alt="trainer.trainerName"
+                            :key="trainer.icon"
+                            class="w-full h-full object-contain p-1"
+                            @error="(e) => handleTrainerImageError(e)"
+                          />
+                          <span v-else class="text-xs font-medium">
+                            {{ trainer.trainerName?.charAt(0)?.toUpperCase() || '?' }}
+                          </span>
+                        </div>
+                      </td>
+                      <td class="py-2 px-3" style="color: var(--color-text-primary);">
+                        {{ trainer.trainerName }}
+                      </td>
+                      <td class="py-2 px-3">
+                        <div class="max-w-xs truncate text-xs" style="color: var(--color-text-secondary);">
+                          {{ trainer.icon || 'No URL' }}
+                        </div>
+                      </td>
+                      <td class="py-2 px-3">
+                        <div class="flex items-center gap-2">
+                          <button
+                            @click="openTrainerEditModal(trainer)"
+                            class="text-xs px-2 py-1 rounded transition-colors"
+                            style="background-color: var(--color-bg-tertiary); color: var(--color-text-primary); border: 1px solid var(--color-border);"
+                            title="Edit icon URL"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            @click="toggleTrainerVisibility(trainer)"
+                            class="text-xs px-2 py-1 rounded transition-colors"
+                            :style="trainer.hide 
+                              ? { backgroundColor: 'var(--color-accent)', color: 'white' }
+                              : { backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }"
+                            :title="trainer.hide ? 'Show trainer' : 'Hide trainer'"
+                          >
+                            {{ trainer.hide ? 'Show' : 'Hide' }}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div v-if="filteredTrainers.length === 0" class="text-center py-8">
+                  <p class="text-sm" style="color: var(--color-text-secondary);">
+                    {{ trainerSearchQuery ? 'No trainers found matching your search.' : 'No trainers found.' }}
+                  </p>
+                </div>
+                
+                <!-- Pagination -->
+                <div v-if="filteredTrainers.length > 0" class="flex items-center justify-between mt-4 pt-4" style="border-top: 1px solid var(--color-border);">
+                  <div class="text-sm" style="color: var(--color-text-secondary);">
+                    Showing {{ paginationStart }} - {{ paginationEnd }} of {{ filteredTrainers.length }} trainers
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button
+                      @click="currentTrainerPage = Math.max(1, currentTrainerPage - 1)"
+                      :disabled="currentTrainerPage === 1"
+                      class="px-3 py-1 text-sm rounded transition-colors"
+                      :style="currentTrainerPage === 1 
+                        ? { backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-tertiary)', cursor: 'not-allowed' }
+                        : { backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }"
+                    >
+                      Previous
+                    </button>
+                    <div class="flex items-center gap-1">
+                      <button
+                        v-for="page in trainerPages"
+                        :key="page"
+                        @click="currentTrainerPage = page"
+                        class="px-3 py-1 text-sm rounded transition-colors"
+                        :style="currentTrainerPage === page
+                          ? { backgroundColor: 'var(--color-primary)', color: 'white' }
+                          : { backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }"
+                      >
+                        {{ page }}
+                      </button>
+                    </div>
+                    <button
+                      @click="currentTrainerPage = Math.min(totalTrainerPages, currentTrainerPage + 1)"
+                      :disabled="currentTrainerPage === totalTrainerPages"
+                      class="px-3 py-1 text-sm rounded transition-colors"
+                      :style="currentTrainerPage === totalTrainerPages 
+                        ? { backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-tertiary)', cursor: 'not-allowed' }
+                        : { backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Sets -->
           <div class="card">
             <div class="card-header">
@@ -515,15 +660,201 @@
         </div>
       </div>
     </div>
+
+    <!-- Add Trainer Modal -->
+    <div
+      v-if="addTrainerModal.show"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click.self="closeAddTrainerModal"
+    >
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4" style="background-color: var(--color-bg-primary);">
+        <h3 class="text-lg font-bold mb-4" style="color: var(--color-text-primary);">
+          Add New Trainer
+        </h3>
+        
+        <div class="space-y-4">
+          <!-- Trainer Name -->
+          <div>
+            <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
+              Trainer Name *
+            </label>
+            <input
+              v-model="addTrainerModal.trainerName"
+              type="text"
+              placeholder="Enter trainer name"
+              class="w-full px-3 py-2 rounded border"
+              style="background-color: var(--color-bg-secondary); border-color: var(--color-border); color: var(--color-text-primary);"
+            />
+          </div>
+
+          <!-- Toggle between Upload and URL -->
+          <div class="flex gap-2 mb-4 border-b" style="border-color: var(--color-border);">
+            <button
+              @click="addTrainerModal.mode = 'upload'"
+              class="px-4 py-2 text-sm font-medium transition-colors"
+              :style="addTrainerModal.mode === 'upload' 
+                ? { color: 'var(--color-text-primary)', borderBottom: '2px solid var(--color-primary)' }
+                : { color: 'var(--color-text-secondary)' }"
+            >
+              Upload File
+            </button>
+            <button
+              @click="addTrainerModal.mode = 'url'"
+              class="px-4 py-2 text-sm font-medium transition-colors"
+              :style="addTrainerModal.mode === 'url' 
+                ? { color: 'var(--color-text-primary)', borderBottom: '2px solid var(--color-primary)' }
+                : { color: 'var(--color-text-secondary)' }"
+            >
+              Enter URL
+            </button>
+          </div>
+
+          <!-- Upload File Mode -->
+          <div v-if="addTrainerModal.mode === 'upload'">
+            <input
+              ref="addTrainerFileInput"
+              type="file"
+              accept="image/*"
+              @change="handleAddTrainerFileSelect"
+              class="hidden"
+            />
+            <button
+              @click="addTrainerFileInput?.click()"
+              class="btn btn-h5 btn-secondary w-full mb-2"
+            >
+              Choose File
+            </button>
+            <p v-if="addTrainerModal.fileName" class="text-sm" style="color: var(--color-text-secondary);">
+              Selected: {{ addTrainerModal.fileName }}
+            </p>
+          </div>
+
+          <!-- URL Mode -->
+          <div v-else>
+            <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">
+              Icon URL *
+            </label>
+            <input
+              v-model="addTrainerModal.url"
+              type="url"
+              placeholder="https://example.com/trainer.png"
+              class="w-full px-3 py-2 rounded border"
+              style="background-color: var(--color-bg-secondary); border-color: var(--color-border); color: var(--color-text-primary);"
+            />
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2 justify-end mt-6">
+          <button
+            @click="closeAddTrainerModal"
+            class="btn btn-h5 btn-ghost"
+          >
+            Cancel
+          </button>
+          <button
+            @click="saveNewTrainer"
+            class="btn btn-h5 btn-primary"
+            :disabled="!addTrainerModal.trainerName || ((addTrainerModal.mode === 'upload' && !addTrainerModal.file) || (addTrainerModal.mode === 'url' && !addTrainerModal.url)) || isSavingTrainer"
+          >
+            {{ isSavingTrainer ? 'Saving...' : 'Add Trainer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trainer Edit Modal -->
+    <div
+      v-if="trainerEditModal.show"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click.self="closeTrainerEditModal"
+    >
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4" style="background-color: var(--color-bg-primary);">
+        <h3 class="text-lg font-bold mb-4" style="color: var(--color-text-primary);">
+          Edit Icon for {{ trainerEditModal.trainer?.trainerName }}
+        </h3>
+        
+        <!-- Toggle between Upload and URL -->
+        <div class="flex gap-2 mb-4 border-b" style="border-color: var(--color-border);">
+          <button
+            @click="trainerEditModal.mode = 'upload'"
+            class="px-4 py-2 text-sm font-medium transition-colors"
+            :style="trainerEditModal.mode === 'upload' 
+              ? { color: 'var(--color-text-primary)', borderBottom: '2px solid var(--color-primary)' }
+              : { color: 'var(--color-text-secondary)' }"
+          >
+            Upload File
+          </button>
+          <button
+            @click="trainerEditModal.mode = 'url'"
+            class="px-4 py-2 text-sm font-medium transition-colors"
+            :style="trainerEditModal.mode === 'url' 
+              ? { color: 'var(--color-text-primary)', borderBottom: '2px solid var(--color-primary)' }
+              : { color: 'var(--color-text-secondary)' }"
+          >
+            Enter URL
+          </button>
+        </div>
+
+        <!-- Upload File Mode -->
+        <div v-if="trainerEditModal.mode === 'upload'" class="mb-4">
+          <input
+            ref="trainerFileInput"
+            type="file"
+            accept="image/*"
+            @change="handleTrainerFileSelect"
+            class="hidden"
+          />
+          <button
+            @click="trainerFileInput?.click()"
+            class="btn btn-h5 btn-secondary w-full mb-2"
+          >
+            Choose File
+          </button>
+          <p v-if="trainerEditModal.fileName" class="text-sm" style="color: var(--color-text-secondary);">
+            Selected: {{ trainerEditModal.fileName }}
+          </p>
+        </div>
+
+        <!-- URL Mode -->
+        <div v-else class="mb-4">
+          <input
+            v-model="trainerEditModal.url"
+            type="url"
+            placeholder="https://example.com/trainer.png"
+            class="w-full px-3 py-2 rounded border"
+            style="background-color: var(--color-bg-secondary); border-color: var(--color-border); color: var(--color-text-primary);"
+          />
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2 justify-end">
+          <button
+            @click="closeTrainerEditModal"
+            class="btn btn-h5 btn-ghost"
+          >
+            Cancel
+          </button>
+          <button
+            @click="saveTrainerIcon"
+            class="btn btn-h5 btn-primary"
+            :disabled="(trainerEditModal.mode === 'upload' && !trainerEditModal.file) || (trainerEditModal.mode === 'url' && !trainerEditModal.url) || isSavingTrainer"
+          >
+            {{ isSavingTrainer ? 'Saving...' : 'Save' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { collection, getCountFromServer, getDocs, query, where, doc, updateDoc } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '../config/firebase'
 import { seedPokemonCollection, seedSets, seedCardsForSet } from '../utils/simplifiedSeeder'
+import { getAllTrainers, saveTrainer } from '../utils/firebaseTrainers'
 import { fetchSetById } from '../utils/tcgdxAPI'
 import { mapTCGdxSetToSchema } from '../utils/tcgdxAPI'
 import { Timestamp } from 'firebase/firestore'
@@ -538,6 +869,32 @@ const cardsJaCount = ref(0)
 const isSeedingPokemon = ref(false)
 const isSeedingSetsEn = ref(false)
 const isSeedingSetsJa = ref(false)
+
+// Trainers
+const trainers = ref([])
+const loadingTrainers = ref(false)
+const trainerSearchQuery = ref('')
+const currentTrainerPage = ref(1)
+const trainersPerPage = 10
+const trainerEditModal = ref({
+  show: false,
+  trainer: null,
+  mode: 'url', // 'upload' or 'url'
+  file: null,
+  fileName: '',
+  url: ''
+})
+const addTrainerModal = ref({
+  show: false,
+  trainerName: '',
+  mode: 'url', // 'upload' or 'url'
+  file: null,
+  fileName: '',
+  url: ''
+})
+const isSavingTrainer = ref(false)
+const trainerFileInput = ref(null)
+const addTrainerFileInput = ref(null)
 
 const setsEn = ref([])
 const setsJa = ref([])
@@ -654,6 +1011,329 @@ const seedSetsJa = async () => {
     messageType.value = 'error'
   } finally {
     isSeedingSetsJa.value = false
+  }
+}
+
+// Filtered trainers based on search (searches all trainers, not just current page)
+const filteredTrainers = computed(() => {
+  if (!trainerSearchQuery.value) {
+    return trainers.value
+  }
+  const query = trainerSearchQuery.value.toLowerCase()
+  return trainers.value.filter(trainer =>
+    trainer.trainerName?.toLowerCase().includes(query)
+  )
+})
+
+// Pagination computed properties
+const totalTrainerPages = computed(() => {
+  return Math.ceil(filteredTrainers.value.length / trainersPerPage)
+})
+
+const paginationStart = computed(() => {
+  return filteredTrainers.value.length === 0 ? 0 : (currentTrainerPage.value - 1) * trainersPerPage + 1
+})
+
+const paginationEnd = computed(() => {
+  return Math.min(currentTrainerPage.value * trainersPerPage, filteredTrainers.value.length)
+})
+
+const trainerPages = computed(() => {
+  const pages = []
+  const total = totalTrainerPages.value
+  const current = currentTrainerPage.value
+  
+  // Show up to 5 page numbers
+  let start = Math.max(1, current - 2)
+  let end = Math.min(total, start + 4)
+  
+  // Adjust start if we're near the end
+  if (end - start < 4) {
+    start = Math.max(1, end - 4)
+  }
+  
+  for (let i = start; i <= end; i++) {
+    pages.push(i)
+  }
+  
+  return pages
+})
+
+// Paginated trainers (only show 10 per page)
+const paginatedTrainers = computed(() => {
+  const start = (currentTrainerPage.value - 1) * trainersPerPage
+  const end = start + trainersPerPage
+  return filteredTrainers.value.slice(start, end)
+})
+
+// Watch search query to reset to page 1
+watch(trainerSearchQuery, () => {
+  currentTrainerPage.value = 1
+})
+
+// Load trainers
+const loadTrainers = async () => {
+  loadingTrainers.value = true
+  try {
+    const allTrainers = await getAllTrainers()
+    trainers.value = allTrainers.sort((a, b) => 
+      (a.trainerName || '').localeCompare(b.trainerName || '')
+    )
+  } catch (error) {
+    console.error('Error loading trainers:', error)
+    message.value = `❌ Error loading trainers: ${error.message}`
+    messageType.value = 'error'
+  } finally {
+    loadingTrainers.value = false
+  }
+}
+
+// Handle trainer image error
+const handleTrainerImageError = (event) => {
+  event.target.style.display = 'none'
+}
+
+// Open trainer edit modal
+const openTrainerEditModal = (trainer) => {
+  trainerEditModal.value = {
+    show: true,
+    trainer,
+    mode: 'url',
+    file: null,
+    fileName: '',
+    url: trainer.icon || ''
+  }
+}
+
+// Close trainer edit modal
+const closeTrainerEditModal = () => {
+  trainerEditModal.value = {
+    show: false,
+    trainer: null,
+    mode: 'url',
+    file: null,
+    fileName: '',
+    url: ''
+  }
+  if (trainerFileInput.value) {
+    trainerFileInput.value.value = ''
+  }
+}
+
+// Handle trainer file select
+const handleTrainerFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    trainerEditModal.value.file = file
+    trainerEditModal.value.fileName = file.name
+  }
+}
+
+// Save trainer icon
+const saveTrainerIcon = async () => {
+  if (!trainerEditModal.value.trainer) return
+  
+  const trainer = trainerEditModal.value.trainer
+  const mode = trainerEditModal.value.mode
+  
+  // Validate based on mode
+  if (mode === 'upload' && !trainerEditModal.value.file) return
+  if (mode === 'url' && !trainerEditModal.value.url?.trim()) return
+
+  isSavingTrainer.value = true
+  message.value = ''
+
+  try {
+    let downloadURL = ''
+    
+    if (mode === 'upload') {
+      // Upload file to Firebase Storage
+      const file = trainerEditModal.value.file
+      const fileExt = file.name.split('.').pop()
+      const fileName = `icon.${fileExt}`
+      const storagePath = `trainers/${trainer.id}/${fileName}`
+      const imageRef = storageRef(storage, storagePath)
+
+      await uploadBytes(imageRef, file)
+      downloadURL = await getDownloadURL(imageRef)
+    } else {
+      // Use provided URL directly
+      downloadURL = trainerEditModal.value.url.trim()
+      
+      // Basic URL validation
+      try {
+        new URL(downloadURL)
+      } catch (e) {
+        throw new Error('Please enter a valid URL')
+      }
+    }
+
+    // Update trainer document in Firestore
+    const trainerRef = doc(db, 'trainers', trainer.id)
+    
+    await updateDoc(trainerRef, {
+      icon: downloadURL,
+      updatedAt: Timestamp.now()
+    })
+
+    // Update local state reactively
+    const index = trainers.value.findIndex(t => t.id === trainer.id)
+    if (index !== -1) {
+      // Use Vue's reactivity to update the icon
+      trainers.value[index] = {
+        ...trainers.value[index],
+        icon: downloadURL
+      }
+    }
+
+    message.value = `✅ Successfully saved icon for ${trainer.trainerName}`
+    messageType.value = 'success'
+    closeTrainerEditModal()
+  } catch (error) {
+    console.error('Error saving trainer icon:', error)
+    message.value = `❌ Error saving icon: ${error.message}`
+    messageType.value = 'error'
+  } finally {
+    isSavingTrainer.value = false
+  }
+}
+
+// Open add trainer modal
+const openAddTrainerModal = () => {
+  addTrainerModal.value = {
+    show: true,
+    trainerName: '',
+    mode: 'url',
+    file: null,
+    fileName: '',
+    url: ''
+  }
+}
+
+// Close add trainer modal
+const closeAddTrainerModal = () => {
+  addTrainerModal.value = {
+    show: false,
+    trainerName: '',
+    mode: 'url',
+    file: null,
+    fileName: '',
+    url: ''
+  }
+  if (addTrainerFileInput.value) {
+    addTrainerFileInput.value.value = ''
+  }
+}
+
+// Handle add trainer file select
+const handleAddTrainerFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    addTrainerModal.value.file = file
+    addTrainerModal.value.fileName = file.name
+  }
+}
+
+// Save new trainer
+const saveNewTrainer = async () => {
+  if (!addTrainerModal.value.trainerName?.trim()) {
+    message.value = '❌ Please enter a trainer name'
+    messageType.value = 'error'
+    return
+  }
+
+  const mode = addTrainerModal.value.mode
+  
+  // Validate based on mode
+  if (mode === 'upload' && !addTrainerModal.value.file) return
+  if (mode === 'url' && !addTrainerModal.value.url?.trim()) return
+
+  isSavingTrainer.value = true
+  message.value = ''
+
+  try {
+    let iconURL = ''
+    
+    if (mode === 'upload') {
+      // Upload file to Firebase Storage
+      const file = addTrainerModal.value.file
+      const fileExt = file.name.split('.').pop()
+      const fileName = `icon.${fileExt}`
+      // Use trainer name for folder (will be sanitized)
+      const sanitizedName = addTrainerModal.value.trainerName.toLowerCase().replace(/[^a-z0-9]/g, '_')
+      const storagePath = `trainers/${sanitizedName}/${fileName}`
+      const imageRef = storageRef(storage, storagePath)
+
+      await uploadBytes(imageRef, file)
+      iconURL = await getDownloadURL(imageRef)
+    } else {
+      // Use provided URL directly
+      iconURL = addTrainerModal.value.url.trim()
+      
+      // Basic URL validation
+      try {
+        new URL(iconURL)
+      } catch (e) {
+        throw new Error('Please enter a valid URL')
+      }
+    }
+
+    // Create trainer document in Firestore
+    const trainerData = {
+      trainerName: addTrainerModal.value.trainerName.trim(),
+      icon: iconURL,
+      artistCreditUrl: 'https://play.pokemonshowdown.com/sprites/trainers/?filter=credited',
+      hide: false
+    }
+
+    const trainerId = await saveTrainer(trainerData)
+
+    // Add to local state (will be sorted by name)
+    const newTrainer = {
+      id: trainerId,
+      ...trainerData
+    }
+    trainers.value.push(newTrainer)
+    trainers.value.sort((a, b) => (a.trainerName || '').localeCompare(b.trainerName || ''))
+
+    message.value = `✅ Successfully added trainer: ${addTrainerModal.value.trainerName}`
+    messageType.value = 'success'
+    closeAddTrainerModal()
+  } catch (error) {
+    console.error('Error saving new trainer:', error)
+    message.value = `❌ Error adding trainer: ${error.message}`
+    messageType.value = 'error'
+  } finally {
+    isSavingTrainer.value = false
+  }
+}
+
+// Toggle trainer visibility
+const toggleTrainerVisibility = async (trainer) => {
+  const newHideValue = !trainer.hide
+  
+  try {
+    const trainerRef = doc(db, 'trainers', trainer.id)
+    await updateDoc(trainerRef, {
+      hide: newHideValue,
+      updatedAt: Timestamp.now()
+    })
+
+    // Update local state reactively
+    const index = trainers.value.findIndex(t => t.id === trainer.id)
+    if (index !== -1) {
+      trainers.value[index] = {
+        ...trainers.value[index],
+        hide: newHideValue
+      }
+    }
+
+    message.value = `✅ Trainer ${newHideValue ? 'hidden' : 'shown'}: ${trainer.trainerName}`
+    messageType.value = 'success'
+  } catch (error) {
+    console.error('Error toggling trainer visibility:', error)
+    message.value = `❌ Error: ${error.message}`
+    messageType.value = 'error'
   }
 }
 
@@ -1016,6 +1696,7 @@ const getOrdinalSuffix = (day) => {
 onMounted(() => {
   loadCounts()
   loadSets()
+  loadTrainers()
 })
 </script>
 
