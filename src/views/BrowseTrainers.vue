@@ -232,7 +232,7 @@ const loadTrainers = async () => {
 }
 
 onMounted(() => {
-  document.title = 'Trainers - Poképal'
+  document.title = 'Trainers — Pallet Town Cards'
   loadTrainers()
 })
 </script>

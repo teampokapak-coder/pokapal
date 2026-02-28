@@ -1,4 +1,4 @@
-# Pokapal Database Structure V2 - Simplified
+# Pallet Town Cards Database Structure V2 - Simplified
 
 ## Overview
 

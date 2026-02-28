@@ -2,15 +2,20 @@
   <nav style="background-color: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border);">
     <div class="section-container">
       <div class="flex justify-between items-center h-16">
-        <router-link to="/" class="flex items-center gap-1.5 md:gap-3">
-          <picture class="h-[28px] w-auto flex items-center justify-center">
-            <img src="/pokepalPika.svg" alt="Poképal" class="h-[28px] w-auto object-contain" />
-          </picture>
-          <img 
-            src="/pokepal.svg" 
-            alt="Pokapal" 
-            class="h-6 sm:h-7 w-auto pokapal-logo-text"
+        <router-link to="/" class="flex items-center gap-2 md:gap-3">
+          <img
+            src="/palletTownIcon.svg"
+            alt="Pallet Town Cards"
+            class="h-9 w-9"
           />
+          <picture class="hidden sm:block">
+            <source media="(prefers-color-scheme: dark)" srcset="/PalletTown_WordLogoWhite.svg" />
+            <img
+              src="/PalletTown_WordLogo.svg"
+              alt="Pallet Town Cards"
+              class="h-6 md:h-7 w-auto"
+            />
+          </picture>
         </router-link>
         
         <!-- Desktop Navigation -->
@@ -102,11 +107,20 @@
         <div class="flex flex-col h-full">
           <!-- Header -->
           <div class="flex items-center justify-between p-4" style="border-bottom: 1px solid var(--color-border);">
-            <router-link to="/" class="flex items-center gap-1.5" @click="mobileMenuOpen = false">
-              <picture class="h-[28px] w-auto flex items-center justify-center">
-                <img src="/pokepalPika.svg" alt="Poképal" class="h-[28px] w-auto object-contain" />
+            <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
+              <img
+                src="/palletTownIcon.svg"
+                alt="Pallet Town Cards"
+                class="h-8 w-8"
+              />
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="/PalletTown_WordLogoWhite.svg" />
+                <img
+                  src="/PalletTown_WordLogo.svg"
+                  alt="Pallet Town Cards"
+                  class="h-6 w-auto"
+                />
               </picture>
-              <img src="/pokepal.svg" alt="Pokapal" class="h-6 w-auto pokapal-logo-text" />
             </router-link>
             <button 
               @click="mobileMenuOpen = false"

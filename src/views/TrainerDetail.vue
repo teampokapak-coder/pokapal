@@ -597,7 +597,7 @@ const handleLoginSuccess = async () => {
 watch(trainer, (newTrainer) => {
   if (newTrainer) {
     const trainerName = newTrainer.trainerName || 'Trainer'
-    document.title = `${trainerName} - Poképal`
+    document.title = `${trainerName} — Pallet Town Cards`
   }
 }, { immediate: true })
 

@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Stack+Sans+Headline:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Lexend:wght@400;600;700&display=swap');
 @import './colors/light.css';
 @import './colors/dark.css';
 @tailwind base;
@@ -7,11 +6,52 @@
 @tailwind utilities;
 
 /* ============================================
-   GLOBAL DESIGN SYSTEM - POKAPAL
+   GLOBAL DESIGN SYSTEM — PALLET TOWN CARDS
    ============================================ */
 
 @layer base {
   :root {
+    /* Brand tokens (from guidelines) */
+    --ptc-gold: #d8a657;
+    --ptc-gold-50: #fdf8ee;
+    --ptc-gold-100: #f8ecce;
+    --ptc-gold-200: #f0d8a0;
+    --ptc-gold-300: #e8c47a;
+    --ptc-gold-400: #d8a657;
+    --ptc-gold-500: #c89340;
+    --ptc-gold-600: #b07a2a;
+    --ptc-gold-700: #8a5f1e;
+    --ptc-gold-800: #6a4816;
+    --ptc-gold-900: #4a3210;
+
+    --ptc-green: #5a8a4a;
+    --ptc-green-50: #f2f8ef;
+    --ptc-green-100: #dff0d6;
+    --ptc-green-200: #b8dca6;
+    --ptc-green-300: #8ec47a;
+    --ptc-green-400: #78b464;
+    --ptc-green-500: #5a8a4a;
+    --ptc-green-600: #4a7a3a;
+    --ptc-green-700: #3a6228;
+    --ptc-green-800: #2a4a1e;
+    --ptc-green-900: #1a3212;
+
+    --ptc-copper: #c97b4b;
+    --ptc-bark: #2c2418;
+    --ptc-cream: #faf5ea;
+    --ptc-parchment: #f0e4cc;
+
+    --ptc-page-bg: #0e0c0a;
+    --ptc-page-text: #e8e2d8;
+    --ptc-page-dim: #8a7b68;
+    --ptc-section-bg: #161310;
+    --ptc-card-bg: #1c1814;
+    --ptc-border: rgba(216, 166, 87, 0.12);
+
+    --ptc-gradient-fields: linear-gradient(135deg, #78b464, #4a7a3a);
+    --ptc-gradient-golden-hour: linear-gradient(135deg, #d8a657, #c97b4b);
+    --ptc-gradient-deep-bark: linear-gradient(135deg, #2c2418, #1a160e);
+
     /* Material Design 3 Color Mapping - Light Mode */
     --color-bg-primary: var(--md-sys-color-background);
     --color-bg-secondary: var(--md-sys-color-surface);
@@ -23,8 +63,8 @@
     --color-border-hover: var(--md-sys-color-outline);
     --color-accent: var(--md-sys-color-primary);
     --color-accent-hover: var(--md-sys-color-primary-container);
-    --color-sidebar: #ed3535;
-    --color-sidebar-hover: #c44a48;
+    --color-sidebar: var(--ptc-gold);
+    --color-sidebar-hover: var(--ptc-gold-600);
     
     /* Spacing */
     --spacing-xs: 0.5rem;
@@ -34,11 +74,11 @@
     --spacing-xl: 2rem;
     --spacing-2xl: 3rem;
     
-    /* Border Radius */
-    --radius-sm: 0.375rem;
-    --radius-md: 0.5rem;
-    --radius-lg: 0.75rem;
-    --radius-xl: 1rem;
+    /* Border Radius (guidelines) */
+    --radius-sm: 6px;   /* badges */
+    --radius-md: 10px;  /* buttons */
+    --radius-lg: 14px;  /* cards */
+    --radius-xl: 20px;  /* panels */
     
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -48,8 +88,8 @@
 
   body {
     @apply antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    line-height: 1.5;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
   }
@@ -66,21 +106,21 @@
 @layer components {
   h1 {
     @apply text-4xl font-bold tracking-tight;
-    font-family: 'Stack Sans Headline', system-ui, -apple-system, sans-serif;
+    font-family: 'Lexend', 'DM Sans', system-ui, -apple-system, sans-serif;
     font-size: 2.25rem;
     line-height: 1.2;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     color: var(--color-text-primary);
   }
 
   h2 {
     @apply text-2xl sm:text-3xl font-semibold tracking-tight;
-    font-family: 'Stack Sans Headline', system-ui, -apple-system, sans-serif;
+    font-family: 'Lexend', 'DM Sans', system-ui, -apple-system, sans-serif;
     font-size: 1.5rem;
     line-height: 1.3;
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     color: var(--color-text-primary);
   }
   
@@ -92,7 +132,7 @@
 
   h3 {
     @apply text-2xl font-semibold tracking-tight;
-    font-family: 'Stack Sans Headline', system-ui, -apple-system, sans-serif;
+    font-family: 'Lexend', 'DM Sans', system-ui, -apple-system, sans-serif;
     font-size: 1.5rem;
     line-height: 1.4;
     font-weight: 600;
@@ -101,28 +141,28 @@
 
   h4 {
     @apply text-xl font-medium tracking-tight;
-    font-family: 'Stack Sans Headline', system-ui, -apple-system, sans-serif;
+    font-family: 'Dela Gothic One', system-ui, -apple-system, sans-serif;
     font-size: 1.25rem;
     line-height: 1.4;
-    font-weight: 500;
+    font-weight: 400;
     color: var(--color-text-primary);
   }
 
   h5 {
     @apply text-lg font-medium;
-    font-family: 'Stack Sans Headline', system-ui, -apple-system, sans-serif;
+    font-family: 'Dela Gothic One', system-ui, -apple-system, sans-serif;
     font-size: 1.125rem;
     line-height: 1.5;
-    font-weight: 500;
+    font-weight: 400;
     color: var(--color-text-primary);
   }
 
   h6 {
     @apply text-base font-medium;
-    font-family: 'Stack Sans Headline', system-ui, -apple-system, sans-serif;
+    font-family: 'Lexend', 'DM Sans', system-ui, -apple-system, sans-serif;
     font-size: 1rem;
     line-height: 1.5;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--color-text-primary);
   }
 
@@ -163,9 +203,15 @@
      ============================================ */
 
   .btn {
-    @apply inline-flex items-center justify-center rounded-md font-medium transition-all duration-200;
-    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center font-medium transition-all duration-200;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    border-radius: var(--radius-md);
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(216, 166, 87, 0.18);
   }
 
   /* Button sizes matching heading hierarchy */
@@ -207,10 +253,9 @@
 
   /* Button variants */
   .btn-primary {
-    background-color: var(--color-accent);
+    background: var(--ptc-gradient-fields);
     color: #ffffff !important;
-    @apply hover:opacity-90 active:opacity-80;
-    @apply focus:ring-2 focus:ring-offset-2;
+    box-shadow: 0 2px 12px rgba(90, 138, 74, 0.3);
   }
   
   /* Override text-sm color for primary buttons */
@@ -218,72 +263,64 @@
     color: #ffffff !important;
   }
   
-  @media (prefers-color-scheme: dark) {
-    .btn-primary {
-      background-color: #22c55e;
-      color: #ffffff !important;
-    }
-    
-    .btn-primary:hover {
-      background-color: #16a34a;
-      color: #ffffff !important;
-    }
-    
-    .btn-primary.text-sm {
-      color: #ffffff !important;
-    }
-  }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-1px); }
+  .btn-primary:active:not(:disabled) { transform: translateY(0); }
 
   .btn-secondary {
-    background-color: var(--color-bg-tertiary);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
-    @apply hover:opacity-80 active:opacity-70;
-    @apply focus:ring-2 focus:ring-offset-2;
+    background: var(--ptc-gradient-deep-bark);
+    color: var(--ptc-cream);
+    border: 1px solid var(--ptc-border);
   }
+  .btn-secondary:hover:not(:disabled) { transform: translateY(-1px); }
+  .btn-secondary:active:not(:disabled) { transform: translateY(0); }
 
   .btn-outline {
     background-color: transparent;
-    color: var(--color-text-primary);
-    border: 2px solid var(--color-accent);
-    @apply hover:opacity-80 active:opacity-70;
-    @apply focus:ring-2 focus:ring-offset-2;
+    color: var(--ptc-green);
+    border: 1.5px solid var(--ptc-green);
   }
   
   .btn-outline:hover {
-    background-color: var(--color-accent);
-    color: var(--color-bg-secondary);
-  }
-  
-  @media (prefers-color-scheme: dark) {
-    .btn-outline:hover {
-      color: var(--color-text-primary);
-    }
+    background: var(--ptc-gradient-fields);
+    color: #ffffff;
   }
 
   .btn-ghost {
     background-color: transparent;
-    color: var(--color-text-secondary);
-    @apply hover:opacity-80 active:opacity-70;
-    @apply focus:ring-2 focus:ring-offset-2;
+    color: var(--color-text-primary);
   }
   
   .btn-ghost:hover {
-    background-color: var(--color-bg-tertiary);
+    background-color: rgba(216, 166, 87, 0.06);
   }
 
   /* Trainer Badge */
   .trainer-badge {
-    @apply px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:opacity-90;
-    background-color: #ffffff;
-    color: rgb(50 105 65); /* Primary dark green */
-    border: 1px solid rgb(50 105 65); /* Green border */
+    @apply px-3 py-1.5 text-xs font-semibold transition-all;
+    border-radius: 100px;
+    background-color: rgba(216, 166, 87, 0.12);
+    color: var(--ptc-gold);
+    border: 1px solid rgba(216, 166, 87, 0.2);
   }
 
-  @media (prefers-color-scheme: dark) {
+  .trainer-badge:hover {
+    background-color: rgba(216, 166, 87, 0.16);
+    transform: translateY(-1px);
+  }
+
+  /* Make the trainer pill stand out more in light mode */
+  @media (prefers-color-scheme: light) {
     .trainer-badge {
-      background-color: var(--md-sys-color-primary-container);
-      color: var(--md-sys-color-on-primary-container);
+      background: linear-gradient(135deg, rgba(201, 123, 75, 0.98), rgba(176, 104, 56, 0.98));
+      color: var(--ptc-cream);
+      border: 1px solid rgba(44, 36, 24, 0.22);
+      box-shadow: 0 6px 18px rgba(44, 36, 24, 0.10);
+    }
+
+    .trainer-badge:hover {
+      background: linear-gradient(135deg, rgba(201, 123, 75, 1), rgba(144, 84, 40, 1));
+      box-shadow: 0 10px 26px rgba(44, 36, 24, 0.14);
+      transform: translateY(-1px);
     }
   }
 
@@ -302,12 +339,35 @@
   .card {
     background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
-    @apply rounded-lg transition-shadow duration-200;
+    @apply transition-shadow duration-200;
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
   }
 
   .card:hover {
     box-shadow: var(--shadow-md);
+  }
+
+  /* Light mode borders need more contrast on cream backgrounds */
+  @media (prefers-color-scheme: light) {
+    .card {
+      border-color: rgba(44, 36, 24, 0.18);
+    }
+
+    .card:hover {
+      border-color: rgba(44, 36, 24, 0.26);
+    }
+  }
+
+  /* Dark mode borders need a clearer frame on dark surfaces */
+  @media (prefers-color-scheme: dark) {
+    .card {
+      border-color: rgba(240, 228, 204, 0.12);
+    }
+
+    .card:hover {
+      border-color: rgba(216, 166, 87, 0.22);
+    }
   }
 
   .card-header {
@@ -328,6 +388,21 @@
   .card-title {
     @apply text-lg font-semibold mb-1;
     color: var(--color-text-primary);
+  }
+
+  /* Titles should stay "headline bright" even when using size utilities */
+  .card-title.text-xs,
+  .card-title.text-sm {
+    color: var(--color-text-primary) !important;
+  }
+
+  /* Slightly warmer/lighter headline in dark mode for readability */
+  @media (prefers-color-scheme: dark) {
+    .card-title,
+    .card-title.text-xs,
+    .card-title.text-sm {
+      color: var(--ptc-parchment) !important;
+    }
   }
 
   .card-subtitle {
@@ -576,7 +651,7 @@
 
   /* Router link active state for navigation */
   .router-link-active-nav.router-link-active {
-    background-color: var(--color-bg-tertiary) !important;
+    background-color: rgba(216, 166, 87, 0.08) !important;
   }
 
   /* ============================================
@@ -617,16 +692,8 @@
   input:focus,
   textarea:focus {
     outline: none !important;
-    border-color: var(--color-accent) !important;
-    box-shadow: 0 0 0 2px rgba(64, 64, 64, 0.1) !important;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    select:focus,
-    input:focus,
-    textarea:focus {
-      box-shadow: 0 0 0 2px rgba(212, 212, 212, 0.2) !important;
-    }
+    border-color: var(--ptc-gold) !important;
+    box-shadow: 0 0 0 3px rgba(216, 166, 87, 0.12) !important;
   }
 
   select option {
@@ -663,37 +730,18 @@
     background: linear-gradient(to bottom right, var(--color-bg-tertiary), var(--color-bg-secondary));
   }
 
-  /* ============================================
-     NAVIGATION LOGO TEXT (Dark Mode Support)
-     ============================================ */
-
-  .pokapal-logo-text {
-    filter: brightness(0);
-    transition: filter 0.2s;
+  /* Shared card/pokemon media wrapper styles */
+  .card-media {
+    @apply flex items-center justify-center overflow-hidden;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .pokapal-logo-text {
-      filter: brightness(0) invert(1);
-    }
+  /* Consistent “card image well” gradient */
+  .card-image-bg {
+    background: linear-gradient(to bottom right, var(--color-bg-tertiary), var(--color-bg-secondary));
   }
 
   /* ============================================
-     FOOTER LOGO (Dark Mode Support)
-     ============================================ */
-
-  .pokapal-footer-logo {
-    transition: filter 0.2s;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .pokapal-footer-logo {
-      filter: brightness(0) invert(1);
-    }
-  }
-
-  /* ============================================
-     TEXT SIZE VARIANTS (with dark mode colors)
+     TEXT SIZE VARIANTS (with consistent colors)
      ============================================ */
 
   /* Small text (replaces text-xs) */
@@ -725,9 +773,10 @@
   h6.section-label {
     font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 500;
-    color: var(--color-text-primary);
+    letter-spacing: 0.28em;
+    font-weight: 600;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    color: var(--ptc-gold);
   }
 
   /* List Item Title (for names in sidebar lists) */
@@ -774,17 +823,7 @@
     }
   }
 
-  /* Login Logo (white SVG - inverted in light mode, normal in dark mode) */
-  .pokapal-login-logo {
-    transition: filter 0.2s;
-    filter: brightness(0); /* Makes white SVG black in light mode */
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .pokapal-login-logo {
-      filter: none; /* White SVG stays white in dark mode */
-    }
-  }
+  /* Brand marks should not be inverted */
 
   /* Global Filter Input Styles */
   .filter-input {
@@ -822,9 +861,9 @@
     --color-border-hover: var(--md-sys-color-outline);
     --color-accent: var(--md-sys-color-primary);
     --color-accent-hover: var(--md-sys-color-primary-container);
-    /* Keep sidebar colors the same in dark mode */
-    --color-sidebar: #ed3535;
-    --color-sidebar-hover: #c44a48;
+    /* Sidebar accents */
+    --color-sidebar: var(--ptc-gold);
+    --color-sidebar-hover: var(--ptc-gold-600);
     
     /* Dark Mode Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);

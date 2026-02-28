@@ -9,14 +9,21 @@
         <div class="flex justify-between items-start mb-6">
           <div class="flex-1">
             <div class="text-center mb-4">
-              <picture class="pokapal-login-logo mx-auto mb-4 h-9 w-auto block">
-                <source media="(prefers-color-scheme: dark)" srcset="/pokepal_white.svg" />
-                <img 
-                  src="/pokepal.svg" 
-                  alt="Pokapal" 
-                  class="h-9 w-auto mx-auto"
+              <div class="brand-login-mark flex items-center justify-center gap-3 mx-auto mb-4">
+                <img
+                  src="/palletTownIcon.svg"
+                  alt="Pallet Town Cards"
+                  class="h-10 w-10"
                 />
-              </picture>
+                <picture>
+                  <source media="(prefers-color-scheme: dark)" srcset="/PalletTown_WordLogoWhite.svg" />
+                  <img
+                    src="/PalletTown_WordLogo.svg"
+                    alt="Pallet Town Cards"
+                    class="h-7 w-auto"
+                  />
+                </picture>
+              </div>
               <p class="login-subtitle">Sign in to your account</p>
             </div>
           </div>
@@ -236,7 +243,7 @@ const handleForgotPassword = async () => {
 </script>
 
 <style scoped>
-.pokapal-login-logo {
+.brand-login-mark {
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
 

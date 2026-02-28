@@ -31,7 +31,7 @@ For a better user experience (no email client popup), you can set up EmailJS (fr
 3. Use this template:
 
 ```
-Subject: Pokapal Feedback - {{from_name}}
+Subject: Pallet Town Cards Feedback - {{from_name}}
 
 From: {{from_email}}
 Name: {{from_name}}
@@ -40,7 +40,7 @@ Message:
 {{message}}
 
 ---
-This feedback was sent from Pokapal.com
+This feedback was sent from Pallet Town Cards
 ```
 
 4. Set **To Email** to: `teampokapak@gmail.com`

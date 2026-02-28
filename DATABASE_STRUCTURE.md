@@ -1,8 +1,8 @@
-# Pokapal Database Structure
+# Pallet Town Cards Database Structure
 
 ## Overview
 
-This document maps out the complete Firestore database structure for Pokapal, explaining the relationship between collections, assignments, groups, and users.
+This document maps out the complete Firestore database structure for Pallet Town Cards, explaining the relationship between collections, assignments, groups, and users.
 
 ---
 

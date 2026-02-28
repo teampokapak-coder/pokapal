@@ -97,15 +97,23 @@
       <!-- Main Content -->
       <main class="flex-1 overflow-y-auto">
         <!-- Hero Banner -->
-        <div class="relative bg-cover bg-center bg-no-repeat overflow-hidden" style="background-image: url('/pokabanner.png');">
+        <div class="relative bg-cover bg-center bg-no-repeat overflow-hidden" style="background-image: url('/pallet_town.png');">
+          <div
+            class="absolute inset-0"
+            style="background: linear-gradient(90deg, rgba(14,12,10,0.86) 0%, rgba(14,12,10,0.60) 45%, rgba(14,12,10,0.18) 100%);"
+          ></div>
           <div class="relative section-container py-6 sm:py-8 md:py-12 min-h-[280px] sm:min-h-[320px] md:min-h-[400px] flex flex-col">
             <div class="max-w-3xl flex-1 flex flex-col">
               <div class="flex-shrink-0">
-                <img src="/pokepal_white.svg" alt="Pokapal" class="h-8 md:h-12 w-auto mb-4" />
+                <img
+                  src="/PalletTown_WordLogoWhite.svg"
+                  alt="Pallet Town Cards"
+                  class="h-7 sm:h-9 md:h-11 w-auto mb-4"
+                />
               </div>
               <div class="mt-auto">
                 <p class="hero-subtitle mb-4 sm:mb-5 md:mb-6 max-w-[400px] leading-tight sm:leading-normal">
-                  <span class="font-bold">Your collection companion for Pokémon TCG master sets.</span> Track progress, compete with friends, and celebrate every card.
+                  <span class="font-bold">Where every journey starts.</span> Track progress, compete with friends, and celebrate every card in your Pokémon TCG master sets.
                 </p>
                 <div class="flex flex-row gap-2 sm:gap-4">
                   <div v-if="!user" class="flex flex-row gap-2 sm:gap-4 w-full">

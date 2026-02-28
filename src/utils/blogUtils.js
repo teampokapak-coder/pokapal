@@ -14,8 +14,35 @@ import {
   increment
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
+import { ref as storageRef, getDownloadURL } from 'firebase/storage'
+import { storage } from '../config/firebase'
 
 const BLOG_COLLECTION = 'blogPosts'
+
+const heroUrlCache = new Map()
+
+const resolveHeroImageUrl = async (heroImage) => {
+  if (!heroImage || typeof heroImage !== 'string') return ''
+  const trimmed = heroImage.trim()
+  if (!trimmed) return ''
+
+  // Already a usable URL or public path
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) return trimmed
+
+  // Likely a Firebase Storage path (e.g. "blog-hero-images/..." or "gs://...")
+  const cacheKey = trimmed
+  if (heroUrlCache.has(cacheKey)) return heroUrlCache.get(cacheKey)
+
+  try {
+    const url = await getDownloadURL(storageRef(storage, trimmed))
+    heroUrlCache.set(cacheKey, url)
+    return url
+  } catch (error) {
+    console.warn('Failed to resolve blog hero image URL:', trimmed, error?.code || error)
+    heroUrlCache.set(cacheKey, '')
+    return ''
+  }
+}
 
 /**
  * Generate a URL-friendly slug from a title
@@ -90,6 +117,14 @@ export const getAllBlogPosts = async (options = {}) => {
       id: doc.id,
       ...doc.data()
     }))
+
+    // Normalize heroImage into a loadable URL (handles storage paths / gs://)
+    posts = await Promise.all(
+      posts.map(async (post) => ({
+        ...post,
+        heroImage: await resolveHeroImageUrl(post.heroImage)
+      }))
+    )
     
     // Sort by publishedAt if available, otherwise createdAt
     posts.sort((a, b) => {
@@ -115,9 +150,10 @@ export const getBlogPost = async (idOrSlug) => {
     const docSnap = await getDoc(docRef)
     
     if (docSnap.exists()) {
+      const data = { id: docSnap.id, ...docSnap.data() }
       return { 
         success: true, 
-        data: { id: docSnap.id, ...docSnap.data() } 
+        data: { ...data, heroImage: await resolveHeroImageUrl(data.heroImage) }
       }
     }
     
@@ -130,9 +166,10 @@ export const getBlogPost = async (idOrSlug) => {
     
     if (!snapshot.empty) {
       const postDoc = snapshot.docs[0]
+      const data = { id: postDoc.id, ...postDoc.data() }
       return { 
         success: true, 
-        data: { id: postDoc.id, ...postDoc.data() } 
+        data: { ...data, heroImage: await resolveHeroImageUrl(data.heroImage) }
       }
     }
     

@@ -23,6 +23,7 @@
                   :src="post.heroImage"
                   :alt="post.title"
                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  @error="onHeroImageError(post, $event)"
                 />
               </div>
               <div class="card-body">
@@ -59,6 +60,7 @@
                   :src="post.heroImage"
                   :alt="post.title"
                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  @error="onHeroImageError(post, $event)"
                 />
               </div>
               <div class="card-body">
@@ -129,9 +131,15 @@ const formatDate = (timestamp) => {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+const onHeroImageError = (post, event) => {
+  // If the stored URL/path is stale (deleted file, revoked token, etc.), hide the hero slot
+  if (event?.target) event.target.src = ''
+  if (post && typeof post === 'object') post.heroImage = ''
+}
+
 const updateMetaTags = () => {
-  const title = 'Blog - Poképal | Pokemon TCG Guides & Articles'
-  const description = 'Discover guides, tips, and articles about Pokemon TCG collecting, master sets, and more on Poképal.'
+  const title = 'Blog — Pallet Town Cards | Pokémon TCG guides & articles'
+  const description = 'Discover guides, tips, and articles about Pokémon TCG collecting, master sets, and more on Pallet Town Cards.'
   
   document.title = title
   

@@ -5,15 +5,17 @@
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
           <!-- Brand -->
           <div class="flex items-center gap-2">
-            <picture class="h-6 w-auto bg-transparent">
-              <img src="/pokepalPika.svg" alt="Poképal" class="h-6 w-auto bg-transparent" />
-            </picture>
-            <picture class="h-6 w-auto bg-transparent pokapal-footer-logo">
-              <source media="(prefers-color-scheme: dark)" srcset="/pokepal_white.svg" />
-              <img 
-                src="/pokepal.svg" 
-                alt="Pokapal" 
-                class="h-6 w-auto bg-transparent"
+            <img
+              src="/palletTownIcon.svg"
+              alt="Pallet Town Cards"
+              class="h-7 w-7"
+            />
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/PalletTown_WordLogoWhite.svg" />
+              <img
+                src="/PalletTown_WordLogo.svg"
+                alt="Pallet Town Cards"
+                class="h-6 w-auto"
               />
             </picture>
             <span class="text-xs" style="color: var(--color-text-tertiary);">© {{ currentYear }}</span>
@@ -45,7 +47,7 @@
         <!-- Bottom Text -->
         <div class="mt-6 pt-6 text-center" style="border-top: 1px solid var(--color-border);">
           <p class="text-xs" style="color: var(--color-text-tertiary);">
-            Your collection companion for Pokémon TCG master sets
+            Where every journey starts.
           </p>
         </div>
       </div>

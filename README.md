@@ -1,4 +1,4 @@
-# Pokapal
+# Pallet Town Cards
 
 A modern collection companion for trading cards and collectibles.
 
@@ -33,8 +33,8 @@ Button sizes match the heading hierarchy:
 - `.btn-h6` - Smallest buttons
 
 Button variants:
-- `.btn-primary` - Primary action (dark gray)
-- `.btn-secondary` - Secondary action (light gray)
+- `.btn-primary` - Primary action (Pallet Fields gradient)
+- `.btn-secondary` - Secondary action (Deep Bark)
 - `.btn-outline` - Outlined style
 - `.btn-ghost` - Minimal style
 
@@ -113,8 +113,8 @@ src/
 ## Design Principles
 
 - **Consistency**: Always use the global design system classes
-- **Clean & Modern**: Vintage gray aesthetic with clean lines
-- **Dashboard Feel**: Clean, organized, dashboard-like interface
+- **Warm Nostalgic**: Nature-inspired palette with vintage warmth
+- **Dashboard Feel**: Clean, organized interface with clear hierarchy
 - **Responsive**: Mobile-first approach with Tailwind breakpoints
 
 ## Usage Examples

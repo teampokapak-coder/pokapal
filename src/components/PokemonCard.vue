@@ -29,7 +29,7 @@
     @click="handleCardClick"
   >
     <!-- Card Image -->
-    <div class="aspect-square rounded-t-lg flex items-center justify-center overflow-hidden p-1.5 sm:p-2 card-image-bg" style="background: linear-gradient(to bottom right, var(--color-bg-tertiary), var(--color-bg-secondary));">
+    <div class="aspect-square rounded-t-lg p-1.5 sm:p-2 card-media card-image-bg">
       <img
         v-if="getCardImageUrl(card) && !imageError"
         :src="getCardImageUrl(card)"

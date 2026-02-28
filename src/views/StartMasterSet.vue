@@ -1413,7 +1413,7 @@ watch(user, (newUser) => {
 // Update page title
 watch(() => route.name, () => {
   if (route.name === 'StartMasterSet') {
-    document.title = 'Poképal - Create Your Master Set'
+    document.title = 'Pallet Town Cards — Create your master set'
   }
 }, { immediate: true })
 

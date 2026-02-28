@@ -2,11 +2,21 @@
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style="background-color: var(--color-bg-primary);">
     <div class="max-w-md w-full">
       <div class="text-center mb-8">
-        <img 
-          src="/pokepal_white.svg" 
-          alt="Pokapal" 
-          class="pokapal-login-logo mx-auto mb-4 h-12 w-auto"
-        />
+        <div class="flex items-center justify-center gap-3 mx-auto mb-4">
+          <img
+            src="/palletTownIcon.svg"
+            alt="Pallet Town Cards"
+            class="h-12 w-12"
+          />
+          <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="/PalletTown_WordLogoWhite.svg" />
+            <img
+              src="/PalletTown_WordLogo.svg"
+              alt="Pallet Town Cards"
+              class="h-7 w-auto"
+            />
+          </picture>
+        </div>
         <p class="login-subtitle">Sign in to your account</p>
       </div>
 

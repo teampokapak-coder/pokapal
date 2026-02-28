@@ -1,0 +1,11 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="window-cutout">
+      <rect width="512" height="512" fill="white"/>
+      <circle cx="256" cy="224" r="32" fill="black"/>
+    </mask>
+  </defs>
+  <g mask="url(#window-cutout)">
+    <path d="M64 384V224L256 64L448 224V384H320V288H192V384H64Z" fill="#2C2418"/>
+  </g>
+</svg>

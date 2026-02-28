@@ -26,6 +26,7 @@
             :src="post.heroImage"
             :alt="post.title"
             class="w-full h-full object-cover"
+            @error="onHeroImageError"
           />
         </div>
       </div>
@@ -116,7 +117,7 @@ const loadPost = async () => {
       post.value = result.data
       
       // Update page title and meta tags for SEO
-      const title = post.value.metaTitle || `${post.value.title} | Poképal Blog`
+      const title = post.value.metaTitle || `${post.value.title} | Pallet Town Cards Blog`
       const description = post.value.metaDescription || post.value.excerpt || ''
       
       document.title = title
@@ -165,6 +166,11 @@ const formatDate = (timestamp) => {
   if (!timestamp) return 'N/A'
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+const onHeroImageError = (event) => {
+  if (event?.target) event.target.src = ''
+  if (post.value) post.value.heroImage = ''
 }
 
 watch(() => route.params.slug, () => {

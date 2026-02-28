@@ -26,8 +26,8 @@
             class="w-10 h-10 object-contain"
           />
           <div>
-            <h3 class="feedback-widget-title">Hey there! 👋</h3>
-            <p class="feedback-widget-subtitle">Got feedback? Let me know!</p>
+            <h3 class="feedback-widget-title">Hey there!</h3>
+            <p class="feedback-widget-subtitle">Got feedback? Let me know.</p>
           </div>
         </div>
         <button 
@@ -81,7 +81,7 @@
               id="feedback-message"
               v-model="form.message"
               rows="4"
-              placeholder="Tell me about a bug, feature idea, or anything else! 💬"
+              placeholder="Tell me about a bug, feature idea, or anything else."
               class="feedback-textarea"
               required
             ></textarea>
@@ -93,7 +93,7 @@
             :disabled="isSubmitting || !form.message.trim()"
             class="feedback-submit-btn"
           >
-            <span v-if="!isSubmitting">Send Message 💌</span>
+            <span v-if="!isSubmitting">Send message</span>
             <span v-else class="flex items-center gap-2">
               <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -112,7 +112,7 @@
             <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p class="text-sm font-medium">Thanks! Your message has been sent! 🎉</p>
+            <p class="text-sm font-medium">Thanks! Your message has been sent.</p>
           </div>
         </div>
       </transition>
@@ -204,7 +204,7 @@ const handleSubmit = async () => {
       }, 3000)
     } else {
       // Fallback to mailto
-      window.location.href = `mailto:teampokapak@gmail.com?subject=Pokapal Feedback&body=${emailBody}`
+      window.location.href = `mailto:teampokapak@gmail.com?subject=Pallet%20Town%20Cards%20Feedback&body=${emailBody}`
       showSuccess.value = true
       form.value = { name: '', email: '', message: '' }
       
@@ -238,9 +238,9 @@ onMounted(() => {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgb(50, 105, 65) 0%, rgb(153, 212, 162) 100%);
+  background: linear-gradient(135deg, #78b464 0%, #4a7a3a 100%);
   border: 3px solid white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 4px rgba(50, 105, 65, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 4px rgba(90, 138, 74, 0.12);
   cursor: pointer;
   z-index: 1000;
   transition: all 0.3s ease;
@@ -250,19 +250,19 @@ onMounted(() => {
 
 @media (prefers-color-scheme: dark) {
   .feedback-widget-button {
-    background: linear-gradient(135deg, rgb(153, 212, 162) 0%, rgb(50, 105, 65) 100%);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 4px rgba(153, 212, 162, 0.15);
+    background: linear-gradient(135deg, #78b464 0%, #4a7a3a 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 4px rgba(90, 138, 74, 0.18);
   }
 }
 
 .feedback-widget-button:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2), 0 0 0 6px rgba(50, 105, 65, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2), 0 0 0 6px rgba(216, 166, 87, 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
   .feedback-widget-button:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 0 6px rgba(153, 212, 162, 0.25);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 0 6px rgba(216, 166, 87, 0.22);
   }
 }
 
@@ -306,12 +306,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: linear-gradient(135deg, rgba(50, 105, 65, 0.1) 0%, rgba(153, 212, 162, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(120, 180, 100, 0.10) 0%, rgba(216, 166, 87, 0.08) 100%);
 }
 
 @media (prefers-color-scheme: dark) {
   .feedback-widget-header {
-    background: linear-gradient(135deg, rgba(153, 212, 162, 0.1) 0%, rgba(50, 105, 65, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(120, 180, 100, 0.10) 0%, rgba(216, 166, 87, 0.08) 100%);
   }
 }
 
@@ -374,15 +374,15 @@ onMounted(() => {
 .feedback-input:focus,
 .feedback-textarea:focus {
   outline: none;
-  border-color: rgb(50, 105, 65);
-  box-shadow: 0 0 0 3px rgba(50, 105, 65, 0.1);
+  border-color: #d8a657;
+  box-shadow: 0 0 0 3px rgba(216, 166, 87, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   .feedback-input:focus,
   .feedback-textarea:focus {
-    border-color: rgb(153, 212, 162);
-    box-shadow: 0 0 0 3px rgba(153, 212, 162, 0.15);
+    border-color: #d8a657;
+    box-shadow: 0 0 0 3px rgba(216, 166, 87, 0.16);
   }
 }
 
@@ -394,7 +394,7 @@ onMounted(() => {
 .feedback-submit-btn {
   width: 100%;
   padding: 12px 20px;
-  background: linear-gradient(135deg, rgb(50, 105, 65) 0%, rgb(153, 212, 162) 100%);
+  background: linear-gradient(135deg, #78b464 0%, #4a7a3a 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -407,19 +407,19 @@ onMounted(() => {
 
 @media (prefers-color-scheme: dark) {
   .feedback-submit-btn {
-    background: linear-gradient(135deg, rgb(153, 212, 162) 0%, rgb(50, 105, 65) 100%);
-    color: rgb(24, 29, 24);
+    background: linear-gradient(135deg, #78b464 0%, #4a7a3a 100%);
+    color: white;
   }
 }
 
 .feedback-submit-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(50, 105, 65, 0.4);
+  box-shadow: 0 4px 12px rgba(90, 138, 74, 0.36);
 }
 
 @media (prefers-color-scheme: dark) {
   .feedback-submit-btn:hover:not(:disabled) {
-    box-shadow: 0 4px 12px rgba(153, 212, 162, 0.4);
+    box-shadow: 0 4px 12px rgba(90, 138, 74, 0.42);
   }
 }
 

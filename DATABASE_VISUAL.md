@@ -1,10 +1,10 @@
-# Pokapal Database Structure - Visual Guide
+# Pallet Town Cards Database Structure - Visual Guide
 
 ## Overview Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           POKAPAL DATABASE                              │
+│                       PALLET TOWN CARDS DATABASE                        │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────┐

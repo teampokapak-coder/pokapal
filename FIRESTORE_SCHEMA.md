@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document defines the complete Firestore structure for Pokapal, including user profiles, collections (master sets), and groups.
+This document defines the complete Firestore structure for Pallet Town Cards, including user profiles, collections (master sets), and groups.
 
 ---
 
