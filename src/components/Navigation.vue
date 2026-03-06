@@ -4,18 +4,15 @@
       <div class="flex justify-between items-center h-16">
         <router-link to="/" class="flex items-center gap-2 md:gap-3">
           <img
-            src="/palletTownIcon.svg"
-            alt="Pallet Town Cards"
-            class="h-9 w-9"
+            src="/Glint SVG.svg"
+            alt="Pull TCG"
+            class="h-7 md:h-9 w-auto brand-mark"
           />
-          <picture class="hidden sm:block">
-            <source media="(prefers-color-scheme: dark)" srcset="/PalletTown_WordLogoWhite.svg" />
-            <img
-              src="/PalletTown_WordLogo.svg"
-              alt="Pallet Town Cards"
-              class="h-6 md:h-7 w-auto"
-            />
-          </picture>
+          <img
+            src="/pull-tcg.svg"
+            alt="Pull TCG"
+            class="h-6 md:h-8 w-auto brand-mark self-center"
+          />
         </router-link>
         
         <!-- Desktop Navigation -->
@@ -46,9 +43,9 @@
           </router-link>
           <router-link 
             to="/start" 
-            class="btn btn-h6 btn-ghost router-link-active-nav"
+            class="btn btn-h6 btn-primary"
           >
-            Start Master Set
+            Start Battle Set
           </router-link>
           
           <!-- Auth Section -->
@@ -59,17 +56,11 @@
             >
               <span class="font-semibold">Trainer</span> {{ user.displayName || user.email }}
             </router-link>
-            <button 
-              @click="handleLogout"
-              class="btn btn-h6 btn-ghost"
-            >
-              Logout
-            </button>
           </div>
           <router-link 
             v-else
             to="/login" 
-            class="btn btn-h6 btn-primary ml-4"
+            class="btn btn-h6 btn-gold ml-4"
           >
             Login
           </router-link>
@@ -109,18 +100,15 @@
           <div class="flex items-center justify-between p-4" style="border-bottom: 1px solid var(--color-border);">
             <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
               <img
-                src="/palletTownIcon.svg"
-                alt="Pallet Town Cards"
-                class="h-8 w-8"
+                src="/Glint SVG.svg"
+                alt="Pull TCG"
+                class="h-8 w-auto brand-mark"
               />
-              <picture>
-                <source media="(prefers-color-scheme: dark)" srcset="/PalletTown_WordLogoWhite.svg" />
-                <img
-                  src="/PalletTown_WordLogo.svg"
-                  alt="Pallet Town Cards"
-                  class="h-6 w-auto"
-                />
-              </picture>
+              <img
+                src="/pull-tcg.svg"
+                alt="Pull TCG"
+                class="h-7 w-auto brand-mark self-center"
+              />
             </router-link>
             <button 
               @click="mobileMenuOpen = false"
@@ -185,11 +173,10 @@
               <div class="space-y-1">
                 <router-link 
                   to="/start" 
-                  class="block px-4 py-3 rounded-lg sidebar-hover transition-colors"
-                  style="color: var(--color-text-primary);"
+                  class="block px-4 py-3 rounded-lg btn btn-h4 btn-primary text-center"
                   @click="mobileMenuOpen = false"
                 >
-                  Start a Master Set
+                  Start Battle Set
                 </router-link>
                 <router-link 
                   to="/blog" 
@@ -213,18 +200,11 @@
               >
                 <span class="font-bold">Trainer</span> {{ user.displayName || user.email }}
               </router-link>
-              <button 
-                @click="handleLogout"
-                class="w-full px-4 py-3 rounded-lg sidebar-hover transition-colors text-left"
-                style="color: var(--color-text-primary);"
-              >
-                Logout
-              </button>
             </div>
             <router-link 
               v-else
               to="/login" 
-              class="block px-4 py-3 rounded-lg btn btn-h4 btn-primary text-center"
+              class="block px-4 py-3 rounded-lg btn btn-h4 btn-gold text-center"
               @click="mobileMenuOpen = false"
             >
               Login
@@ -239,16 +219,8 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuth } from '../composables/useAuth'
-import { useRouter } from 'vue-router'
 
-const { user, logout } = useAuth()
-const router = useRouter()
+const { user } = useAuth()
 const mobileMenuOpen = ref(false)
-
-const handleLogout = async () => {
-  await logout()
-  mobileMenuOpen.value = false
-  router.push('/')
-}
 </script>
 

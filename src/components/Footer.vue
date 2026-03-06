@@ -6,18 +6,15 @@
           <!-- Brand -->
           <div class="flex items-center gap-2">
             <img
-              src="/palletTownIcon.svg"
-              alt="Pallet Town Cards"
-              class="h-7 w-7"
+              src="/Glint SVG.svg"
+              alt="Pull TCG"
+              class="h-7 w-7 brand-mark"
             />
-            <picture>
-              <source media="(prefers-color-scheme: dark)" srcset="/PalletTown_WordLogoWhite.svg" />
-              <img
-                src="/PalletTown_WordLogo.svg"
-                alt="Pallet Town Cards"
-                class="h-6 w-auto"
-              />
-            </picture>
+            <img
+              src="/pull-tcg.svg"
+              alt="Pull TCG"
+              class="h-6 w-auto brand-mark"
+            />
             <span class="text-xs" style="color: var(--color-text-tertiary);">© {{ currentYear }}</span>
           </div>
 

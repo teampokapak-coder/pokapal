@@ -97,23 +97,17 @@
       <!-- Main Content -->
       <main class="flex-1 overflow-y-auto">
         <!-- Hero Banner -->
-        <div class="relative bg-cover bg-center bg-no-repeat overflow-hidden" style="background-image: url('/pallet_town.png');">
+        <div class="relative bg-cover bg-center bg-no-repeat overflow-hidden" style="background-image: url('/lavender_town.png');">
           <div
             class="absolute inset-0"
             style="background: linear-gradient(90deg, rgba(14,12,10,0.86) 0%, rgba(14,12,10,0.60) 45%, rgba(14,12,10,0.18) 100%);"
           ></div>
           <div class="relative section-container py-6 sm:py-8 md:py-12 min-h-[280px] sm:min-h-[320px] md:min-h-[400px] flex flex-col">
             <div class="max-w-3xl flex-1 flex flex-col">
-              <div class="flex-shrink-0">
-                <img
-                  src="/PalletTown_WordLogoWhite.svg"
-                  alt="Pallet Town Cards"
-                  class="h-7 sm:h-9 md:h-11 w-auto mb-4"
-                />
-              </div>
               <div class="mt-auto">
-                <p class="hero-subtitle mb-4 sm:mb-5 md:mb-6 max-w-[400px] leading-tight sm:leading-normal">
-                  <span class="font-bold">Where every journey starts.</span> Track progress, compete with friends, and celebrate every card in your Pokémon TCG master sets.
+                <h2 class="mb-2 text-white text-3xl sm:text-4xl md:text-5xl leading-tight">Introducing Battlesets</h2>
+                <p class="hero-subtitle mb-4 sm:mb-5 md:mb-6 max-w-[560px] leading-tight sm:leading-normal">
+                  PULL TCG introduces <span class="font-bold">Battlesets</span> — pick a Pokémon, a set, or a random card list and race to collect them against your friends. Local shop opening soon in Austin.
                 </p>
                 <div class="flex flex-row gap-2 sm:gap-4">
                   <div v-if="!user" class="flex flex-row gap-2 sm:gap-4 w-full">
@@ -152,8 +146,8 @@
           </div>
 
           <!-- Sets Grid -->
-          <div v-if="isLoadingSets" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-            <div v-for="i in 10" :key="i" class="card animate-pulse">
+          <div v-if="isLoadingSets" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4">
+            <div v-for="i in 16" :key="i" class="card animate-pulse">
               <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
               <div class="card-body p-2 sm:p-4">
                 <div class="h-4 bg-gray-200 rounded mb-2"></div>
@@ -162,7 +156,7 @@
             </div>
           </div>
 
-          <div v-else-if="displaySets.length > 0" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
+          <div v-else-if="displaySets.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4">
             <div
               v-for="set in displaySets"
               :key="set.id"
@@ -179,10 +173,10 @@
                 </div>
               </div>
               
-              <div class="card-body p-2 sm:p-4">
-                <h3 class="card-title mb-1 text-sm sm:text-base">{{ formatSetDisplayName(set) }}</h3>
-                <p class="text-xs mb-2" style="color: var(--color-text-tertiary);">{{ formatSeriesDisplayName(set) }}</p>
-                <div class="flex justify-between items-center text-xs sm:text-sm">
+              <div class="card-body p-2 sm:p-2.5">
+                <h3 class="card-title mb-0.5 text-sm leading-tight">{{ formatSetDisplayName(set) }}</h3>
+                <p class="text-[11px] mb-1" style="color: var(--color-text-tertiary);">{{ formatSeriesDisplayName(set) }}</p>
+                <div class="flex justify-between items-center text-xs">
                   <span style="color: var(--color-text-secondary);">{{ set.totalCards || 0 }} cards</span>
                   <span v-if="set.releaseDate" style="color: var(--color-text-tertiary);">
                     {{ formatDate(set.releaseDate) }}
@@ -213,8 +207,8 @@
           </div>
 
           <!-- Pokemon Grid -->
-          <div v-if="isLoadingPokemon" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5 sm:gap-2 md:gap-3">
-            <div v-for="i in 12" :key="i" class="card animate-pulse">
+          <div v-if="isLoadingPokemon" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1.5 sm:gap-2 md:gap-3">
+            <div v-for="i in 16" :key="i" class="card animate-pulse">
               <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
               <div class="card-body p-1.5 sm:p-2">
                 <div class="h-3 bg-gray-200 rounded mb-1"></div>
@@ -223,7 +217,7 @@
             </div>
           </div>
 
-          <div v-else-if="trendingPokemon.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5 sm:gap-2 md:gap-3">
+          <div v-else-if="trendingPokemon.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1.5 sm:gap-2 md:gap-3">
             <PokemonListItem
               v-for="pokemon in displayPokemon"
               :key="pokemon.name + (pokemon.nationalDexNumber || '')"
@@ -254,8 +248,8 @@
           </div>
 
           <!-- Trainers Grid -->
-          <div v-if="isLoadingTrainers" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5 sm:gap-2 md:gap-3">
-            <div v-for="i in 12" :key="i" class="card animate-pulse">
+          <div v-if="isLoadingTrainers" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1.5 sm:gap-2 md:gap-3">
+            <div v-for="i in 16" :key="i" class="card animate-pulse">
               <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
               <div class="card-body p-1.5 sm:p-2">
                 <div class="h-3 bg-gray-200 rounded mb-1"></div>
@@ -263,7 +257,7 @@
             </div>
           </div>
 
-          <div v-else-if="trendingTrainers.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5 sm:gap-2 md:gap-3">
+          <div v-else-if="trendingTrainers.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1.5 sm:gap-2 md:gap-3">
             <TrainerListItem
               v-for="trainer in displayTrainers"
               :key="trainer.id"
@@ -294,8 +288,8 @@
           </div>
 
           <!-- Cards Grid -->
-          <div v-if="isLoadingCards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-            <div v-for="i in 10" :key="i" class="card animate-pulse">
+          <div v-if="isLoadingCards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4">
+            <div v-for="i in 16" :key="i" class="card animate-pulse">
               <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
               <div class="card-body p-2 sm:p-3">
                 <div class="h-3 bg-gray-200 rounded mb-1"></div>
@@ -304,7 +298,7 @@
             </div>
           </div>
 
-          <div v-else-if="trendingCards.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
+          <div v-else-if="trendingCards.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4">
             <PokemonCard
               v-for="card in displayCards"
               :key="card.id"
@@ -404,27 +398,27 @@ onUnmounted(() => {
 })
 
 const displaySets = computed(() => {
-  // Show 4 on mobile, 10 on desktop
+  // Show 4 on mobile, 16 on desktop
   const isMobile = windowWidth.value < 768 // md breakpoint
-  return sets.value.slice(0, isMobile ? 4 : 10)
+  return sets.value.slice(0, isMobile ? 4 : 16)
 })
 
 const displayPokemon = computed(() => {
-  // Show 6 on mobile (3x2 grid), 12 on desktop (6x2 grid)
+  // Show 6 on mobile (3x2 grid), 16 on desktop
   const isMobile = windowWidth.value < 768 // md breakpoint
-  return trendingPokemon.value.slice(0, isMobile ? 6 : 12)
+  return trendingPokemon.value.slice(0, isMobile ? 6 : 16)
 })
 
 const displayTrainers = computed(() => {
-  // Show 6 on mobile (3x2 grid), 12 on desktop (6x2 grid)
+  // Show 6 on mobile (3x2 grid), 16 on desktop
   const isMobile = windowWidth.value < 768 // md breakpoint
-  return trendingTrainers.value.slice(0, isMobile ? 6 : 12)
+  return trendingTrainers.value.slice(0, isMobile ? 6 : 16)
 })
 
 const displayCards = computed(() => {
-  // Show 4 on mobile, 10 on desktop
+  // Show 4 on mobile, 16 on desktop
   const isMobile = windowWidth.value < 768 // md breakpoint
-  return trendingCards.value.slice(0, isMobile ? 4 : 10)
+  return trendingCards.value.slice(0, isMobile ? 4 : 16)
 })
 
 const handleTypeClick = (type) => {
@@ -485,8 +479,8 @@ const loadCollectedCards = async () => {
   if (!user.value || trendingCards.value.length === 0) return
   
   try {
-    // Load collected status for all trending cards (up to 10)
-    const cardIds = trendingCards.value.slice(0, 10).map(card => card.id)
+    // Load collected status for all displayed trending cards (up to 16 on desktop)
+    const cardIds = trendingCards.value.slice(0, 16).map(card => card.id)
     const collectedSet = await getCollectedCardIds(user.value.uid, cardIds)
     collectedCards.value = collectedSet
   } catch (error) {
@@ -591,8 +585,8 @@ const loadFeaturedPokemon = async () => {
     // Take first 6 Pokemon for featured section (random)
     featuredPokemon.value = shuffledPokemon.slice(0, 6)
     
-    // Set trending Pokemon (random 12 Pokemon)
-    trendingPokemon.value = shuffledPokemon.slice(0, 12)
+    // Set trending Pokemon (random 16 Pokemon)
+    trendingPokemon.value = shuffledPokemon.slice(0, 16)
     
     // Set trending types (most common Pokemon types)
     const typeCounts = new Map()
@@ -625,8 +619,8 @@ const loadTrendingTrainers = async () => {
     // Shuffle trainers randomly for trending section
     const shuffledTrainers = [...visibleTrainers].sort(() => Math.random() - 0.5)
     
-    // Set trending trainers (random 12 trainers)
-    trendingTrainers.value = shuffledTrainers.slice(0, 12)
+    // Set trending trainers (random 16 trainers)
+    trendingTrainers.value = shuffledTrainers.slice(0, 16)
   } catch (error) {
     console.error('Error loading trending trainers:', error)
   } finally {

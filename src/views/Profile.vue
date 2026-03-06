@@ -304,6 +304,14 @@
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Master Sets</label>
                     <p class="text-gray-900 dark:text-gray-100">{{ allMasterSets.length }}</p>
                   </div>
+                  <div class="pt-2">
+                    <button
+                      @click="handleLogout"
+                      class="btn btn-h5 btn-secondary w-full"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -423,7 +431,7 @@ import LoginModal from '../components/LoginModal.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { user } = useAuth()
+const { user, logout } = useAuth()
 
 const assignments = ref([])
 const allMasterSets = ref([])
@@ -445,6 +453,15 @@ const collectionFilterSet = ref('')
 const selectedCard = ref(null)
 const showLoginModal = ref(false)
 const expandedMasterSets = ref({})
+
+const handleLogout = async () => {
+  try {
+    await logout()
+    router.push('/')
+  } catch (error) {
+    console.error('Error logging out:', error)
+  }
+}
 
 const loadAssignments = async () => {
   if (!user.value) return

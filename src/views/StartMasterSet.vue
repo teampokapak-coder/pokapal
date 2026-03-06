@@ -1,18 +1,17 @@
 <template>
-  <div class="min-h-screen" style="background-color: var(--color-bg-primary);">
-    <section class="section section-spacing-md">
+  <div class="min-h-screen pull-page-bg start-flow">
+    <section class="section py-2 sm:py-4 md:py-6">
       <div class="section-container">
         <div class="section-header">
-          <h2>Start Master Set</h2>
-          <p class="section-subtitle">Create a new master set collection</p>
+          <h2>Create a Battle Set</h2>
+          <p class="section-subtitle">Choose your challenge type, then configure it</p>
         </div>
 
-        <!-- Login Required Message -->
         <div v-if="!user" class="max-w-3xl mx-auto">
           <div class="card text-center py-12">
-            <h3 class="mb-4">Log in to start your master set</h3>
-            <p class="mb-6" style="color: var(--color-text-secondary);">
-              You need to be logged in to create a master set collection.
+            <h3 class="mb-4">Log in to start your battle set</h3>
+            <p class="mb-6 text-sm">
+              You need to be logged in to create a battle set collection.
             </p>
             <router-link to="/login" class="btn btn-h4 btn-primary">
               Go to Login
@@ -20,649 +19,228 @@
           </div>
         </div>
 
-        <div v-else class="max-w-3xl mx-auto">
-          <!-- Step Indicator -->
+        <div v-else class="max-w-4xl mx-auto">
           <div class="mb-8">
             <div class="flex items-center justify-between">
-              <div 
-                v-for="(step, index) in steps" 
-                :key="index"
+              <div
+                v-for="(step, idx) in steps"
+                :key="step.id"
                 class="flex items-center flex-1"
               >
                 <div class="flex flex-col items-center flex-1">
-                  <div 
+                  <div
                     class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors"
-                    :class="currentStep > index ? 'bg-gray-900 text-white' : currentStep === index ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-600'"
+                    :class="currentStep > idx ? 'btn-primary text-white' : currentStep === idx ? 'btn-secondary' : 'btn-ghost'"
                   >
-                    {{ index + 1 }}
+                    {{ idx + 1 }}
                   </div>
-                  <p class="text-xs mt-2 text-center text-gray-600">{{ step }}</p>
+                  <p class="text-xs mt-2">{{ step.label }}</p>
                 </div>
-                <div v-if="index < steps.length - 1" class="flex-1 h-1 mx-2" :class="currentStep > index ? 'bg-gray-900' : 'bg-gray-200'"></div>
+                <div v-if="idx < steps.length - 1" class="flex-1 h-px mx-2" style="background-color: var(--color-border);"></div>
               </div>
             </div>
           </div>
 
-          <!-- Step 1: Name Challenge -->
-          <div v-if="currentStep === 1" class="card">
+          <div v-if="currentStep === 0" class="card">
             <div class="card-header">
-              <h3 class="card-title">Name Your Challenge</h3>
-              <p class="card-subtitle">Give your master set a name</p>
+              <h3 class="card-title">Choose Challenge Type</h3>
+              <p class="card-subtitle">Pick what you want to master</p>
             </div>
             <div class="card-body">
+              <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                <button
+                  v-for="option in challengeOptions"
+                  :key="option.id"
+                  class="card card-flat p-5 text-left transition-all cursor-pointer border-2"
+                  :class="selectedType === option.id ? 'ring-2 ring-offset-2 ring-offset-transparent' : ''"
+                  :style="selectedType === option.id ? 'border-color: var(--color-accent); box-shadow: var(--shadow-md); background-color: rgba(91,168,219,0.10);' : 'border-color: var(--color-border);'"
+                  @click="selectType(option.id)"
+                >
+                  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-3">
+                    <img
+                      :src="option.icon"
+                      :alt="`${option.label} icon`"
+                      class="challenge-type-icon w-9 h-9 md:w-12 md:h-12 object-contain order-1 md:order-2 self-start"
+                    />
+                    <div class="order-2 md:order-1">
+                      <h4 class="card-title mb-1">{{ option.label }}</h4>
+                      <p class="text-sm" style="color: var(--color-text-secondary);">{{ option.short }}</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              <div class="mt-6 flex justify-end">
+                <button class="btn btn-h3 btn-primary" :disabled="!selectedType" @click="nextStep">
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="card">
+            <div class="card-header">
+              <h3 class="card-title">Configure Challenge</h3>
+              <p class="card-subtitle">Players, assignment mode, and card limits</p>
+            </div>
+            <div class="card-body space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Challenge Name</label>
+                <label class="block text-sm mb-2">Challenge Name</label>
                 <input
                   v-model="form.challengeName"
                   type="text"
-                  placeholder="e.g., Base Set Master Set, Charizard Collection..."
-                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  class="ui-field"
+                  placeholder="e.g., Pull TCG Challenge"
                 />
-                <p class="text-xs text-gray-500 mt-2">This will be the name of your collection</p>
               </div>
-              <div class="mt-6 flex justify-end">
-                <button
-                  @click="nextStep"
-                  class="btn btn-h3 btn-primary"
-                  :disabled="!form.challengeName.trim()"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <!-- Step 2: Invite Users -->
-          <div v-if="currentStep === 2" class="card">
-            <div class="card-header">
-              <h3 class="card-title">Invite Friends</h3>
-              <p class="card-subtitle">Add friends to your challenge (optional)</p>
-            </div>
-            <div class="card-body">
-              <div class="space-y-4">
-                <div v-if="form.invites.length > 0" class="space-y-2">
-                  <div v-for="(invite, index) in form.invites" :key="index" class="flex gap-2 items-start">
-                    <div class="flex-1">
-                      <input
-                        v-model="invite.email"
-                        type="text"
-                        placeholder="Search by name or email, or enter email address..."
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
-                        @input="searchUser(invite, index)"
-                        @focus="invite.showResults = true"
-                        @blur="setTimeout(() => { invite.showResults = false }, 200)"
-                      />
-                      <!-- Search Results Dropdown -->
-                      <div v-if="invite.searchResults && invite.searchResults.length > 0 && invite.showResults" class="mt-1 border border-gray-300 rounded-md bg-white shadow-lg z-10 max-h-48 overflow-y-auto">
-                        <div
-                          v-for="(result, resultIndex) in invite.searchResults"
-                          :key="resultIndex"
-                          @click="selectUser(invite, result)"
-                          class="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        >
-                          <div class="font-medium text-gray-900">{{ result.displayName || result.email }}</div>
-                          <div v-if="result.displayName && result.email" class="text-xs text-gray-500">{{ result.email }}</div>
-                        </div>
-                      </div>
-                      <!-- Status Messages -->
-                      <div v-if="invite.searching" class="mt-1 text-xs text-gray-500">
-                        Searching...
-                      </div>
-                      <div v-else-if="invite.userId && !invite.showResults" class="mt-1 text-xs text-green-600">
-                        ✓ Selected: {{ invite.userName || invite.email }}
-                      </div>
-                      <div v-else-if="invite.email && invite.email.includes('@') && !invite.userId && !invite.searchResults" class="mt-1 text-xs text-gray-500">
-                        Will create invite for email (user can accept when they sign up)
-                      </div>
-                      <div v-else-if="invite.email && invite.email.length > 0 && !invite.email.includes('@') && !invite.searchResults" class="mt-1 text-xs text-gray-500">
-                        Enter an email address or search for a user by name
-                      </div>
-                    </div>
-                    <button
-                      @click="removeInvite(index)"
-                      class="btn btn-h5 btn-ghost text-red-600"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-                <button
-                  @click="addInvite"
-                  class="btn btn-h5 btn-secondary w-full"
+              <div>
+                <label class="block text-sm mb-2">Players</label>
+                <select
+                  v-model.number="form.playerCount"
+                  class="ui-field"
+                  @change="syncParticipants"
                 >
-                  + Add Friend
-                </button>
-                <p class="text-xs text-gray-500 text-center">You can skip this step if you want to master set solo</p>
+                  <option :value="1">Solo (1 player)</option>
+                  <option :value="2">2 players</option>
+                  <option :value="3">3 players</option>
+                  <option :value="4">4 players</option>
+                </select>
               </div>
-              <div class="mt-6 flex justify-between">
-                <button @click="prevStep" class="btn btn-h3 btn-ghost">Back</button>
-                <button
-                  @click="nextStep"
-                  class="btn btn-h3 btn-primary"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <!-- Step 3: Choose What to Master -->
-          <div v-if="currentStep === 3" class="card">
-            <div class="card-header">
-              <h3 class="card-title">Choose What to Master</h3>
-              <p class="card-subtitle">Select what you want to collect</p>
-            </div>
-            <div class="card-body">
-              <div class="space-y-6">
-
-                <!-- Collection Type: Set or Pokemon -->
+              <div class="card card-flat p-2 sm:p-3 space-y-3">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-3">What to Master</label>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button
-                      @click="form.collectionType = 'set'"
-                      class="card card-flat p-6 text-left hover:shadow-lg transition-shadow cursor-pointer"
-                      :class="form.collectionType === 'set' ? 'border-2 border-gray-900' : ''"
-                    >
-                      <div class="text-3xl mb-3">📦</div>
-                      <h4 class="card-title mb-2">Set</h4>
-                      <p class="text-sm text-gray-600">Master a complete set (e.g., Base Set, Jungle)</p>
-                    </button>
-                    <button
-                      @click="form.collectionType = 'pokemon'"
-                      class="card card-flat p-6 text-left hover:shadow-lg transition-shadow cursor-pointer"
-                      :class="form.collectionType === 'pokemon' ? 'border-2 border-gray-900' : ''"
-                    >
-                      <div class="text-3xl mb-3">⚡</div>
-                      <h4 class="card-title mb-2">Pokemon</h4>
-                      <p class="text-sm text-gray-600">Master all cards of a specific Pokemon</p>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Random or Select Toggle -->
-                <div v-if="form.collectionType">
-                  <label class="block text-sm font-medium text-gray-700 mb-3">Selection Method</label>
-                  <div class="flex gap-4">
-                    <button
-                      @click="form.selectionType = 'random'"
-                      class="btn btn-h4 flex-1"
-                      :class="form.selectionType === 'random' ? 'btn-primary' : 'btn-ghost'"
-                    >
+                  <label class="block text-sm mb-2">Assignment Method</label>
+                  <div class="grid grid-cols-2 gap-3">
+                    <button class="btn btn-h4" :class="form.selectionMode === 'random' ? 'btn-primary' : 'btn-ghost'" @click="setSelectionMode('random')">
                       🎲 Random
                     </button>
-                    <button
-                      @click="form.selectionType = 'select'"
-                      class="btn btn-h4 flex-1"
-                      :class="form.selectionType === 'select' ? 'btn-primary' : 'btn-ghost'"
-                    >
+                    <button class="btn btn-h4" :class="form.selectionMode === 'choose' ? 'btn-primary' : 'btn-ghost'" @click="setSelectionMode('choose')">
                       📋 Select
                     </button>
                   </div>
                 </div>
 
-                <!-- Set Selection -->
-                <div v-if="form.collectionType === 'set'">
-                  <!-- Random Set Display -->
-                  <div v-if="form.selectionType === 'random' && form.selectedSet" class="card card-elevated">
-                    <div class="card-body">
-                      <div class="text-center mb-4">
-                        <h4 class="mb-2">{{ form.selectedSet.name }}</h4>
-                        <p class="text-gray-600 mb-4">{{ form.selectedSet.totalCards }} cards</p>
-                      </div>
-                      
-                      <!-- Assignment Controls -->
-                      <div class="border-t border-gray-200 pt-4">
-                        <div class="space-y-3">
-                          <!-- Assignment dropdown + Save button - ALWAYS SHOW -->
-                          <div class="space-y-3">
-                            <label class="block text-sm font-medium text-gray-700">Assign to:</label>
-                            <div class="flex gap-2">
-                              <select
-                                v-model="currentAssignmentTarget"
-                                class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
-                              >
-                                <option value="all">Assign to All</option>
-                                <option :value="user?.uid || 'creator'">{{ user?.displayName || user?.email || 'You' }}</option>
-                                <option 
-                                  v-for="invite in form.invites.filter(i => i.email && i.email.includes('@'))" 
-                                  :key="invite.userId || invite.email"
-                                  :value="invite.userId || invite.email"
-                                >
-                                  {{ invite.userName || invite.email }}
-                                </option>
-                              </select>
-                              <button
-                                @click="saveSetAssignment"
-                                class="btn btn-h5 btn-primary"
-                                :disabled="!currentAssignmentTarget"
-                              >
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <button
-                            @click="pickRandomSet"
-                            class="btn btn-h5 btn-secondary w-full"
-                          >
-                            🎲 Pick Another Set
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Select Set Dropdown -->
-                  <div v-if="form.selectionType === 'select'">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Set</label>
-                    <select
-                      v-model="form.selectedSetId"
-                      class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 mb-3"
-                      @change="onSetSelected"
-                    >
-                      <option value="">Choose a set...</option>
-                      <option v-for="set in availableSets" :key="set.id" :value="set.id">
-                        {{ set.name }} ({{ set.totalCards }} cards)
-                      </option>
-                    </select>
-                    
-                    <!-- Assignment Controls for Selected Set -->
-                    <div v-if="form.selectedSetId" class="card card-flat p-4">
-                      <div class="mb-3">
-                        <h4 class="mb-1">{{ getSetName(form.selectedSetId) }}</h4>
-                        <p class="text-sm text-gray-600">{{ form.selectedSet?.totalCards || 0 }} cards</p>
-                      </div>
-                      
-                      <div class="border-t border-gray-200 pt-3">
-                        <div class="space-y-3">
-                          <!-- Assignment dropdown + Save button - ALWAYS SHOW -->
-                          <div class="space-y-3">
-                            <label class="block text-sm font-medium text-gray-700">Assign to:</label>
-                            <div class="flex gap-2">
-                              <select
-                                v-model="currentAssignmentTarget"
-                                class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
-                              >
-                                <option value="all">Assign to All</option>
-                                <option :value="user?.uid || 'creator'">{{ user?.displayName || user?.email || 'You' }}</option>
-                                <option 
-                                  v-for="invite in form.invites.filter(i => i.email && i.email.includes('@'))" 
-                                  :key="invite.userId || invite.email"
-                                  :value="invite.userId || invite.email"
-                                >
-                                  {{ invite.userName || invite.email }}
-                                </option>
-                              </select>
-                              <button
-                                @click="saveSetAssignment"
-                                class="btn btn-h5 btn-primary"
-                                :disabled="!currentAssignmentTarget"
-                              >
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Pick Random Button -->
-                  <div v-if="form.selectionType === 'random' && !form.selectedSet" class="text-center">
-                    <div v-if="isLoadingSets" class="text-gray-600 mb-4">
-                      Loading sets...
-                    </div>
-                    <button
-                      @click="pickRandomSet"
-                      class="btn btn-h3 btn-primary"
-                      :disabled="isPicking || isLoadingSets"
-                    >
-                      {{ isPicking ? 'Picking...' : isLoadingSets ? 'Loading...' : '🎲 Pick Random Set' }}
-                    </button>
-                  </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <button class="btn btn-h4" :class="form.cardCountMode === 'all' ? 'btn-primary' : 'btn-ghost'" @click="form.cardCountMode = 'all'">
+                    All Cards
+                  </button>
+                  <button class="btn btn-h4" :class="form.cardCountMode === 'fixed' ? 'btn-primary' : 'btn-ghost'" @click="form.cardCountMode = 'fixed'">
+                    Max number of cards
+                  </button>
                 </div>
+                <div v-if="form.cardCountMode === 'fixed'" class="mt-3">
+                  <input
+                    v-model.number="form.fixedCardCount"
+                    type="number"
+                    min="1"
+                    class="ui-field"
+                    placeholder="Enter max number of cards"
+                  />
+                </div>
+                <div v-if="selectedType === 'randomNumber'" class="mt-3">
+                  <label class="block text-sm mb-2">Random Pool</label>
+                  <select
+                    v-model="form.randomScope"
+                    class="ui-field"
+                  >
+                    <option value="all">All Languages</option>
+                    <option value="en">English Only</option>
+                    <option value="ja">Japanese Only</option>
+                  </select>
+                </div>
+              </div>
 
-                <!-- Pokemon Selection -->
-                <div v-if="form.collectionType === 'pokemon'">
-                  <!-- Random Pokemon Display -->
-                  <div v-if="form.selectionType === 'random' && form.selectedPokemon" class="card card-elevated">
-                    <div class="card-body">
-                      <div class="flex items-center gap-4 mb-4">
-                        <div class="w-20 h-20 pokemon-image-bg rounded flex items-center justify-center overflow-hidden flex-shrink-0">
-                          <img 
-                            v-if="form.selectedPokemon.imageUrl || form.selectedPokemon.spriteUrl" 
-                            :src="form.selectedPokemon.imageUrl || form.selectedPokemon.spriteUrl" 
-                            :alt="form.selectedPokemon.displayName || form.selectedPokemon.name"
-                            class="w-full h-full object-contain p-2"
-                          />
-                          <span v-else class="text-2xl font-medium text-gray-500">
-                            {{ getPokemonInitial(form.selectedPokemon.displayName || form.selectedPokemon.name) }}
-                          </span>
-                        </div>
-                        <div class="flex-1 text-left">
-                          <h4 class="mb-1">{{ form.selectedPokemon.displayName || form.selectedPokemon.name }}</h4>
-                          <p v-if="form.selectedPokemon.nationalDexNumber" class="text-gray-600">
-                            #{{ form.selectedPokemon.nationalDexNumber }}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <!-- Assignment Controls -->
-                      <div class="border-t border-gray-200 pt-4">
-                        <div class="space-y-3">
-                          <!-- Assignment dropdown + Save button - ALWAYS SHOW -->
-                          <div class="space-y-3">
-                            <label class="block text-sm font-medium text-gray-700">Assign to:</label>
-                            <div class="flex gap-2">
-                              <select
-                                v-model="currentAssignmentTarget"
-                                class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
-                              >
-                                <option value="all">Assign to All</option>
-                                <option :value="user?.uid || 'creator'">{{ user?.displayName || user?.email || 'You' }}</option>
-                                <option 
-                                  v-for="invite in form.invites.filter(i => i.email && i.email.includes('@'))" 
-                                  :key="invite.userId || invite.email"
-                                  :value="invite.userId || invite.email"
-                                >
-                                  {{ invite.userName || invite.email }}
-                                </option>
-                              </select>
-                              <button
-                                @click="savePokemonAssignment"
-                                class="btn btn-h5 btn-primary"
-                                :disabled="!currentAssignmentTarget"
-                              >
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <button
-                            @click="pickRandomPokemon"
-                            class="btn btn-h5 btn-secondary w-full"
+              <div class="pt-2 ui-divider">
+                <label class="block text-sm mb-2">Players & Assignments</label>
+                <div class="space-y-3">
+                  <div
+                    v-for="(slot, idx) in form.participants"
+                    :key="slot.key"
+                    class="card card-flat card-no-hover card-blue-outline p-3"
+                  >
+                    <div class="flex flex-col md:flex-row md:items-start gap-3">
+                      <div class="md:w-72">
+                        <p class="font-medium">{{ slot.isSelf ? 'You' : `Player ${idx + 1}` }}</p>
+                        <div class="mt-1">
+                          <span
+                            v-if="slot.isSelf"
+                            class="ui-selected-pill"
                           >
-                            🎲 Pick Another Pokemon
+                            <span class="truncate">{{ user?.displayName || user?.email || 'Current user' }}</span>
+                          </span>
+
+                          <input
+                            v-else-if="slot.isEditing"
+                            v-model="slot.input"
+                            type="text"
+                            class="ui-field"
+                            placeholder="Search user or type email"
+                            @input="searchParticipant(slot)"
+                            @focus="slot.showResults = true"
+                            @blur="handleParticipantBlur(slot)"
+                          />
+
+                          <button
+                            v-else
+                            class="ui-selected-pill"
+                            @click="startEditParticipant(slot)"
+                          >
+                            <span class="truncate">{{ slot.userName || slot.email || 'Click to add user or email' }}</span>
                           </button>
                         </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  <!-- Select Pokemon Search -->
-                  <div v-if="form.selectionType === 'select'">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Search Pokemon</label>
-                    <input
-                      v-model="pokemonSearchQuery"
-                      type="text"
-                      placeholder="Search by name (e.g., Charizard, Pikachu)..."
-                      class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
-                      @input="searchPokemon"
-                    />
-                  </div>
-
-                  <!-- Pokemon Results -->
-                  <div v-if="form.selectionType === 'select' && pokemonSearchQuery && filteredPokemon.length > 0" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md mt-2">
-                    <button
-                      v-for="pokemon in filteredPokemon.slice(0, 10)"
-                      :key="pokemon.id"
-                      @click="selectPokemon(pokemon)"
-                      class="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                      :class="form.selectedPokemonId === pokemon.id ? 'bg-gray-100' : ''"
-                    >
-                      <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 pokemon-image-bg rounded flex items-center justify-center overflow-hidden flex-shrink-0">
-                          <img 
-                            v-if="pokemon.imageUrl || pokemon.spriteUrl" 
-                            :src="pokemon.imageUrl || pokemon.spriteUrl" 
-                            :alt="pokemon.displayName || pokemon.name"
-                            class="w-full h-full object-contain p-1"
-                          />
-                          <span v-else class="text-lg font-medium text-gray-500">
-                            {{ getPokemonInitial(pokemon.displayName || pokemon.name) }}
-                          </span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <p class="font-medium text-gray-900 truncate">{{ pokemon.displayName || pokemon.name }}</p>
-                          <p v-if="pokemon.nationalDexNumber" class="text-xs text-gray-500">
-                            #{{ pokemon.nationalDexNumber }}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-
-                  <!-- Selected Pokemon Display (for select mode) -->
-                  <div v-if="form.selectionType === 'select' && form.selectedPokemon" class="card card-elevated mt-4">
-                    <div class="card-body">
-                      <div class="flex items-center gap-4 mb-4">
-                        <div class="w-20 h-20 pokemon-image-bg rounded flex items-center justify-center overflow-hidden flex-shrink-0">
-                          <img 
-                            v-if="form.selectedPokemon.imageUrl || form.selectedPokemon.spriteUrl" 
-                            :src="form.selectedPokemon.imageUrl || form.selectedPokemon.spriteUrl" 
-                            :alt="form.selectedPokemon.displayName || form.selectedPokemon.name"
-                            class="w-full h-full object-contain p-2"
-                          />
-                          <span v-else class="text-2xl font-medium text-gray-500">
-                            {{ getPokemonInitial(form.selectedPokemon.displayName || form.selectedPokemon.name) }}
-                          </span>
-                        </div>
-                        <div class="flex-1">
-                          <h4 class="mb-1">{{ form.selectedPokemon.displayName || form.selectedPokemon.name }}</h4>
-                          <p v-if="form.selectedPokemon.nationalDexNumber" class="text-gray-600">
-                            #{{ form.selectedPokemon.nationalDexNumber }}
-                          </p>
-                        </div>
-                        <button
-                          @click="form.selectedPokemon = null; form.selectedPokemonId = null; pokemonSearchQuery = ''"
-                          class="btn btn-h5 btn-ghost"
+                        <div
+                          v-if="!slot.isSelf && slot.isEditing && slot.searchResults.length > 0 && slot.showResults"
+                          class="ui-panel max-h-40 overflow-y-auto mt-1"
                         >
-                          Change
-                        </button>
-                      </div>
-                      
-                      <!-- Assignment Controls -->
-                      <div class="border-t border-gray-200 pt-4">
-                        <div class="space-y-3">
-                          <!-- Assignment dropdown + Save button - ALWAYS SHOW -->
-                          <div class="space-y-3">
-                            <label class="block text-sm font-medium text-gray-700">Assign to:</label>
-                            <div class="flex gap-2">
-                              <select
-                                v-model="currentAssignmentTarget"
-                                class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
-                              >
-                                <option value="all">Assign to All</option>
-                                <option :value="user?.uid || 'creator'">{{ user?.displayName || user?.email || 'You' }}</option>
-                                <option 
-                                  v-for="invite in form.invites.filter(i => i.email && i.email.includes('@'))" 
-                                  :key="invite.userId || invite.email"
-                                  :value="invite.userId || invite.email"
-                                >
-                                  {{ invite.userName || invite.email }}
-                                </option>
-                              </select>
-                              <button
-                                @click="savePokemonAssignment"
-                                class="btn btn-h5 btn-primary"
-                                :disabled="!currentAssignmentTarget"
-                              >
-                                Save
-                              </button>
-                            </div>
-                          </div>
+                          <button
+                            v-for="result in slot.searchResults"
+                            :key="result.userId"
+                            class="w-full text-left px-3 py-2 border-b last:border-b-0"
+                            style="border-color: var(--color-border);"
+                            @click="selectParticipant(slot, result)"
+                          >
+                            <div>{{ result.displayName || result.email }}</div>
+                            <div class="text-xs" style="color: var(--color-text-secondary);">{{ result.email }}</div>
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  <!-- Pick Random Button -->
-                  <div v-if="form.selectionType === 'random' && !form.selectedPokemon" class="text-center">
-                    <div v-if="isLoadingPokemon" class="text-gray-600 mb-4">
-                      Loading Pokemon...
-                    </div>
-                    <button
-                      @click="pickRandomPokemon"
-                      class="btn btn-h3 btn-primary"
-                      :disabled="isPicking || isLoadingPokemon"
-                    >
-                      {{ isPicking ? 'Picking...' : isLoadingPokemon ? 'Loading...' : '🎲 Pick Random Pokemon' }}
-                    </button>
-                  </div>
+                      <div class="flex-1 md:px-2 md:pt-6">
+                        <div v-if="assignmentDetails(slot).isPokemon && assignmentDetails(slot).value !== 'none'" class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md ui-panel" style="background-color: var(--color-bg-primary);">
+                          <div class="w-8 h-8 rounded flex items-center justify-center overflow-hidden pokemon-image-bg">
+                            <img
+                              v-if="assignmentDetails(slot).spriteUrl"
+                              :src="assignmentDetails(slot).spriteUrl"
+                              :alt="assignmentDetails(slot).value"
+                              class="w-full h-full object-contain"
+                            />
+                            <span v-else class="text-xs font-semibold">PK</span>
+                          </div>
+                          <p class="text-sm">
+                            <span class="font-semibold">{{ assignmentDetails(slot).label }}:</span>
+                            <span class="font-semibold ml-1">{{ assignmentDetails(slot).value }}</span>
+                          </p>
+                        </div>
+                        <p v-else class="text-sm md:pt-2">
+                          <span class="font-semibold">{{ assignmentDetails(slot).label }}:</span>
+                          <span class="font-semibold ml-1">{{ assignmentDetails(slot).value }}</span>
+                        </p>
+                      </div>
 
-                  <!-- Empty State -->
-                  <div v-if="form.selectionType === 'select' && pokemonSearchQuery && filteredPokemon.length === 0 && !isLoadingPokemon" class="text-center py-8 text-gray-500">
-                    <p>No Pokemon found matching "{{ pokemonSearchQuery }}"</p>
-                  </div>
-                </div>
-
-                <!-- Summary of Assignments - ALWAYS SHOW -->
-                <div class="mt-6 pt-6 border-t border-gray-200">
-                  <h5 class="mb-3">Current Assignments</h5>
-                  
-                  <!-- Check if we have "Assign to All" -->
-                  <div v-if="hasAssignToAll && (form.selectedSetId || form.selectedPokemonId)" class="card card-flat p-3 mb-3">
-                    <div class="flex items-center justify-between">
-                      <p class="text-sm text-gray-700">
-                        <span class="font-medium">All users:</span> 
-                        <span v-if="form.collectionType === 'set' && form.selectedSetId">{{ getSetName(form.selectedSetId) }}</span>
-                        <span v-else-if="form.collectionType === 'pokemon' && form.selectedPokemonId">{{ getPokemonName(form.selectedPokemonId) }}</span>
-                      </p>
-                      <button
-                        @click="hasAssignToAll = false; form.selectedSetId = null; form.selectedPokemonId = null; form.selectedSet = null; form.selectedPokemon = null; form.individualAssignments = {}"
-                        class="text-xs text-red-600 hover:text-red-800"
-                      >
-                        Remove
+                      <button class="btn btn-h5 btn-primary md:w-28 md:mt-6" @click="assignForParticipant(slot)">
+                        Assign
                       </button>
                     </div>
                   </div>
-                  
-                  <!-- Individual Assignments -->
-                  <div v-if="Object.keys(form.individualAssignments).length > 0" class="space-y-2">
-                    <div 
-                      v-for="(assignment, personId) in form.individualAssignments" 
-                      :key="personId"
-                      class="card card-flat p-3"
-                    >
-                      <div class="flex items-center justify-between">
-                        <p class="text-sm text-gray-700">
-                          <span class="font-medium">{{ getPersonName(personId) }}:</span>
-                          <span v-if="assignment.type === 'set' && assignment.setId">{{ getSetName(assignment.setId) }}</span>
-                          <span v-else-if="assignment.type === 'pokemon' && assignment.pokemonId">{{ getPokemonName(assignment.pokemonId) }}</span>
-                          <span v-else class="text-gray-400 italic">Invalid assignment</span>
-                        </p>
-                        <button
-                          @click="removeAssignment(personId)"
-                          class="text-xs text-red-600 hover:text-red-800"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div v-if="!hasAssignToAll && Object.keys(form.individualAssignments).length === 0" class="text-sm text-gray-500 text-center py-4">
-                    No assignments yet. Select a set/pokemon above and click "Save" to assign it.
-                  </div>
                 </div>
               </div>
-              <div class="mt-6 flex justify-between">
-                <button @click="prevStep" class="btn btn-h3 btn-ghost">Back</button>
-                <button
-                  @click="nextStep"
-                  class="btn btn-h3 btn-primary"
-                  :disabled="!canProceedToReview"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <!-- Step 4: Review & Create -->
-          <div v-if="currentStep === 4" class="card">
-            <div class="card-header">
-              <h3 class="card-title">Review & Create</h3>
-              <p class="card-subtitle">Review your master set details</p>
-            </div>
-            <div class="card-body">
-              <div class="space-y-4">
-                <div>
-                  <h4 class="text-sm font-medium text-gray-700 mb-1">Challenge Name</h4>
-                  <p class="text-gray-900">{{ form.challengeName }}</p>
-                </div>
-                <div v-if="form.invites.length > 0 && form.invites.some(i => i.email && i.email.includes('@'))">
-                  <h4 class="text-sm font-medium text-gray-700 mb-1">Invites</h4>
-                  <div class="space-y-1">
-                    <p v-for="invite in form.invites.filter(i => i.email && i.email.includes('@'))" :key="invite.email" class="text-gray-900">
-                      {{ invite.email }}
-                      <span v-if="invite.userId" class="text-xs text-green-600">(User)</span>
-                      <span v-else class="text-xs text-gray-500">(Email invite)</span>
-                    </p>
-                  </div>
-                </div>
-                <div v-else>
-                  <h4 class="text-sm font-medium text-gray-700 mb-1">Type</h4>
-                  <p class="text-gray-900">Solo Challenge</p>
-                </div>
-                <div>
-                  <h4 class="text-sm font-medium text-gray-700 mb-1">Collection Type</h4>
-                  <p class="text-gray-900 capitalize">{{ form.collectionType }}</p>
-                </div>
-                <!-- Show assignments -->
-                <div v-if="hasAssignToAll">
-                  <!-- Assign to All -->
-                  <div v-if="form.collectionType === 'set'">
-                    <h4 class="text-sm font-medium text-gray-700 mb-1">Set (All Members)</h4>
-                    <p class="text-gray-900">{{ form.selectedSet?.name || getSetName(form.selectedSetId) || 'Not selected' }}</p>
-                  </div>
-                  <div v-else-if="form.collectionType === 'pokemon'">
-                    <h4 class="text-sm font-medium text-gray-700 mb-1">Pokemon (All Members)</h4>
-                    <p class="text-gray-900">{{ form.selectedPokemon?.displayName || form.selectedPokemon?.name || getPokemonName(form.selectedPokemonId) || 'Not selected' }}</p>
-                  </div>
-                </div>
-                <div v-else-if="Object.keys(form.individualAssignments).length > 0">
-                  <!-- Individual Assignments -->
-                  <h4 class="text-sm font-medium text-gray-700 mb-2">Assignments</h4>
-                  <div class="space-y-2">
-                    <div 
-                      v-for="(assignment, personId) in form.individualAssignments" 
-                      :key="personId"
-                      class="border border-gray-200 rounded p-3"
-                    >
-                      <p class="font-medium text-gray-900 mb-1">{{ getPersonName(personId) }}</p>
-                      <div v-if="assignment.type === 'set'">
-                        <span class="text-sm text-gray-600">Set: </span>
-                        <span class="text-sm text-gray-900">{{ getSetName(assignment.setId) || 'Not selected' }}</span>
-                      </div>
-                      <div v-else-if="assignment.type === 'pokemon'">
-                        <span class="text-sm text-gray-600">Pokemon: </span>
-                        <span class="text-sm text-gray-900">{{ getPokemonName(assignment.pokemonId) || 'Not selected' }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div v-else>
-                  <!-- Fallback if no assignments -->
-                  <div v-if="form.collectionType === 'set'">
-                    <h4 class="text-sm font-medium text-gray-700 mb-1">Set</h4>
-                    <p class="text-gray-900">{{ form.selectedSet?.name || getSetName(form.selectedSetId) || 'Not selected' }}</p>
-                  </div>
-                  <div v-else-if="form.collectionType === 'pokemon'">
-                    <h4 class="text-sm font-medium text-gray-700 mb-1">Pokemon</h4>
-                    <p class="text-gray-900">{{ form.selectedPokemon?.displayName || form.selectedPokemon?.name || getPokemonName(form.selectedPokemonId) || 'Not selected' }}</p>
-                  </div>
-                </div>
-              </div>
-              <div class="mt-6 flex justify-between">
-                <button @click="prevStep" class="btn btn-h3 btn-ghost">Back</button>
-                <button
-                  @click="createMasterSet"
-                  class="btn btn-h3 btn-primary"
-                  :disabled="isCreating"
-                >
-                  {{ isCreating ? 'Creating...' : 'Create Master Set' }}
+              <div class="flex justify-between pt-2">
+                <button class="btn btn-h3 btn-ghost" @click="prevStep">Back</button>
+                <button class="btn btn-h3 btn-primary" :disabled="!canCreate || isCreating" @click="createMasterSet">
+                  {{ isCreating ? 'Creating...' : form.challengeMode === 'battle' ? 'Create Battle' : 'Create Master Set' }}
                 </button>
               </div>
             </div>
@@ -671,7 +249,41 @@
       </div>
     </section>
 
-    <!-- Success Notification -->
+    <div v-if="assignModal.open" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4" @click="closeAssignModal">
+      <div class="card w-full max-w-lg max-h-[85vh] overflow-hidden" @click.stop>
+        <div class="card-header">
+          <h3 class="card-title">Select {{ activeTypeMeta.label.slice(0, -1) }}</h3>
+          <p class="card-subtitle">Choose a target for {{ assignModal.slotLabel }}</p>
+        </div>
+        <div class="card-body space-y-3">
+          <input
+            v-model="assignModal.query"
+            type="text"
+            class="ui-field"
+            :placeholder="`Search ${activeTypeMeta.label.toLowerCase()}...`"
+          />
+          <div class="max-h-80 overflow-y-auto ui-panel">
+            <button
+              v-for="item in modalItems"
+              :key="item.id"
+              class="w-full text-left px-3 py-2 border-b last:border-b-0"
+              style="border-color: var(--color-border);"
+              @click="selectModalItem(item)"
+            >
+              <div class="font-medium">{{ item.label }}</div>
+              <div v-if="item.subLabel" class="text-xs" style="color: var(--color-text-secondary);">{{ item.subLabel }}</div>
+            </button>
+            <div v-if="modalItems.length === 0" class="px-3 py-4 text-sm" style="color: var(--color-text-secondary);">
+              No results found.
+            </div>
+          </div>
+          <div class="flex justify-end">
+            <button class="btn btn-h5 btn-ghost" @click="closeAssignModal">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <SuccessNotification
       :show="showSuccessNotification"
       title="Master Set Created!"
@@ -683,70 +295,525 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore'
+import { useRouter } from 'vue-router'
+import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
 import { createMasterSet as createMasterSetUtil, createAssignment, getCardIdsForSet, getCardIdsForPokemon } from '../utils/masterSetUtils'
 import { getAllPokemonCards } from '../utils/firebasePokemon'
+import { getAllTrainers } from '../utils/firebaseTrainers'
 import SuccessNotification from '../components/SuccessNotification.vue'
 
-const route = useRoute()
 const router = useRouter()
 const { user } = useAuth()
 
-const currentStep = ref(1)
-const steps = computed(() => {
-  return ['Name', 'Invite', 'Choose', 'Review']
+const steps = [{ id: 'choose', label: 'Choose' }, { id: 'configure', label: 'Configure' }]
+const currentStep = ref(0)
+const selectedType = ref(null)
+
+const challengeOptions = [
+  { id: 'set', label: 'Sets', icon: '/sets.svg', short: 'Master complete sets.', description: 'Choose or randomly pick a set and track completion for all cards in that set.' },
+  { id: 'pokemon', label: 'Pokemon', icon: '/pokemon.svg', short: 'Master a Pokemon line.', description: 'Choose or randomly pick a Pokemon and track all related cards across supported languages.' },
+  { id: 'trainer', label: 'Trainers', icon: '/trainers.svg', short: 'Master trainer-linked cards.', description: 'MVP: card matching is based on trainer name text in card data.' },
+  { id: 'randomNumber', label: 'Random Number', icon: '/random.svg', short: 'Build random-card challenges.', description: 'Pick a random pool and generate a challenge by card count.' }
+]
+
+const activeTypeMeta = computed(() => challengeOptions.find((x) => x.id === selectedType.value) || challengeOptions[0])
+
+const makeParticipant = (idx, isSelf = false) => ({
+  key: `p-${idx}-${Date.now()}`,
+  isSelf,
+  userId: isSelf ? user.value?.uid || null : null,
+  userName: isSelf ? user.value?.displayName || user.value?.email || 'You' : null,
+  email: isSelf ? user.value?.email || null : null,
+  input: '',
+  isEditing: !isSelf,
+  searching: false,
+  searchResults: [],
+  showResults: false,
+  searchTimeout: null,
+  assignment: {
+    setId: '',
+    pokemonId: '',
+    trainerId: '',
+    randomAssigned: false
+  }
 })
 
 const form = ref({
   challengeName: '',
-  invites: [], // Array of { email: '', userId: null, userName: null, searching: false }
-  collectionType: null, // 'set' or 'pokemon'
-  selectionType: 'random', // 'random' or 'select'
-  selectedSet: null,
-  selectedSetId: null,
-  selectedPokemon: null,
-  selectedPokemonId: null,
-  individualAssignments: {} // { userId/email: { type: 'set'|'pokemon', setId: string|null, pokemonId: string|null } }
+  selectionMode: 'random',
+  cardCountMode: 'all',
+  fixedCardCount: 50,
+  randomScope: 'all',
+  playerCount: 1,
+  participants: [makeParticipant(1, true)]
 })
 
 const availableSets = ref([])
 const availablePokemon = ref([])
+const availableTrainers = ref([])
 const isLoadingSets = ref(false)
 const isLoadingPokemon = ref(false)
-const isPicking = ref(false)
+const isLoadingTrainers = ref(false)
 const isCreating = ref(false)
 const showSuccessNotification = ref(false)
-const pokemonSearchQuery = ref('')
-const filteredPokemon = ref([])
-const currentAssignmentTarget = ref('all') // 'all' or personId
-const hasAssignToAll = ref(false)
+
+const assignModal = ref({
+  open: false,
+  participantKey: null,
+  slotLabel: '',
+  query: ''
+})
+
+const canCreate = computed(() => {
+  if (!selectedType.value) return false
+  if (!form.value.challengeName.trim()) return false
+  if (form.value.cardCountMode === 'fixed' && (!form.value.fixedCardCount || form.value.fixedCardCount < 1)) return false
+
+  const allPlayersValid = form.value.participants.every((slot, idx) => {
+    const hasIdentity = slot.isSelf || Boolean(slot.userId || slot.email || (slot.input && slot.input.includes('@')))
+    if (!hasIdentity) return false
+    if (selectedType.value === 'set') return Boolean(slot.assignment.setId)
+    if (selectedType.value === 'pokemon') return Boolean(slot.assignment.pokemonId)
+    if (selectedType.value === 'trainer') return Boolean(slot.assignment.trainerId)
+    return Boolean(slot.assignment.randomAssigned)
+  })
+  return allPlayersValid
+})
+
+const toShuffled = (arr) => {
+  const copy = [...arr]
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const temp = copy[i]
+    copy[i] = copy[j]
+    copy[j] = temp
+  }
+  return copy
+}
+
+const sampleCardIds = (cardsByLang) => {
+  if (form.value.cardCountMode !== 'fixed') return cardsByLang
+
+  const combined = [
+    ...(cardsByLang.card_en || []).map((id) => ({ lang: 'en', id })),
+    ...(cardsByLang.card_ja || []).map((id) => ({ lang: 'ja', id }))
+  ]
+  const count = Math.min(form.value.fixedCardCount || 0, combined.length)
+  const selected = toShuffled(combined).slice(0, count)
+  return {
+    card_en: selected.filter((c) => c.lang === 'en').map((c) => c.id),
+    card_ja: selected.filter((c) => c.lang === 'ja').map((c) => c.id)
+  }
+}
+
+const pickRandomSet = () => {
+  if (availableSets.value.length === 0) return null
+  const chosen = toShuffled(availableSets.value)[0]
+  return chosen.id
+}
+
+const pickRandomPokemon = () => {
+  if (availablePokemon.value.length === 0) return null
+  const chosen = toShuffled(availablePokemon.value)[0]
+  return chosen.id
+}
+
+const pickRandomTrainer = () => {
+  if (availableTrainers.value.length === 0) return null
+  const chosen = toShuffled(availableTrainers.value)[0]
+  return chosen.id
+}
+
+const resolveLanguages = () => {
+  if (selectedType.value === 'randomNumber') {
+    if (form.value.randomScope === 'en') return ['en']
+    if (form.value.randomScope === 'ja') return ['ja']
+    return ['en', 'ja']
+  }
+  return ['en', 'ja']
+}
+
+const getTrainerCardsMvp = async (trainer, languages) => {
+  const trainerName = (trainer?.trainerName || '').toLowerCase().trim()
+  if (!trainerName) return { card_en: [], card_ja: [] }
+
+  const result = await getAllPokemonCards({ language: 'all' })
+  if (!result.success || !result.data) return { card_en: [], card_ja: [] }
+
+  const en = new Set()
+  const ja = new Set()
+
+  result.data.forEach((card) => {
+    const textBlob = [
+      card.name,
+      card.cardName,
+      card.trainerName,
+      card.flavorText,
+      Array.isArray(card.rules) ? card.rules.join(' ') : '',
+      Array.isArray(card.text) ? card.text.join(' ') : ''
+    ].join(' ').toLowerCase()
+
+    if (!textBlob.includes(trainerName)) return
+    const cardId = card.cardId || card.id || card.apiId
+    if (!cardId) return
+
+    if (card.language === 'en' && languages.includes('en')) en.add(cardId)
+    if (card.language === 'ja' && languages.includes('ja')) ja.add(cardId)
+  })
+
+  return { card_en: Array.from(en), card_ja: Array.from(ja) }
+}
+
+const getRandomCards = async (languages) => {
+  const result = await getAllPokemonCards({ language: 'all' })
+  if (!result.success || !result.data) return { card_en: [], card_ja: [] }
+
+  const pool = result.data.filter((card) => languages.includes(card.language))
+  const normalized = toShuffled(pool).map((card) => ({
+    lang: card.language,
+    id: card.cardId || card.id || card.apiId
+  })).filter((x) => x.id)
+
+  const selected = form.value.cardCountMode === 'fixed'
+    ? normalized.slice(0, Math.min(form.value.fixedCardCount || 0, normalized.length))
+    : normalized
+
+  return {
+    card_en: selected.filter((x) => x.lang === 'en').map((x) => x.id),
+    card_ja: selected.filter((x) => x.lang === 'ja').map((x) => x.id)
+  }
+}
+
+const syncParticipants = () => {
+  const desired = Math.min(4, Math.max(1, form.value.playerCount || 1))
+  const current = form.value.participants
+  const updated = [current[0] || makeParticipant(1, true)]
+  updated[0].isSelf = true
+  updated[0].userId = user.value?.uid || null
+  updated[0].userName = user.value?.displayName || user.value?.email || 'You'
+  updated[0].email = user.value?.email || null
+
+  for (let i = 1; i < desired; i += 1) {
+    const slot = current[i] || makeParticipant(i + 1, false)
+    if (typeof slot.isEditing === 'undefined') slot.isEditing = false
+    updated.push(slot)
+  }
+  form.value.participants = updated
+}
+
+const setSelectionMode = (mode) => {
+  form.value.selectionMode = mode
+  form.value.participants.forEach((slot) => {
+    slot.assignment.setId = ''
+    slot.assignment.pokemonId = ''
+    slot.assignment.trainerId = ''
+    slot.assignment.randomAssigned = false
+  })
+}
+
+const searchParticipant = async (target) => {
+  const term = (target?.input || '').trim().toLowerCase()
+
+  if (!term) {
+    target.userId = null
+    target.userName = null
+    target.email = ''
+    target.searchResults = []
+    return
+  }
+
+  clearTimeout(target.searchTimeout)
+  target.searchTimeout = setTimeout(async () => {
+    target.searching = true
+    try {
+      const usersRef = collection(db, 'users')
+      const snap = await getDocs(usersRef)
+      const matches = snap.docs
+        .map((d) => ({ userId: d.id, ...d.data() }))
+        .filter((u) => {
+          const name = (u.displayName || '').toLowerCase()
+          const email = (u.email || '').toLowerCase()
+          return name.includes(term) || email.includes(term)
+        })
+        .slice(0, 6)
+      target.searchResults = matches
+
+      if (term.includes('@') && matches.length === 0) {
+        target.email = term
+      }
+    } catch (error) {
+      console.error('Error searching participant:', error)
+      target.searchResults = []
+    } finally {
+      target.searching = false
+    }
+  }, 250)
+}
+
+const selectParticipant = (target, result) => {
+  target.userId = result.userId
+  target.userName = result.displayName || result.email
+  target.email = result.email || ''
+  target.input = result.email || result.displayName || ''
+  target.searchResults = []
+  target.showResults = false
+  target.isEditing = false
+}
+
+const startEditParticipant = (slot) => {
+  slot.isEditing = true
+  slot.showResults = false
+}
+
+const handleParticipantBlur = (slot) => {
+  setTimeout(() => {
+    slot.showResults = false
+    const value = (slot.input || '').trim()
+    if (!value) return
+
+    if (!slot.userId && value.includes('@')) {
+      slot.email = value
+      slot.userName = null
+      slot.isEditing = false
+      return
+    }
+
+    if (slot.userId || slot.email) {
+      slot.isEditing = false
+    }
+  }, 200)
+}
+
+const assignForParticipant = (slot) => {
+  if (form.value.selectionMode === 'random') {
+    if (selectedType.value === 'set') slot.assignment.setId = pickRandomSet() || ''
+    if (selectedType.value === 'pokemon') slot.assignment.pokemonId = pickRandomPokemon() || ''
+    if (selectedType.value === 'trainer') slot.assignment.trainerId = pickRandomTrainer() || ''
+    if (selectedType.value === 'randomNumber') slot.assignment.randomAssigned = true
+    return
+  }
+  assignModal.value.open = true
+  assignModal.value.participantKey = slot.key
+  assignModal.value.slotLabel = slot.isSelf ? 'you' : (slot.userName || slot.email || 'this player')
+  assignModal.value.query = ''
+}
+
+const closeAssignModal = () => {
+  assignModal.value.open = false
+  assignModal.value.participantKey = null
+  assignModal.value.query = ''
+}
+
+const modalItems = computed(() => {
+  const q = assignModal.value.query.trim().toLowerCase()
+  if (selectedType.value === 'set') {
+    return availableSets.value
+      .filter((x) => !q || (x.name || '').toLowerCase().includes(q))
+      .slice(0, 40)
+      .map((x) => ({ id: x.id, label: x.name, subLabel: `${x.totalCards || 0} cards` }))
+  }
+  if (selectedType.value === 'pokemon') {
+    return availablePokemon.value
+      .filter((x) => !q || ((x.displayName || x.name || '').toLowerCase().includes(q)))
+      .slice(0, 40)
+      .map((x) => ({ id: x.id, label: x.displayName || x.name, subLabel: x.nationalDexNumber ? `#${x.nationalDexNumber}` : '' }))
+  }
+  if (selectedType.value === 'trainer') {
+    return availableTrainers.value
+      .filter((x) => !q || (x.trainerName || '').toLowerCase().includes(q))
+      .slice(0, 40)
+      .map((x) => ({ id: x.id, label: x.trainerName, subLabel: 'MVP trainer name matching' }))
+  }
+  return []
+})
+
+const selectModalItem = (item) => {
+  const slot = form.value.participants.find((p) => p.key === assignModal.value.participantKey)
+  if (!slot) return
+  if (selectedType.value === 'set') slot.assignment.setId = item.id
+  if (selectedType.value === 'pokemon') slot.assignment.pokemonId = item.id
+  if (selectedType.value === 'trainer') slot.assignment.trainerId = item.id
+  closeAssignModal()
+}
+
+const getPokemonSpriteUrl = (pokemon) => {
+  if (!pokemon) return null
+  if (pokemon.spriteUrl) return pokemon.spriteUrl
+  if (pokemon.spriteUrls?.normal) return pokemon.spriteUrls.normal
+  if (pokemon.imageUrl) return pokemon.imageUrl
+  return null
+}
+
+const assignmentDetails = (slot) => {
+  if (selectedType.value === 'set') {
+    const set = availableSets.value.find((x) => x.id === slot.assignment.setId)
+    return { label: 'Assigned target', value: set ? set.name : 'none', isPokemon: false, spriteUrl: null }
+  }
+  if (selectedType.value === 'pokemon') {
+    const pokemon = availablePokemon.value.find((x) => x.id === slot.assignment.pokemonId)
+    return {
+      label: 'Assigned target',
+      value: pokemon ? (pokemon.displayName || pokemon.name) : 'none',
+      isPokemon: true,
+      spriteUrl: getPokemonSpriteUrl(pokemon)
+    }
+  }
+  if (selectedType.value === 'trainer') {
+    const trainer = availableTrainers.value.find((x) => x.id === slot.assignment.trainerId)
+    return { label: 'Assigned target', value: trainer ? trainer.trainerName : 'none', isPokemon: false, spriteUrl: null }
+  }
+  if (selectedType.value === 'randomNumber') {
+    if (!slot.assignment.randomAssigned) return { label: 'Assigned target', value: 'none', isPokemon: false, spriteUrl: null }
+    const cardLabel = form.value.cardCountMode === 'fixed' ? `${form.value.fixedCardCount} cards` : 'all cards'
+    return { label: 'Assigned target', value: `random (${form.value.randomScope}) • ${cardLabel}`, isPokemon: false, spriteUrl: null }
+  }
+  return { label: 'Assigned target', value: 'none', isPokemon: false, spriteUrl: null }
+}
+
+const getCardsForParticipant = async (slot, languages) => {
+  if (selectedType.value === 'set') {
+    const set = availableSets.value.find((x) => x.id === slot.assignment.setId)
+    if (!set) return { card_en: [], card_ja: [] }
+    const ids = await getCardIdsForSet(set.id, set.language || 'en')
+    const base = set.language === 'ja' ? { card_en: [], card_ja: ids } : { card_en: ids, card_ja: [] }
+    return sampleCardIds(base)
+  }
+
+  if (selectedType.value === 'pokemon') {
+    const pokemon = availablePokemon.value.find((x) => x.id === slot.assignment.pokemonId)
+    if (!pokemon?.nationalDexNumber) return { card_en: [], card_ja: [] }
+    const ids = await getCardIdsForPokemon(pokemon.nationalDexNumber, languages)
+    return sampleCardIds(ids)
+  }
+
+  if (selectedType.value === 'trainer') {
+    const trainer = availableTrainers.value.find((x) => x.id === slot.assignment.trainerId)
+    if (!trainer) return { card_en: [], card_ja: [] }
+    const ids = await getTrainerCardsMvp(trainer, languages)
+    return sampleCardIds(ids)
+  }
+
+  return getRandomCards(languages)
+}
+
+const createMasterSet = async () => {
+  if (!user.value) {
+    router.push('/login')
+    return
+  }
+
+  isCreating.value = true
+  try {
+    const languages = resolveLanguages()
+    const challengeType = selectedType.value === 'randomNumber' ? 'random' : selectedType.value
+
+    const first = form.value.participants[0]
+    const firstSet = availableSets.value.find((x) => x.id === first.assignment.setId)
+    const firstPokemon = availablePokemon.value.find((x) => x.id === first.assignment.pokemonId)
+    const firstTrainer = availableTrainers.value.find((x) => x.id === first.assignment.trainerId)
+
+    const masterSetData = {
+      name: form.value.challengeName.trim(),
+      description: null,
+      type: challengeType === 'trainer' ? 'pokemon' : challengeType, // compatibility for existing screens
+      challengeType,
+      challengeMode: form.value.challengeMode,
+      selectionMode: form.value.selectionMode,
+      cardCountMode: form.value.cardCountMode,
+      cardCount: form.value.cardCountMode === 'fixed' ? form.value.fixedCardCount : null,
+      targetSetId: firstSet?.id || null,
+      targetSetCollection: firstSet ? `set_${firstSet.language || 'en'}` : null,
+      targetSetName: firstSet?.name || null,
+      targetPokemonId: firstPokemon ? String(firstPokemon.nationalDexNumber || firstPokemon.id) : null,
+      targetPokemonName: firstPokemon ? (firstPokemon.displayName || firstPokemon.name) : (firstTrainer?.trainerName || null),
+      targetTrainerId: firstTrainer?.id || null,
+      targetTrainerName: firstTrainer?.trainerName || null,
+      randomScope: selectedType.value === 'randomNumber' ? form.value.randomScope : null,
+      battleOwnerId: user.value.uid,
+      battleOpponentId: form.value.playerCount > 1 ? (form.value.participants[1]?.userId || null) : null,
+      battleStatus: form.value.playerCount > 1 ? 'pending' : null,
+      playerCount: form.value.playerCount,
+      languages,
+      createdBy: user.value.uid
+    }
+
+    const created = await createMasterSetUtil(masterSetData)
+    if (!created.success) throw new Error(created.error || 'Failed to create master set')
+    const masterSetId = created.data.id
+
+    for (let i = 0; i < form.value.participants.length; i += 1) {
+      const slot = form.value.participants[i]
+      const setObj = availableSets.value.find((x) => x.id === slot.assignment.setId)
+      const pokemonObj = availablePokemon.value.find((x) => x.id === slot.assignment.pokemonId)
+      const trainerObj = availableTrainers.value.find((x) => x.id === slot.assignment.trainerId)
+      const cardsByLang = await getCardsForParticipant(slot, languages)
+
+      if ((cardsByLang.card_en.length + cardsByLang.card_ja.length) === 0) {
+        throw new Error(`No cards found for ${slot.isSelf ? 'you' : `player ${i + 1}`}.`)
+      }
+
+      await createAssignment({
+        masterSetId,
+        userId: slot.isSelf ? user.value.uid : (slot.userId || null),
+        userEmail: slot.isSelf ? user.value.email : (slot.email || (slot.input.includes('@') ? slot.input : null)),
+        email: slot.isSelf ? user.value.email : (slot.email || (slot.input.includes('@') ? slot.input : null)),
+        userName: slot.isSelf ? (user.value.displayName || user.value.email) : (slot.userName || null),
+        card_en: cardsByLang.card_en,
+        card_ja: cardsByLang.card_ja,
+        type: challengeType === 'random' ? 'set' : challengeType === 'trainer' ? 'pokemon' : challengeType,
+        setId: setObj?.id || null,
+        setName: setObj?.name || null,
+        pokemonId: pokemonObj ? String(pokemonObj.nationalDexNumber || pokemonObj.id) : (trainerObj?.id || null),
+        pokemonName: pokemonObj ? (pokemonObj.displayName || pokemonObj.name) : (trainerObj?.trainerName || null),
+        status: slot.isSelf ? 'accepted' : 'pending',
+        createdBy: user.value.uid
+      })
+    }
+
+    showSuccessNotification.value = true
+    setTimeout(() => {
+      router.push(`/master-set/${masterSetId}`)
+    }, 1200)
+  } catch (error) {
+    console.error('Error creating master set:', error)
+    alert(error.message || 'Unable to create master set')
+  } finally {
+    isCreating.value = false
+  }
+}
+
+const selectType = (type) => {
+  selectedType.value = type
+  form.value.selectionMode = 'random'
+  form.value.cardCountMode = 'all'
+  form.value.playerCount = 1
+  form.value.participants = [makeParticipant(1, true)]
+  if (!form.value.challengeName.trim()) {
+    const label = challengeOptions.find((x) => x.id === type)?.label || 'Master Set'
+    form.value.challengeName = `${label} Challenge`
+  }
+}
+
+const nextStep = () => {
+  if (currentStep.value < steps.length - 1) currentStep.value += 1
+}
+
+const prevStep = () => {
+  if (currentStep.value > 0) currentStep.value -= 1
+}
 
 const loadSets = async () => {
   isLoadingSets.value = true
   try {
-    // Load only from set_en collection (English sets)
     const setsEnRef = collection(db, 'set_en')
-    const enSnapshot = await getDocs(setsEnRef)
-    
-    const allSets = []
-    
-    // Add English sets only
-    enSnapshot.docs.forEach(doc => {
-      allSets.push({
-        id: doc.id,
-        ...doc.data(),
-        language: 'en'
-      })
-    })
-    
-    availableSets.value = allSets.sort((a, b) => {
-      const dateA = a.releaseDate?.toDate?.() || new Date(0)
-      const dateB = b.releaseDate?.toDate?.() || new Date(0)
-      return dateB - dateA
-    })
+    const snapshot = await getDocs(setsEnRef)
+    availableSets.value = snapshot.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+      language: 'en'
+    })).sort((a, b) => (a.name || '').localeCompare(b.name || ''))
   } catch (error) {
     console.error('Error loading sets:', error)
   } finally {
@@ -754,676 +821,45 @@ const loadSets = async () => {
   }
 }
 
-const pickRandomSet = () => {
-  if (isLoadingSets.value) {
-    // Still loading, wait a bit
-    setTimeout(() => pickRandomSet(), 500)
-    return
-  }
-  
-  if (availableSets.value.length === 0) {
-    alert('No sets available. Please seed Firebase first by going to /admin and clicking "Fetch All Sets from API".')
-    return
-  }
-  
-  isPicking.value = true
-  setTimeout(() => {
-    const randomIndex = Math.floor(Math.random() * availableSets.value.length)
-    form.value.selectedSet = availableSets.value[randomIndex]
-    form.value.selectedSetId = form.value.selectedSet.id
-    isPicking.value = false
-  }, 500)
-}
-
-const pickRandomPokemon = () => {
-  if (isLoadingPokemon.value) {
-    setTimeout(() => pickRandomPokemon(), 500)
-    return
-  }
-  
-  if (availablePokemon.value.length === 0) {
-    alert('No Pokemon available. Please seed Pokemon data first.')
-    return
-  }
-  
-  isPicking.value = true
-  setTimeout(() => {
-    const randomIndex = Math.floor(Math.random() * availablePokemon.value.length)
-    form.value.selectedPokemon = availablePokemon.value[randomIndex]
-    form.value.selectedPokemonId = form.value.selectedPokemon.id
-    isPicking.value = false
-  }, 500)
-}
-
-const onSetSelected = () => {
-  const set = availableSets.value.find(s => s.id === form.value.selectedSetId)
-  if (set) {
-    form.value.selectedSet = set
-  }
-}
-
-const getSetName = (setId) => {
-  const set = availableSets.value.find(s => s.id === setId)
-  return set?.name || 'Unknown Set'
-}
-
-const addInvite = () => {
-  form.value.invites.push({ 
-    email: '', 
-    userId: null, 
-    userName: null, 
-    searching: false,
-    searchResults: [],
-    showResults: false
-  })
-}
-
-const removeInvite = (index) => {
-  form.value.invites.splice(index, 1)
-}
-
-const searchUser = async (invite, index) => {
-  const searchTerm = invite.email?.trim() || ''
-  
-  // If empty, clear results
-  if (!searchTerm) {
-    invite.userId = null
-    invite.userName = null
-    invite.searchResults = []
-    invite.searching = false
-    return
-  }
-  
-  // Debounce search (wait 300ms after user stops typing)
-  clearTimeout(invite.searchTimeout)
-  invite.searchTimeout = setTimeout(async () => {
-    invite.searching = true
-    try {
-      const usersRef = collection(db, 'users')
-      
-      // If it looks like an email, search by email first
-      if (searchTerm.includes('@')) {
-        const emailQuery = query(usersRef, where('email', '==', searchTerm.toLowerCase()))
-        const emailSnapshot = await getDocs(emailQuery)
-        
-        if (!emailSnapshot.empty) {
-          const userDoc = emailSnapshot.docs[0]
-          const userData = userDoc.data()
-          // Auto-select if exact email match
-          invite.userId = userDoc.id
-          invite.userName = userData.displayName || userData.email
-          invite.email = userData.email // Set the email field
-          invite.searchResults = []
-          invite.searching = false
-          return
-        }
-      }
-      
-      // Search by displayName (case-insensitive partial match)
-      // Note: Firestore doesn't support case-insensitive or partial matches natively,
-      // so we'll fetch users and filter client-side
-      const allUsersSnapshot = await getDocs(usersRef)
-      const searchLower = searchTerm.toLowerCase()
-      
-      // Find all matching users by displayName or email
-      const matchingUsers = allUsersSnapshot.docs
-        .map(doc => {
-          const userData = doc.data()
-          const displayName = (userData.displayName || '').toLowerCase()
-          const email = (userData.email || '').toLowerCase()
-          
-          if (displayName.includes(searchLower) || email.includes(searchLower)) {
-            return {
-              userId: doc.id,
-              displayName: userData.displayName,
-              email: userData.email
-            }
-          }
-          return null
-        })
-        .filter(Boolean)
-        .slice(0, 5) // Limit to 5 results
-      
-      if (matchingUsers.length > 0) {
-        // Show results dropdown
-        invite.searchResults = matchingUsers
-        invite.userId = null // Don't auto-select, let user choose
-        invite.userName = null
-      } else {
-        // No user found - if it's an email, allow it as a non-user invite
-        if (searchTerm.includes('@')) {
-          invite.userId = null
-          invite.userName = null
-          invite.searchResults = []
-          // Keep the email for non-user invite
-        } else {
-          // Not an email and no user found - clear
-          invite.userId = null
-          invite.userName = null
-          invite.searchResults = []
-        }
-      }
-    } catch (error) {
-      console.error('Error searching user:', error)
-      invite.userId = null
-      invite.userName = null
-      invite.searchResults = []
-    } finally {
-      invite.searching = false
-    }
-  }, 300)
-}
-
-const selectUser = (invite, user) => {
-  invite.userId = user.userId
-  invite.userName = user.displayName || user.email
-  invite.email = user.email // Set the email field
-  invite.searchResults = []
-  invite.showResults = false
-}
-
 const loadPokemon = async () => {
   isLoadingPokemon.value = true
   try {
     const pokemonRef = collection(db, 'pokemon')
     const snapshot = await getDocs(pokemonRef)
-    availablePokemon.value = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })).sort((a, b) => {
-      const dexA = a.nationalDexNumber || 9999
-      const dexB = b.nationalDexNumber || 9999
-      return dexA - dexB
-    })
+    availablePokemon.value = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
   } catch (error) {
-    console.error('Error loading Pokemon:', error)
+    console.error('Error loading pokemon:', error)
   } finally {
     isLoadingPokemon.value = false
   }
 }
 
-const searchPokemon = () => {
-  if (!pokemonSearchQuery.value) {
-    filteredPokemon.value = []
-    return
-  }
-  const query = pokemonSearchQuery.value.toLowerCase()
-  filteredPokemon.value = availablePokemon.value.filter(p => {
-    const name = (p.displayName || p.name || '').toLowerCase()
-    return name.includes(query)
-  }).slice(0, 20) // Limit to 20 results
-}
-
-const selectPokemon = (pokemon) => {
-  form.value.selectedPokemon = pokemon
-  form.value.selectedPokemonId = pokemon.id
-  pokemonSearchQuery.value = pokemon.displayName || pokemon.name
-}
-
-const getPokemonInitial = (name) => {
-  return name?.charAt(0).toUpperCase() || '?'
-}
-
-const getPokemonName = (pokemonId) => {
-  const pokemon = availablePokemon.value.find(p => p.id === pokemonId)
-  return pokemon?.displayName || pokemon?.name || 'Unknown Pokemon'
-}
-
-const getAssignmentLabel = (personId) => {
-  const assignment = form.value.individualAssignments[personId]
-  if (!assignment) return null
-  if (assignment.type === 'set' && assignment.setId) {
-    return getSetName(assignment.setId)
-  }
-  if (assignment.type === 'pokemon' && assignment.pokemonId) {
-    return getPokemonName(assignment.pokemonId)
-  }
-  return null
-}
-
-const confirmSoloSet = () => {
-  // For solo collections, store the confirmed selection
-  // Store it in individualAssignments with the creator's ID so it shows in the summary
-  const creatorId = user.value?.uid || 'creator'
-  const setId = form.value.selectedSet?.id || form.value.selectedSetId
-  
-  if (!setId) {
-    console.error('No set ID to confirm')
-    return
-  }
-  
-  form.value.individualAssignments[creatorId] = {
-    type: 'set',
-    setId: setId,
-    pokemonId: null
-  }
-  
-  // Clear the selection so they can pick another if needed
-  form.value.selectedSet = null
-  form.value.selectedSetId = null
-}
-
-const saveSetAssignment = () => {
-  if (!currentAssignmentTarget.value) {
-    return
-  }
-  
-  const setId = form.value.selectedSet?.id || form.value.selectedSetId
-  if (!setId) {
-    console.error('No set ID to assign')
-    return
-  }
-  
-  if (currentAssignmentTarget.value === 'all') {
-    // Assign to all - store for all members (creator + invites)
-    hasAssignToAll.value = true
-    form.value.selectedSetId = setId
-    form.value.selectedSet = form.value.selectedSet || availableSets.value.find(s => s.id === setId)
-    // Keep selectedSetId set so it displays in Current Assignments
-    // Don't clear it - we need it to show the assignment
-    // Clear individual assignments when assigning to all
-    form.value.individualAssignments = {}
-  } else {
-    // Assign to individual person
-    hasAssignToAll.value = false
-    
-    const personId = currentAssignmentTarget.value || user.value?.uid || 'creator'
-    // Use Vue's reactive assignment to ensure reactivity
-    const newAssignments = { ...form.value.individualAssignments }
-    newAssignments[personId] = {
-      type: 'set',
-      setId: setId,
-      pokemonId: null
-    }
-    form.value.individualAssignments = newAssignments
-    
-    // Clear the selection card so they can pick another set/pokemon
-    form.value.selectedSet = null
-    form.value.selectedSetId = null
-  }
-  
-  // Reset dropdown to "all" for next assignment
-  currentAssignmentTarget.value = 'all'
-}
-
-const confirmSoloPokemon = () => {
-  // For solo collections, store the confirmed selection
-  // Store it in individualAssignments with the creator's ID so it shows in the summary
-  const creatorId = user.value?.uid || 'creator'
-  
-  if (!form.value.selectedPokemonId) {
-    console.error('No pokemon ID to confirm')
-    return
-  }
-  
-  form.value.individualAssignments[creatorId] = {
-    type: 'pokemon',
-    setId: null,
-    pokemonId: form.value.selectedPokemonId
-  }
-  
-  // Clear the selection so they can pick another if needed
-  form.value.selectedPokemon = null
-  form.value.selectedPokemonId = null
-  pokemonSearchQuery.value = ''
-}
-
-const savePokemonAssignment = () => {
-  if (!currentAssignmentTarget.value) {
-    return
-  }
-  
-  if (!form.value.selectedPokemonId) {
-    console.error('No pokemon ID to assign')
-    return
-  }
-  
-  if (currentAssignmentTarget.value === 'all') {
-    // Assign to all - store for all members (creator + invites)
-    hasAssignToAll.value = true
-    form.value.selectedPokemon = form.value.selectedPokemon || availablePokemon.value.find(p => p.id === form.value.selectedPokemonId)
-    // Keep selectedPokemonId set so it displays in Current Assignments
-    // Don't clear it - we need it to show the assignment
-    // Clear individual assignments when assigning to all
-    form.value.individualAssignments = {}
-  } else {
-    // Assign to individual person
-    hasAssignToAll.value = false
-    
-    const personId = currentAssignmentTarget.value || user.value?.uid || 'creator'
-    // Use Vue's reactive assignment to ensure reactivity
-    const newAssignments = { ...form.value.individualAssignments }
-    newAssignments[personId] = {
-      type: 'pokemon',
-      setId: null,
-      pokemonId: form.value.selectedPokemonId
-    }
-    form.value.individualAssignments = newAssignments
-    
-    // Clear the selection card so they can pick another set/pokemon
-    form.value.selectedPokemon = null
-    form.value.selectedPokemonId = null
-    pokemonSearchQuery.value = ''
-  }
-  
-  // Reset dropdown to "all" for next assignment
-  currentAssignmentTarget.value = 'all'
-}
-
-const getPersonName = (personId) => {
-  if (personId === user.value?.uid || personId === 'creator') {
-    return user.value?.displayName || user.value?.email || 'You'
-  }
-  
-  // Find in invites
-  const invite = form.value.invites.find(i => (i.userId || i.email) === personId)
-  return invite?.userName || invite?.email || 'Unknown'
-}
-
-const removeAssignment = (personId) => {
-  delete form.value.individualAssignments[personId]
-  // If no more individual assignments, reset to "assign to all"
-  if (Object.keys(form.value.individualAssignments).length === 0) {
-    hasAssignToAll.value = false
-  }
-}
-
-const hasInvites = computed(() => {
-  return form.value.invites.length > 0 && form.value.invites.some(i => i.email && i.email.includes('@'))
-})
-
-const canProceedToReview = computed(() => {
-  // Must have selected a collection type
-  if (!form.value.collectionType) return false
-  
-  // Check if we have "Assign to All" assignment
-  if (hasAssignToAll.value) {
-    if (form.value.collectionType === 'set' && !form.value.selectedSetId) return false
-    if (form.value.collectionType === 'pokemon' && !form.value.selectedPokemonId) return false
-    return true
-  }
-  
-  // Check if we have individual assignments
-  if (Object.keys(form.value.individualAssignments).length > 0) {
-    // At minimum, creator should have an assignment
-    const creatorId = user.value?.uid || 'creator'
-    if (!form.value.individualAssignments[creatorId]) return false
-    
-    // If there are invites, check that all invited users have assignments
-    if (hasInvites.value) {
-      for (const invite of form.value.invites.filter(i => i.email && i.email.includes('@'))) {
-        const personId = invite.userId || invite.email
-        if (!form.value.individualAssignments[personId]) return false
-      }
-    }
-    return true
-  }
-  
-  // No assignments yet
-  return false
-})
-
-const nextStep = () => {
-  if (currentStep.value < 4) {
-    currentStep.value++
-  }
-}
-
-const prevStep = () => {
-  if (currentStep.value > 1) {
-    currentStep.value--
-  }
-}
-
-const createMasterSet = async () => {
-  if (!user.value) {
-    alert('Please log in to create a master set')
-    router.push('/login')
-    return
-  }
-
-  // Validate assignments
-  if (hasAssignToAll.value) {
-    // "Assign to All" - need the selection stored
-    if (form.value.collectionType === 'set' && !form.value.selectedSetId) {
-      alert('Please select a set')
-      return
-    }
-    if (form.value.collectionType === 'pokemon' && !form.value.selectedPokemonId) {
-      alert('Please select a Pokemon')
-      return
-    }
-  } else if (Object.keys(form.value.individualAssignments).length === 0) {
-    alert('Please assign at least one set or Pokemon')
-    return
-  } else {
-    // Individual assignments - validate they're complete
-    const creatorId = user.value?.uid || 'creator'
-    if (!form.value.individualAssignments[creatorId]) {
-      alert('Please assign a set or Pokemon to yourself')
-      return
-    }
-    if (hasInvites.value) {
-      for (const invite of form.value.invites.filter(i => i.email && i.email.includes('@'))) {
-        const personId = invite.userId || invite.email
-        if (!form.value.individualAssignments[personId]) {
-          alert(`Please assign a set or Pokemon to ${invite.userName || invite.email}`)
-          return
-        }
-      }
-    }
-  }
-
-  isCreating.value = true
-  
+const loadTrainers = async () => {
+  isLoadingTrainers.value = true
   try {
-    // Determine languages based on assignments
-    const languages = new Set()
-    
-    // Helper function to get card IDs for an assignment
-    const getCardIdsForAssignment = async (type, setId, pokemonId, setLanguage) => {
-      if (type === 'set' && setId) {
-        // Get card IDs for set
-        const cardIds = await getCardIdsForSet(setId, setLanguage || 'en')
-        return { card_en: setLanguage === 'en' ? cardIds : [], card_ja: setLanguage === 'ja' ? cardIds : [] }
-      } else if (type === 'pokemon' && pokemonId) {
-        // Get Pokemon by ID
-        const pokemon = availablePokemon.value.find(p => p.id === pokemonId)
-        if (pokemon && pokemon.nationalDexNumber) {
-          // Default to both languages for Pokemon
-          return await getCardIdsForPokemon(pokemon.nationalDexNumber, ['en', 'ja'])
-        }
-      }
-      return { card_en: [], card_ja: [] }
-    }
-    
-    // Determine master set type and languages
-    let masterSetType = null
-    let masterSetTargetId = null
-    let masterSetTargetName = null
-    let masterSetTargetCollection = null
-    
-    if (hasAssignToAll.value) {
-      // All have same assignment - use that as master set type
-      masterSetType = form.value.collectionType
-      if (form.value.collectionType === 'set') {
-        const selectedSet = form.value.selectedSet || availableSets.value.find(s => s.id === form.value.selectedSetId)
-        masterSetTargetId = form.value.selectedSetId
-        masterSetTargetName = selectedSet?.name
-        masterSetTargetCollection = `set_${selectedSet?.language || 'en'}`
-        if (selectedSet?.language) languages.add(selectedSet.language)
-      } else if (form.value.collectionType === 'pokemon') {
-        const selectedPokemon = form.value.selectedPokemon || availablePokemon.value.find(p => p.id === form.value.selectedPokemonId)
-        masterSetTargetId = String(selectedPokemon?.nationalDexNumber)
-        masterSetTargetName = selectedPokemon?.displayName || selectedPokemon?.name
-        languages.add('en')
-        languages.add('ja')
-      }
-    } else {
-      // Mixed assignments - master set type is null, but we'll use the first assignment's type
-      const firstAssignment = Object.values(form.value.individualAssignments)[0]
-      if (firstAssignment) {
-        masterSetType = firstAssignment.type
-        // For mixed, we'll default to both languages
-        languages.add('en')
-        languages.add('ja')
-      }
-    }
-    
-    // Create master set
-    const masterSetData = {
-      name: form.value.challengeName.trim(),
-      description: null,
-      type: masterSetType || 'set', // Default to 'set' if null
-      targetSetId: masterSetType === 'set' ? masterSetTargetId : null,
-      targetSetCollection: masterSetTargetCollection,
-      targetSetName: masterSetType === 'set' ? masterSetTargetName : null,
-      targetPokemonId: masterSetType === 'pokemon' ? masterSetTargetId : null,
-      targetPokemonName: masterSetType === 'pokemon' ? masterSetTargetName : null,
-      languages: Array.from(languages),
-      createdBy: user.value.uid
-    }
-    
-    const masterSetResult = await createMasterSetUtil(masterSetData)
-    if (!masterSetResult.success) {
-      throw new Error(masterSetResult.error)
-    }
-    
-    const masterSetId = masterSetResult.data.id
-    
-    // Get all members (creator + invites)
-    const members = []
-    const validInvites = form.value.invites.filter(i => i.email && i.email.includes('@'))
-    
-    // Add creator
-    members.push({
-      userId: user.value.uid,
-      userEmail: user.value.email,
-      userName: user.value.displayName || user.value.email
-    })
-    
-    // Add invites
-    for (const invite of validInvites) {
-      members.push({
-        userId: invite.userId || null,
-        userEmail: invite.email,
-        userName: invite.userName || null
-      })
-    }
-    
-    // Create assignments
-    if (hasAssignToAll.value) {
-      // "Assign to All" - all members get the same assignment
-      const selectedSet = form.value.selectedSet || availableSets.value.find(s => s.id === form.value.selectedSetId)
-      const selectedPokemon = form.value.selectedPokemon || availablePokemon.value.find(p => p.id === form.value.selectedPokemonId)
-      
-      // Get card IDs once
-      const cardIds = await getCardIdsForAssignment(
-        form.value.collectionType,
-        form.value.collectionType === 'set' ? form.value.selectedSetId : null,
-        form.value.collectionType === 'pokemon' ? form.value.selectedPokemonId : null,
-        selectedSet?.language
-      )
-      
-      // Create assignment for each member
-      for (const member of members) {
-        await createAssignment({
-          masterSetId,
-          userId: member.userId,
-          userEmail: member.userEmail,
-          userName: member.userName,
-          card_en: cardIds.card_en,
-          card_ja: cardIds.card_ja,
-          assignmentType: null, // Same as masterSet.type
-          assignmentSetId: null,
-          assignmentPokemonId: null,
-          status: member.userId === user.value.uid ? 'accepted' : 'pending',
-          createdBy: user.value.uid
-        })
-      }
-    } else {
-      // Individual assignments - each member gets their own assignment
-      for (const member of members) {
-        const personId = member.userId || member.userEmail
-        const assignment = form.value.individualAssignments[personId] || form.value.individualAssignments[member.userEmail]
-        
-        if (!assignment) {
-          console.warn(`No assignment found for ${personId}`)
-          continue
-        }
-        
-        const selectedSet = assignment.type === 'set' ? availableSets.value.find(s => s.id === assignment.setId) : null
-        const selectedPokemon = assignment.type === 'pokemon' ? availablePokemon.value.find(p => p.id === assignment.pokemonId) : null
-        
-        // Get card IDs for this specific assignment
-        const cardIds = await getCardIdsForAssignment(
-          assignment.type,
-          assignment.setId || null,
-          assignment.pokemonId || null,
-          selectedSet?.language
-        )
-        
-        await createAssignment({
-          masterSetId,
-          userId: member.userId,
-          userEmail: member.userEmail,
-          userName: member.userName,
-          card_en: cardIds.card_en,
-          card_ja: cardIds.card_ja,
-          assignmentType: assignment.type, // Different from masterSet.type
-          assignmentSetId: assignment.type === 'set' ? assignment.setId : null,
-          assignmentPokemonId: assignment.type === 'pokemon' ? assignment.pokemonId : null,
-          status: member.userId === user.value.uid ? 'accepted' : 'pending',
-          createdBy: user.value.uid
-        })
-      }
-    }
-    
-    // Show success notification and redirect
-    showSuccessNotification.value = true
-    setTimeout(() => {
-      router.push(`/master-set/${masterSetId}`)
-    }, 1500) // Redirect after 1.5 seconds
+    availableTrainers.value = await getAllTrainers()
   } catch (error) {
-    console.error('Error creating master set:', error)
-    alert('Error creating master set: ' + error.message)
-    showSuccessNotification.value = false
+    console.error('Error loading trainers:', error)
   } finally {
-    isCreating.value = false
+    isLoadingTrainers.value = false
   }
 }
 
-// Set default assignment target when entering step 3
-watch(() => currentStep.value, (newStep) => {
-  if (newStep === 3) {
-    // Always default to "all"
-    currentAssignmentTarget.value = 'all'
+watch(
+  () => [selectedType.value, currentStep.value, form.value.selectionMode, form.value.playerCount],
+  () => {
+    if (currentStep.value === 1) syncParticipants()
   }
-})
-
-// Watch for user authentication - only load data if logged in
-watch(user, (newUser) => {
-  if (newUser) {
-    loadSets()
-    loadPokemon()
-    currentAssignmentTarget.value = 'all'
-  }
-})
-
-// Update page title
-watch(() => route.name, () => {
-  if (route.name === 'StartMasterSet') {
-    document.title = 'Pallet Town Cards — Create your master set'
-  }
-}, { immediate: true })
+)
 
 onMounted(() => {
+  document.title = 'PULL TCG — Create Master Set'
   if (user.value) {
     loadSets()
     loadPokemon()
-    // Set initial default to "all"
-    currentAssignmentTarget.value = 'all'
+    loadTrainers()
   }
+  syncParticipants()
 })
 </script>
 

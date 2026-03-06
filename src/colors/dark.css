@@ -1,52 +1,52 @@
 .dark {
-  /* Pallet Town Cards — Dark Mode */
-  --md-sys-color-primary: rgb(120 180 100); /* Green 400 */
-  --md-sys-color-surface-tint: rgb(120 180 100);
-  --md-sys-color-on-primary: rgb(26 22 14); /* Bark 900 */
-  --md-sys-color-primary-container: rgb(74 122 58); /* Green 600 */
-  --md-sys-color-on-primary-container: rgb(242 248 239); /* Green 50 */
-  --md-sys-color-secondary: rgb(216 166 87); /* Oak Gold */
-  --md-sys-color-on-secondary: rgb(44 36 24); /* Bark */
-  --md-sys-color-secondary-container: rgb(138 95 30); /* Gold 700 */
-  --md-sys-color-on-secondary-container: rgb(253 248 238); /* Gold 50 */
-  --md-sys-color-tertiary: rgb(201 123 75); /* Copper */
-  --md-sys-color-on-tertiary: rgb(26 22 14); /* Bark 900 */
-  --md-sys-color-tertiary-container: rgb(112 64 32); /* Copper 700 */
-  --md-sys-color-on-tertiary-container: rgb(253 244 238); /* Copper 50 */
+  /* Pull TCG — Dark Mode */
+  --md-sys-color-primary: rgb(37 99 235); /* Ash Blue */
+  --md-sys-color-surface-tint: rgb(37 99 235);
+  --md-sys-color-on-primary: rgb(245 249 255); /* White */
+  --md-sys-color-primary-container: rgb(30 90 158); /* Sora */
+  --md-sys-color-on-primary-container: rgb(213 234 251); /* Cloud */
+  --md-sys-color-secondary: rgb(212 168 67); /* Gold */
+  --md-sys-color-on-secondary: rgb(11 26 51); /* Deep */
+  --md-sys-color-secondary-container: rgb(154 112 40); /* Gold Deep */
+  --md-sys-color-on-secondary-container: rgb(251 232 168); /* Gold Pale */
+  --md-sys-color-tertiary: rgb(91 168 219); /* Sky */
+  --md-sys-color-on-tertiary: rgb(11 26 51); /* Deep */
+  --md-sys-color-tertiary-container: rgb(17 43 82); /* Ocean */
+  --md-sys-color-on-tertiary-container: rgb(234 243 252); /* Mist */
   --md-sys-color-error: rgb(196 80 64);
   --md-sys-color-on-error: rgb(255 255 255);
   --md-sys-color-error-container: rgb(56 32 16);
   --md-sys-color-on-error-container: rgb(253 244 238);
-  --md-sys-color-background: rgb(14 12 10); /* Page bg */
-  --md-sys-color-on-background: rgb(232 226 216); /* Page text */
-  --md-sys-color-surface: rgb(22 19 16); /* Section bg */
-  --md-sys-color-on-surface: rgb(232 226 216);
-  --md-sys-color-surface-variant: rgb(28 24 20); /* Card bg */
-  --md-sys-color-on-surface-variant: rgb(176 164 144); /* Bark 300 */
-  --md-sys-color-outline: rgb(90 77 62); /* Bark 600 */
-  --md-sys-color-outline-variant: rgb(61 50 40); /* Bark 700 */
+  --md-sys-color-background: rgb(6 16 31); /* Midnight */
+  --md-sys-color-on-background: rgb(245 249 255); /* White */
+  --md-sys-color-surface: rgb(11 26 51); /* Deep */
+  --md-sys-color-on-surface: rgb(245 249 255);
+  --md-sys-color-surface-variant: rgb(17 43 82); /* Ocean */
+  --md-sys-color-on-surface-variant: rgb(138 157 184); /* Slate Light */
+  --md-sys-color-outline: rgb(91 168 219); /* Sky */
+  --md-sys-color-outline-variant: rgb(74 94 117); /* Slate */
   --md-sys-color-shadow: rgb(0 0 0);
   --md-sys-color-scrim: rgb(0 0 0);
-  --md-sys-color-inverse-surface: rgb(232 226 216); /* Bark 100 */
-  --md-sys-color-inverse-on-surface: rgb(44 36 24); /* Bark */
-  --md-sys-color-inverse-primary: rgb(90 138 74); /* Tall Grass */
-  --md-sys-color-primary-fixed: rgb(223 240 214);
-  --md-sys-color-on-primary-fixed: rgb(26 50 18);
-  --md-sys-color-primary-fixed-dim: rgb(184 220 166);
-  --md-sys-color-on-primary-fixed-variant: rgb(58 98 40);
-  --md-sys-color-secondary-fixed: rgb(248 236 206);
-  --md-sys-color-on-secondary-fixed: rgb(74 50 16);
-  --md-sys-color-secondary-fixed-dim: rgb(240 216 160);
-  --md-sys-color-on-secondary-fixed-variant: rgb(138 95 30);
-  --md-sys-color-tertiary-fixed: rgb(248 224 204);
-  --md-sys-color-on-tertiary-fixed: rgb(80 48 24);
-  --md-sys-color-tertiary-fixed-dim: rgb(240 196 160);
-  --md-sys-color-on-tertiary-fixed-variant: rgb(144 84 40);
-  --md-sys-color-surface-dim: rgb(14 12 10);
-  --md-sys-color-surface-bright: rgb(44 36 24);
-  --md-sys-color-surface-container-lowest: rgb(10 9 7);
-  --md-sys-color-surface-container-low: rgb(22 19 16);
-  --md-sys-color-surface-container: rgb(28 24 20);
-  --md-sys-color-surface-container-high: rgb(44 36 24);
-  --md-sys-color-surface-container-highest: rgb(61 50 40);
+  --md-sys-color-inverse-surface: rgb(245 249 255); /* White */
+  --md-sys-color-inverse-on-surface: rgb(11 26 51); /* Deep */
+  --md-sys-color-inverse-primary: rgb(43 122 199); /* Sora Bright */
+  --md-sys-color-primary-fixed: rgb(213 234 251);
+  --md-sys-color-on-primary-fixed: rgb(11 26 51);
+  --md-sys-color-primary-fixed-dim: rgb(142 200 240);
+  --md-sys-color-on-primary-fixed-variant: rgb(17 43 82);
+  --md-sys-color-secondary-fixed: rgb(251 232 168);
+  --md-sys-color-on-secondary-fixed: rgb(79 54 19);
+  --md-sys-color-secondary-fixed-dim: rgb(240 202 90);
+  --md-sys-color-on-secondary-fixed-variant: rgb(154 112 40);
+  --md-sys-color-tertiary-fixed: rgb(234 243 252);
+  --md-sys-color-on-tertiary-fixed: rgb(11 26 51);
+  --md-sys-color-tertiary-fixed-dim: rgb(142 200 240);
+  --md-sys-color-on-tertiary-fixed-variant: rgb(17 43 82);
+  --md-sys-color-surface-dim: rgb(6 16 31);
+  --md-sys-color-surface-bright: rgb(17 43 82);
+  --md-sys-color-surface-container-lowest: rgb(6 16 31);
+  --md-sys-color-surface-container-low: rgb(11 26 51);
+  --md-sys-color-surface-container: rgb(17 43 82);
+  --md-sys-color-surface-container-high: rgb(24 64 110);
+  --md-sys-color-surface-container-highest: rgb(30 90 158);
 }

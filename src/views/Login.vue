@@ -4,18 +4,15 @@
       <div class="text-center mb-8">
         <div class="flex items-center justify-center gap-3 mx-auto mb-4">
           <img
-            src="/palletTownIcon.svg"
-            alt="Pallet Town Cards"
-            class="h-12 w-12"
+            src="/Glint SVG.svg"
+            alt="Pull TCG"
+            class="h-10 w-auto brand-mark"
           />
-          <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="/PalletTown_WordLogoWhite.svg" />
-            <img
-              src="/PalletTown_WordLogo.svg"
-              alt="Pallet Town Cards"
-              class="h-7 w-auto"
-            />
-          </picture>
+          <img
+            src="/pull-tcg.svg"
+            alt="Pull TCG"
+            class="h-7 w-auto brand-mark"
+          />
         </div>
         <p class="login-subtitle">Sign in to your account</p>
       </div>

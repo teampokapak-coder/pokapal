@@ -8,8 +8,8 @@
     aria-label="Send feedback"
   >
     <img 
-      src="/pokagirl.svg" 
-      alt="Pokagirl" 
+      src="/glint_full_color.svg" 
+      alt="Glint" 
       class="w-full h-full object-contain"
     />
   </button>
@@ -21,8 +21,8 @@
       <div class="feedback-widget-header">
         <div class="flex items-center gap-3">
           <img 
-            src="/pokagirl.svg" 
-            alt="Pokagirl" 
+            src="/glint_full_color.svg" 
+            alt="Glint" 
             class="w-10 h-10 object-contain"
           />
           <div>
@@ -238,9 +238,9 @@ onMounted(() => {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #78b464 0%, #4a7a3a 100%);
+  background: linear-gradient(135deg, #1e5a9e 0%, #2b7ac7 100%);
   border: 3px solid white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 4px rgba(90, 138, 74, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 4px rgba(37, 99, 235, 0.14);
   cursor: pointer;
   z-index: 1000;
   transition: all 0.3s ease;
@@ -250,8 +250,8 @@ onMounted(() => {
 
 @media (prefers-color-scheme: dark) {
   .feedback-widget-button {
-    background: linear-gradient(135deg, #78b464 0%, #4a7a3a 100%);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 4px rgba(90, 138, 74, 0.18);
+    background: linear-gradient(135deg, #1e5a9e 0%, #2b7ac7 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 4px rgba(37, 99, 235, 0.2);
   }
 }
 
@@ -306,12 +306,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: linear-gradient(135deg, rgba(120, 180, 100, 0.10) 0%, rgba(216, 166, 87, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(30, 90, 158, 0.12) 0%, rgba(43, 122, 199, 0.08) 100%);
 }
 
 @media (prefers-color-scheme: dark) {
   .feedback-widget-header {
-    background: linear-gradient(135deg, rgba(120, 180, 100, 0.10) 0%, rgba(216, 166, 87, 0.08) 100%);
+    background: linear-gradient(135deg, rgba(30, 90, 158, 0.16) 0%, rgba(43, 122, 199, 0.12) 100%);
   }
 }
 
@@ -374,15 +374,15 @@ onMounted(() => {
 .feedback-input:focus,
 .feedback-textarea:focus {
   outline: none;
-  border-color: #d8a657;
-  box-shadow: 0 0 0 3px rgba(216, 166, 87, 0.12);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 @media (prefers-color-scheme: dark) {
   .feedback-input:focus,
   .feedback-textarea:focus {
-    border-color: #d8a657;
-    box-shadow: 0 0 0 3px rgba(216, 166, 87, 0.16);
+    border-color: #5ba8db;
+    box-shadow: 0 0 0 3px rgba(91, 168, 219, 0.18);
   }
 }
 
@@ -394,7 +394,7 @@ onMounted(() => {
 .feedback-submit-btn {
   width: 100%;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #78b464 0%, #4a7a3a 100%);
+  background: linear-gradient(135deg, #1e5a9e 0%, #2b7ac7 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -407,19 +407,19 @@ onMounted(() => {
 
 @media (prefers-color-scheme: dark) {
   .feedback-submit-btn {
-    background: linear-gradient(135deg, #78b464 0%, #4a7a3a 100%);
+    background: linear-gradient(135deg, #1e5a9e 0%, #2b7ac7 100%);
     color: white;
   }
 }
 
 .feedback-submit-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(90, 138, 74, 0.36);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.34);
 }
 
 @media (prefers-color-scheme: dark) {
   .feedback-submit-btn:hover:not(:disabled) {
-    box-shadow: 0 4px 12px rgba(90, 138, 74, 0.42);
+    box-shadow: 0 4px 12px rgba(91, 168, 219, 0.42);
   }
 }
 
