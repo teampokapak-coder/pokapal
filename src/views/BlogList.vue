@@ -138,8 +138,8 @@ const onHeroImageError = (post, event) => {
 }
 
 const updateMetaTags = () => {
-  const title = 'Blog — Pallet Town Cards | Pokémon TCG guides & articles'
-  const description = 'Discover guides, tips, and articles about Pokémon TCG collecting, master sets, and more on Pallet Town Cards.'
+  const title = 'Blog — PULL TCG | Pokémon TCG guides & articles'
+  const description = 'Discover guides, tips, and articles about Pokémon TCG collecting, master sets, and more on PULL TCG.'
   
   document.title = title
   

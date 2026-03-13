@@ -685,7 +685,7 @@ const handleLoginSuccess = async () => {
 // Update page title when set loads
 watch(set, (newSet) => {
   if (newSet) {
-    document.title = `Pallet Town Cards — ${formatSetDisplayName(newSet)}`
+    document.title = `PULL TCG — ${formatSetDisplayName(newSet)}`
   }
 }, { immediate: true })
 

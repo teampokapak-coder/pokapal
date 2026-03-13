@@ -19,17 +19,7 @@
     <div v-if="isOpen" class="feedback-widget-container">
       <!-- Header -->
       <div class="feedback-widget-header">
-        <div class="flex items-center gap-3">
-          <img 
-            src="/glint_full_color.svg" 
-            alt="Glint" 
-            class="w-10 h-10 object-contain"
-          />
-          <div>
-            <h3 class="feedback-widget-title">Hey there!</h3>
-            <p class="feedback-widget-subtitle">Got feedback? Let me know.</p>
-          </div>
-        </div>
+        <p class="feedback-widget-title-compact">Hey there — got feedback? Let me know.</p>
         <button 
           @click="toggleWidget"
           class="feedback-widget-close"
@@ -39,6 +29,19 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
+      </div>
+
+      <!-- Glint Intro -->
+      <div class="feedback-glint-intro">
+        <div class="feedback-glint-bg" aria-hidden="true"></div>
+        <h4 class="feedback-glint-title-block">Meet Glint!</h4>
+        <p class="feedback-glint-body">
+          Part mischievous, part magical — the little creature who knows what's in every pack but won't tell you. 
+          He's the feeling <em>right before</em> you flip that last card.
+        </p>
+        <p class="feedback-glint-tagline">
+          He's also just genuinely cute. <span class="feedback-glint-wink">(Not an accident.)</span>
+        </p>
       </div>
 
       <!-- Form -->
@@ -204,7 +207,7 @@ const handleSubmit = async () => {
       }, 3000)
     } else {
       // Fallback to mailto
-      window.location.href = `mailto:teampokapak@gmail.com?subject=Pallet%20Town%20Cards%20Feedback&body=${emailBody}`
+      window.location.href = `mailto:teampokapak@gmail.com?subject=Pull%20TCG%20Feedback&body=${emailBody}`
       showSuccess.value = true
       form.value = { name: '', email: '', message: '' }
       
@@ -301,12 +304,22 @@ onMounted(() => {
 }
 
 .feedback-widget-header {
-  padding: 16px 20px;
+  padding: 10px 14px 10px 16px;
   border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   background: linear-gradient(135deg, rgba(30, 90, 158, 0.12) 0%, rgba(43, 122, 199, 0.08) 100%);
+}
+
+.feedback-widget-title-compact {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -342,6 +355,65 @@ onMounted(() => {
 .feedback-widget-close:hover {
   background: var(--color-bg-tertiary);
   color: var(--color-text-primary);
+}
+
+/* Glint intro — fun, branded section */
+.feedback-glint-intro {
+  position: relative;
+  padding: 16px 20px;
+  background: linear-gradient(160deg, rgba(11, 26, 51, 0.95) 0%, rgba(17, 43, 82, 0.9) 50%, rgba(30, 90, 158, 0.15) 100%);
+  border-bottom: 1px solid rgba(212, 168, 67, 0.25);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.feedback-glint-bg {
+  position: absolute;
+  bottom: -20px;
+  right: -20px;
+  width: 200px;
+  height: 200px;
+  opacity: 0.15;
+  pointer-events: none;
+  background-image: url('/glint_full_color.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: bottom right;
+}
+
+@media (prefers-color-scheme: light) {
+  .feedback-glint-intro {
+    background: linear-gradient(160deg, rgba(11, 26, 51, 0.92) 0%, rgba(17, 43, 82, 0.85) 100%);
+    border-bottom-color: rgba(212, 168, 67, 0.4);
+  }
+}
+
+.feedback-glint-title-block {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #f5f9ff;
+  margin: 0 0 10px 0;
+  letter-spacing: 0.02em;
+}
+
+.feedback-glint-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(245, 249, 255, 0.92);
+  margin: 0 0 8px 0;
+}
+
+.feedback-glint-tagline {
+  font-size: 12px;
+  font-style: italic;
+  color: #f0ca5a;
+  margin: 0;
+}
+
+.feedback-glint-wink {
+  opacity: 0.9;
+  color: #f7dc82;
 }
 
 .feedback-widget-form {

@@ -1079,7 +1079,7 @@ watch(() => user.value, (newUser) => {
 // Update page title
 watch(() => route.name, () => {
   if (route.name === 'Profile') {
-    document.title = 'Pallet Town Cards — Your profile'
+    document.title = 'PULL TCG — Your profile'
   }
 }, { immediate: true })
 

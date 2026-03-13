@@ -895,7 +895,7 @@ const handleLoginSuccess = async () => {
 watch(pokemon, (newPokemon) => {
   if (newPokemon) {
     const pokemonName = newPokemon.displayName || newPokemon.name || 'Pokemon'
-    document.title = `Pallet Town Cards — ${pokemonName}`
+    document.title = `PULL TCG — ${pokemonName}`
   }
 }, { immediate: true })
 

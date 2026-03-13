@@ -252,7 +252,7 @@ const loadTrainers = async () => {
 }
 
 onMounted(() => {
-  document.title = 'Trainers — Pallet Town Cards'
+  document.title = 'Trainers — PULL TCG'
   loadTrainers()
 })
 </script>
