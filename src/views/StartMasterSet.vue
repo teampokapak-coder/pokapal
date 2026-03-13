@@ -3,15 +3,15 @@
     <section class="section py-2 sm:py-4 md:py-6">
       <div class="section-container">
         <div class="section-header">
-          <h2>Create a Battle Set</h2>
+          <h2>Create a Battleset</h2>
           <p class="section-subtitle">Choose your challenge type, then configure it</p>
         </div>
 
         <div v-if="!user" class="max-w-3xl mx-auto">
           <div class="card text-center py-12">
-            <h3 class="mb-4">Log in to start your battle set</h3>
+            <h3 class="mb-4">Log in to start your battleset</h3>
             <p class="mb-6 text-sm">
-              You need to be logged in to create a battle set collection.
+              You need to be logged in to create a battleset collection.
             </p>
             <router-link to="/login" class="btn btn-h4 btn-primary">
               Go to Login

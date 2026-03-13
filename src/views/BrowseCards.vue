@@ -152,6 +152,14 @@
                   </select>
                 </div>
 
+                <!-- Save (mobile): close sidebar and apply filters -->
+                <button
+                  @click="showMobileFilters = false"
+                  class="btn btn-h4 btn-primary w-full md:hidden"
+                >
+                  Save
+                </button>
+
                 <!-- Clear Filters -->
                 <button
                   @click="clearFilters"

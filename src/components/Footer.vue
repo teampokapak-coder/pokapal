@@ -8,7 +8,7 @@
             <img
               src="/Glint SVG.svg"
               alt="Pull TCG"
-              class="h-7 w-7 brand-mark"
+              class="h-7 w-7 brand-mark brand-mark-preserve"
             />
             <img
               src="/pull-tcg.svg"

@@ -7,6 +7,18 @@
           <p class="section-subtitle">Search and explore trainers</p>
         </div>
 
+        <!-- Mobile: Search by name (above filter button for easy access) -->
+        <div class="mb-3 md:hidden">
+          <input
+            v-model="filters.search"
+            type="text"
+            placeholder="Search by trainer name..."
+            class="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2"
+            style="border-color: var(--color-border); background-color: var(--color-bg-secondary); color: var(--color-text-primary);"
+            @input="debouncedSearch"
+          />
+        </div>
+
         <!-- Mobile Filter Toggle Button -->
         <div class="mb-4 md:hidden">
           <button
@@ -83,6 +95,14 @@
                     <option value="name">Name (A-Z)</option>
                   </select>
                 </div>
+
+                <!-- Save (mobile): close sidebar and apply filters -->
+                <button
+                  @click="showMobileFilters = false"
+                  class="btn btn-h4 btn-primary w-full md:hidden"
+                >
+                  Save
+                </button>
 
                 <!-- Clear Filters -->
                 <button

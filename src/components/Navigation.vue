@@ -3,11 +3,14 @@
     <div class="section-container">
       <div class="flex justify-between items-center h-16">
         <router-link to="/" class="flex items-center gap-2 md:gap-3">
-          <img
-            src="/Glint SVG.svg"
-            alt="Pull TCG"
-            class="h-7 md:h-9 w-auto brand-mark"
-          />
+          <picture>
+            <source media="(prefers-color-scheme: light)" srcset="/glint_day.svg" />
+            <img
+              src="/Glint SVG.svg"
+              alt="Pull TCG"
+              class="h-7 md:h-9 w-auto brand-mark brand-mark-preserve"
+            />
+          </picture>
           <img
             src="/pull-tcg.svg"
             alt="Pull TCG"
@@ -45,7 +48,7 @@
             to="/start" 
             class="btn btn-h6 btn-primary"
           >
-            Start Battle Set
+            Start Battleset
           </router-link>
           
           <!-- Auth Section -->
@@ -99,11 +102,14 @@
           <!-- Header -->
           <div class="flex items-center justify-between p-4" style="border-bottom: 1px solid var(--color-border);">
             <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
-              <img
-                src="/Glint SVG.svg"
-                alt="Pull TCG"
-                class="h-8 w-auto brand-mark"
-              />
+              <picture>
+                <source media="(prefers-color-scheme: light)" srcset="/glint_day.svg" />
+                <img
+                  src="/Glint SVG.svg"
+                  alt="Pull TCG"
+                  class="h-8 w-auto brand-mark brand-mark-preserve"
+                />
+              </picture>
               <img
                 src="/pull-tcg.svg"
                 alt="Pull TCG"
@@ -176,7 +182,7 @@
                   class="block px-4 py-3 rounded-lg btn btn-h4 btn-primary text-center"
                   @click="mobileMenuOpen = false"
                 >
-                  Start Battle Set
+                  Start Battleset
                 </router-link>
                 <router-link 
                   to="/blog" 

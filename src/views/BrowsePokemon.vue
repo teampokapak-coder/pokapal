@@ -7,8 +7,16 @@
           <p class="section-subtitle">Search and explore Pokemon</p>
         </div>
 
-        <!-- Mobile Filter Toggle Button -->
-        <div class="mb-4 md:hidden">
+        <!-- Mobile: Search by name + Filter button -->
+        <div class="mb-4 md:hidden space-y-3">
+          <input
+            v-model="filters.search"
+            type="text"
+            placeholder="Search by name..."
+            class="w-full px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-sm"
+            style="border-color: var(--color-border); background-color: var(--color-bg-secondary); color: var(--color-text-primary);"
+            @input="debouncedSearch"
+          />
           <button
             @click="showMobileFilters = !showMobileFilters"
             class="btn btn-h5 btn-primary w-full flex items-center justify-center gap-2"
@@ -22,6 +30,8 @@
             </span>
           </button>
         </div>
+
+        <!-- Desktop: Search stays in sidebar (no duplicate block) -->
 
         <!-- Mobile Filter Overlay -->
         <div 
@@ -125,6 +135,14 @@
                     <option value="name">Name (A-Z)</option>
                   </select>
                 </div>
+
+                <!-- Save (mobile) - closes sidebar and applies filters -->
+                <button
+                  @click="showMobileFilters = false"
+                  class="md:hidden btn btn-h4 btn-primary w-full"
+                >
+                  Save
+                </button>
 
                 <!-- Clear Filters -->
                 <button

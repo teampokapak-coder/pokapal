@@ -3,11 +3,14 @@
     <div class="max-w-md w-full">
       <div class="text-center mb-8">
         <div class="flex items-center justify-center gap-3 mx-auto mb-4">
-          <img
-            src="/Glint SVG.svg"
-            alt="Pull TCG"
-            class="h-10 w-auto brand-mark"
-          />
+          <picture>
+            <source media="(prefers-color-scheme: light)" srcset="/glint_day.svg" />
+            <img
+              src="/Glint SVG.svg"
+              alt="Pull TCG"
+              class="h-10 w-auto brand-mark brand-mark-preserve"
+            />
+          </picture>
           <img
             src="/pull-tcg.svg"
             alt="Pull TCG"
@@ -83,6 +86,17 @@
             >
               {{ isSubmitting ? 'Signing in...' : 'Sign In' }}
             </button>
+            <div class="text-center text-xs" style="color: var(--color-text-tertiary);">
+              or
+            </div>
+            <button
+              type="button"
+              @click="handleGoogleLogin"
+              class="btn btn-h3 btn-secondary w-full"
+              :disabled="isSubmitting"
+            >
+              Sign in with Google
+            </button>
           </form>
 
           <!-- Register Form -->
@@ -155,7 +169,7 @@ import { useAuth } from '../composables/useAuth'
 
 const router = useRouter()
 const route = useRoute()
-const { login, register, resetPassword, error: authError, user } = useAuth()
+const { login, loginWithGoogle, register, resetPassword, error: authError, user } = useAuth()
 
 const isLogin = ref(true)
 const isSubmitting = ref(false)
@@ -191,6 +205,16 @@ const handleRegister = async () => {
   
   if (result.success) {
     // Redirect to original destination or home
+    router.push(route.query.redirect || '/')
+  }
+}
+
+const handleGoogleLogin = async () => {
+  isSubmitting.value = true
+  const result = await loginWithGoogle()
+  isSubmitting.value = false
+
+  if (result.success) {
     router.push(route.query.redirect || '/')
   }
 }

@@ -716,6 +716,11 @@
     filter: brightness(0);
   }
 
+  /* Preserve full-color logo assets that already have light-mode variants */
+  .light .brand-mark.brand-mark-preserve {
+    filter: none;
+  }
+
   select option {
     background-color: var(--color-bg-secondary) !important;
     color: var(--color-text-primary) !important;

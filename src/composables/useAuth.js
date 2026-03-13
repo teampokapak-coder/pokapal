@@ -6,9 +6,11 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../config/firebase'
 
 // Shared state
@@ -69,6 +71,35 @@ export const useAuth = () => {
     }
   }
 
+  // Login with Google
+  const loginWithGoogle = async () => {
+    try {
+      error.value = null
+      const provider = new GoogleAuthProvider()
+      const userCredential = await signInWithPopup(auth, provider)
+
+      // Ensure user document exists for Google-auth users
+      const userRef = doc(db, 'users', userCredential.user.uid)
+      const userSnap = await getDoc(userRef)
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          email: userCredential.user.email,
+          displayName: userCredential.user.displayName || userCredential.user.email,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          groups: [],
+          collections: [],
+          isAdmin: false
+        })
+      }
+
+      return { success: true, user: userCredential.user }
+    } catch (err) {
+      error.value = err.message
+      return { success: false, error: err.message }
+    }
+  }
+
   // Logout
   const logout = async () => {
     try {
@@ -99,6 +130,7 @@ export const useAuth = () => {
     error,
     register,
     login,
+    loginWithGoogle,
     logout,
     resetPassword
   }

@@ -97,7 +97,7 @@
       <!-- Main Content -->
       <main class="flex-1 overflow-y-auto">
         <!-- Hero Banner -->
-        <div class="relative bg-cover bg-center bg-no-repeat overflow-hidden" style="background-image: url('/lavender_town.png');">
+        <div class="hero-banner relative bg-cover bg-center bg-no-repeat overflow-hidden">
           <div
             class="absolute inset-0"
             style="background: linear-gradient(90deg, rgba(14,12,10,0.86) 0%, rgba(14,12,10,0.60) 45%, rgba(14,12,10,0.18) 100%);"
@@ -639,4 +639,18 @@ watch(() => user.value?.uid, async (newUid) => {
 })
 
 </script>
+
+<style scoped>
+.hero-banner {
+  background-image: url('/lavender_town.png');
+}
+
+html.light .hero-banner {
+  background-image: url('/lavender_town_day.png');
+}
+
+html.dark .hero-banner {
+  background-image: url('/lavender_town.png');
+}
+</style>
 
