@@ -3,7 +3,7 @@
     <!-- Card Container -->
     <div
       class="relative aspect-[3/4] sm:aspect-square rounded overflow-hidden border-2 transition-all cursor-pointer group"
-      :class="[cardClasses, !isCollectedComputed ? 'uncollected-card' : '']"
+      :class="[cardClasses, !isChallengeCollectedComputed ? 'uncollected-card' : '']"
       :style="cardStyle"
       @click="handleCardClick"
     >
@@ -12,10 +12,10 @@
         :src="getCardImageUrl(card)"
         :alt="card.name"
         class="w-full h-full object-contain transition-opacity duration-300"
-        :style="{ opacity: isCollectedComputed ? 1 : 0.75 }"
+        :style="{ opacity: isChallengeCollectedComputed ? 1 : 0.75 }"
         @error="handleImageError"
       />
-      <div v-else class="w-full h-full flex items-center justify-center font-bold text-lg transition-opacity duration-300" :style="{ opacity: isCollectedComputed ? 1 : 0.75, color: 'var(--color-text-tertiary)', background: 'linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary))' }">
+      <div v-else class="w-full h-full flex items-center justify-center font-bold text-lg transition-opacity duration-300" :style="{ opacity: isChallengeCollectedComputed ? 1 : 0.75, color: 'var(--color-text-tertiary)', background: 'linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary))' }">
         {{ getCardFallbackText(card) }}
       </div>
       
@@ -27,7 +27,7 @@
       <!-- Collection Checkmark Overlay (top-right corner) -->
       <Transition name="checkmark">
         <div
-          v-if="isCollectedComputed"
+          v-if="isChallengeCollectedComputed"
           class="absolute top-1.5 right-1.5 bg-green-500 rounded-full p-1 shadow-lg z-20"
         >
           <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,15 +36,15 @@
         </div>
       </Transition>
       
-      <!-- Small Pokeball Icon (bottom-right corner, always visible for uncollected) -->
+      <!-- Small Pokeball Icon (bottom-right corner, collection state) -->
       <Transition name="pokeball">
         <div
-          v-if="!isCollectedComputed"
+          v-if="showCollectionButton || isGloballyCollectedComputed || !isChallengeCollectedComputed"
           class="absolute bottom-1.5 right-1.5 z-20"
         >
           <img
             :src="currentPokeballIcon"
-            alt="Not collected"
+            :alt="isGloballyCollectedComputed ? 'In your collection' : 'Not in your collection'"
             class="w-5 h-5 sm:w-6 sm:h-6 opacity-60"
             draggable="false"
           />
@@ -55,7 +55,7 @@
     <!-- Collect Button (below card, only for uncollected cards) -->
     <Transition name="button">
       <button
-        v-if="!isCollectedComputed && showCollectionButton"
+        v-if="!isChallengeCollectedComputed && showCollectionButton"
       @click.stop="handleToggleCollected"
       class="mt-1.5 w-full py-1.5 px-2 text-xs sm:text-sm font-medium rounded transition-all collection-button"
       :class="isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'"
@@ -98,11 +98,6 @@ onMounted(() => {
   })
 })
 
-// Use white pokeball in dark mode, regular in light mode
-const currentPokeballIcon = computed(() => {
-  return isDarkMode.value ? pokeballWhiteIconPath : pokeballIconPath
-})
-
 // Get card image URL
 const getCardImageUrl = (card) => {
   if (!card) return null
@@ -122,6 +117,10 @@ const props = defineProps({
     required: true
   },
   isCollected: {
+    type: Boolean,
+    default: false
+  },
+  isGloballyCollected: {
     type: Boolean,
     default: false
   },
@@ -145,9 +144,23 @@ const imageError = ref(false)
 
 // Computed property to ensure reactivity for isCollected
 // This ensures Vue tracks changes to both the prop and the card object
-const isCollectedComputed = computed(() => {
+const isChallengeCollectedComputed = computed(() => {
   // Use prop first (most reliable), fallback to card.isCollected for reactivity
   return props.isCollected !== undefined ? props.isCollected : (props.card?.isCollected || false)
+})
+
+const isGloballyCollectedComputed = computed(() => {
+  return props.isGloballyCollected !== undefined
+    ? props.isGloballyCollected
+    : Boolean(props.card?.isGloballyCollected)
+})
+
+// Use filled pokeball for cards in your global collection
+const currentPokeballIcon = computed(() => {
+  if (isGloballyCollectedComputed.value) {
+    return pokeballFillIconPath
+  }
+  return isDarkMode.value ? pokeballWhiteIconPath : pokeballIconPath
 })
 
 // Reset image error when card changes
@@ -158,7 +171,7 @@ watch(() => props.card?.id, () => {
 const cardStyle = computed(() => {
   const baseStyle = {
     backgroundColor: 'var(--color-bg-tertiary)',
-    borderColor: isCollectedComputed.value ? 'var(--color-border)' : 'var(--color-border)'
+    borderColor: isChallengeCollectedComputed.value ? 'var(--color-border)' : 'var(--color-border)'
   }
   
   // Don't reduce overall opacity - let individual elements handle their own opacity

@@ -20,24 +20,31 @@
         </div>
 
         <div v-else class="max-w-4xl mx-auto">
-          <div class="mb-8">
-            <div class="flex items-center justify-between">
-              <div
-                v-for="(step, idx) in steps"
-                :key="step.id"
-                class="flex items-center flex-1"
-              >
-                <div class="flex flex-col items-center flex-1">
+          <div class="mb-8 w-full">
+            <!-- 5 equal columns: step | line | step | line | step (balanced on all breakpoints) -->
+            <div class="grid grid-cols-5 gap-x-2 sm:gap-x-4 items-center w-full">
+              <template v-for="(step, idx) in steps" :key="step.id">
+                <div class="flex flex-col items-center justify-center min-w-0">
                   <div
-                    class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors"
+                    class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors shrink-0"
                     :class="currentStep > idx ? 'btn-primary text-white' : currentStep === idx ? 'btn-secondary' : 'btn-ghost'"
                   >
                     {{ idx + 1 }}
                   </div>
-                  <p class="text-xs mt-2">{{ step.label }}</p>
                 </div>
-                <div v-if="idx < steps.length - 1" class="flex-1 h-px mx-2" style="background-color: var(--color-border);"></div>
-              </div>
+                <div
+                  v-if="idx < steps.length - 1"
+                  class="h-px w-full min-w-[0.75rem] self-center"
+                  style="background-color: var(--color-border);"
+                  aria-hidden="true"
+                />
+              </template>
+            </div>
+            <div class="grid grid-cols-5 gap-x-2 sm:gap-x-4 w-full mt-2">
+              <template v-for="(step, idx) in steps" :key="`${step.id}-label`">
+                <p class="text-xs text-center text-balance leading-tight">{{ step.label }}</p>
+                <div v-if="idx < steps.length - 1" class="min-h-0 min-w-0" aria-hidden="true" />
+              </template>
             </div>
           </div>
 
@@ -78,6 +85,130 @@
             </div>
           </div>
 
+          <div v-else-if="currentStep === 1" class="card">
+            <div class="card-header">
+              <h3 class="card-title">Add Players</h3>
+              <p class="card-subtitle">Invite players by username or email</p>
+            </div>
+            <div class="card-body space-y-4">
+              <div class="pt-2 ui-divider">
+                <label class="block text-sm mb-2">Players</label>
+                <div class="ui-panel overflow-hidden">
+                  <div class="grid grid-cols-12 gap-3 px-3 py-2 text-xs font-semibold uppercase tracking-wide" style="color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border);">
+                    <div class="col-span-7">Player</div>
+                    <div class="col-span-5">Status</div>
+                  </div>
+                  <div
+                    v-for="(slot, idx) in form.participants"
+                    :key="slot.key"
+                    class="grid grid-cols-12 gap-3 px-3 py-3 items-center"
+                    style="border-bottom: 1px solid var(--color-border);"
+                  >
+                    <div class="col-span-7 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <img
+                          v-if="getParticipantPhotoUrl(slot)"
+                          :src="getParticipantPhotoUrl(slot)"
+                          :alt="participantLabel(slot)"
+                          class="w-8 h-8 rounded-full object-cover border"
+                          style="border-color: var(--color-border);"
+                        />
+                        <div
+                          v-else
+                          class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
+                          style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);"
+                        >
+                          {{ participantInitials(slot) }}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                          <p class="text-sm font-medium truncate">{{ participantLabel(slot) }}</p>
+                          <p class="text-xs truncate" style="color: var(--color-text-secondary);">
+                            {{ slot.isSelf ? 'You' : `Player ${idx + 1}` }}
+                          </p>
+                        </div>
+                        <div v-if="!slot.isSelf" class="ml-auto flex items-center gap-3">
+                          <button
+                            type="button"
+                            class="text-xs font-medium"
+                            style="color: var(--color-text-secondary);"
+                            @click="startEditParticipant(slot)"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            class="text-xs font-medium"
+                            style="color: var(--color-text-secondary);"
+                            @click="removeParticipant(slot.key)"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-span-5">
+                      <span class="text-xs px-2 py-1 rounded ui-panel">
+                        {{ slot.isSelf ? 'Ready' : (slot.userId ? 'User found' : (slot.email ? 'Email invite' : 'Needs input')) }}
+                      </span>
+                    </div>
+                    <div v-if="!slot.isSelf && slot.isEditing" class="col-span-12">
+                      <div class="flex items-center gap-2">
+                        <input
+                          v-model="slot.input"
+                          type="text"
+                          class="ui-field flex-1"
+                          placeholder="Search user or type email"
+                          @input="searchParticipant(slot)"
+                          @focus="slot.showResults = true"
+                          @blur="handleParticipantBlur(slot)"
+                        />
+                        <button
+                          type="button"
+                          class="btn btn-h5 btn-primary"
+                          @click="saveParticipantEdit(slot)"
+                        >
+                          Save
+                        </button>
+                      </div>
+
+                      <div
+                        v-if="slot.searchResults.length > 0 && slot.showResults"
+                        class="ui-panel max-h-40 overflow-y-auto mt-1"
+                      >
+                        <button
+                          v-for="result in slot.searchResults"
+                          :key="result.userId"
+                          type="button"
+                          class="w-full text-left px-3 py-2 border-b last:border-b-0"
+                          style="border-color: var(--color-border);"
+                          @click="selectParticipant(slot, result)"
+                        >
+                          <div>{{ result.displayName || result.email }}</div>
+                          <div class="text-xs" style="color: var(--color-text-secondary);">{{ result.email }}</div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-3 flex items-center justify-between">
+                  <button type="button" class="btn btn-h5 btn-primary" :disabled="form.participants.length >= maxParticipants" @click="addParticipant">
+                    + Add Friend
+                  </button>
+                  <p class="text-xs" style="color: var(--color-text-secondary);">
+                    {{ form.participants.length }} / {{ maxParticipants }} players
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex justify-between pt-2">
+                <button type="button" class="btn btn-h3 btn-ghost" @click="prevStep">Back</button>
+                <button type="button" class="btn btn-h3 btn-primary" :disabled="!canProceedPlayers" @click="nextStep">
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div v-else class="card">
             <div class="card-header">
               <h3 class="card-title">Configure Challenge</h3>
@@ -94,38 +225,53 @@
                 />
               </div>
 
-              <div>
-                <label class="block text-sm mb-2">Players</label>
-                <select
-                  v-model.number="form.playerCount"
-                  class="ui-field"
-                  @change="syncParticipants"
-                >
-                  <option :value="1">Solo (1 player)</option>
-                  <option :value="2">2 players</option>
-                  <option :value="3">3 players</option>
-                  <option :value="4">4 players</option>
-                </select>
+              <div class="ui-panel p-3">
+                <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--color-text-tertiary);">Players</p>
+                <p class="text-sm" style="color: var(--color-text-secondary);">
+                  {{ form.participants.map((slot) => participantLabel(slot)).join(' • ') }}
+                </p>
               </div>
 
-              <div class="card card-flat p-2 sm:p-3 space-y-3">
+              <div class="ui-panel p-3 space-y-4" style="background-color: rgba(91,168,219,0.08); border-color: rgba(91,168,219,0.28);">
+                <div>
+                  <label class="block text-sm mb-2">Collaboration Mode</label>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <button type="button" class="btn btn-h4 w-full" :class="form.collaborationMode === 'race' ? 'btn-primary' : 'btn-ghost'" @click="form.collaborationMode = 'race'">
+                        Battle Against
+                      </button>
+                      <p class="text-xs mt-2" style="color: var(--color-text-secondary);">
+                        Everyone gets their own assignment and races to finish first.
+                      </p>
+                    </div>
+                    <div>
+                      <button type="button" class="btn btn-h4 w-full" :class="form.collaborationMode === 'together' ? 'btn-primary' : 'btn-ghost'" @click="form.collaborationMode = 'together'">
+                        Battle Together
+                      </button>
+                      <p class="text-xs mt-2" style="color: var(--color-text-secondary);">
+                        One shared team assignment where everyone collects together.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label class="block text-sm mb-2">Assignment Method</label>
                   <div class="grid grid-cols-2 gap-3">
-                    <button class="btn btn-h4" :class="form.selectionMode === 'random' ? 'btn-primary' : 'btn-ghost'" @click="setSelectionMode('random')">
+                    <button type="button" class="btn btn-h4 flat-option-btn" :class="form.selectionMode === 'random' ? 'btn-primary' : 'btn-ghost'" @click="setSelectionMode('random')">
                       🎲 Random
                     </button>
-                    <button class="btn btn-h4" :class="form.selectionMode === 'choose' ? 'btn-primary' : 'btn-ghost'" @click="setSelectionMode('choose')">
+                    <button type="button" class="btn btn-h4 flat-option-btn" :class="form.selectionMode === 'choose' ? 'btn-primary' : 'btn-ghost'" @click="setSelectionMode('choose')">
                       📋 Select
                     </button>
                   </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                  <button class="btn btn-h4" :class="form.cardCountMode === 'all' ? 'btn-primary' : 'btn-ghost'" @click="form.cardCountMode = 'all'">
+                  <button type="button" class="btn btn-h4 flat-option-btn" :class="form.cardCountMode === 'all' ? 'btn-primary' : 'btn-ghost'" @click="form.cardCountMode = 'all'">
                     All Cards
                   </button>
-                  <button class="btn btn-h4" :class="form.cardCountMode === 'fixed' ? 'btn-primary' : 'btn-ghost'" @click="form.cardCountMode = 'fixed'">
+                  <button type="button" class="btn btn-h4 flat-option-btn" :class="form.cardCountMode === 'fixed' ? 'btn-primary' : 'btn-ghost'" @click="form.cardCountMode = 'fixed'">
                     Max number of cards
                   </button>
                 </div>
@@ -152,62 +298,45 @@
               </div>
 
               <div class="pt-2 ui-divider">
-                <label class="block text-sm mb-2">Players & Assignments</label>
-                <div class="space-y-3">
+                <label class="block text-sm mb-2">{{ form.collaborationMode === 'together' ? 'Players' : 'Players & Assignments' }}</label>
+                <div class="ui-panel overflow-hidden">
+                  <div class="grid grid-cols-12 gap-3 px-3 py-2 text-xs font-semibold uppercase tracking-wide" style="color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border);">
+                    <div class="col-span-5">Player</div>
+                    <div v-if="form.collaborationMode === 'race'" class="col-span-5">Assignment</div>
+                    <div class="col-span-2">Action</div>
+                  </div>
                   <div
                     v-for="(slot, idx) in form.participants"
                     :key="slot.key"
-                    class="card card-flat card-no-hover card-blue-outline p-3"
+                    class="grid grid-cols-12 gap-3 px-3 py-3 items-center"
+                    style="border-bottom: 1px solid var(--color-border);"
                   >
-                    <div class="flex flex-col md:flex-row md:items-start gap-3">
-                      <div class="md:w-72">
-                        <p class="font-medium">{{ slot.isSelf ? 'You' : `Player ${idx + 1}` }}</p>
-                        <div class="mt-1">
-                          <span
-                            v-if="slot.isSelf"
-                            class="ui-selected-pill"
-                          >
-                            <span class="truncate">{{ user?.displayName || user?.email || 'Current user' }}</span>
-                          </span>
-
-                          <input
-                            v-else-if="slot.isEditing"
-                            v-model="slot.input"
-                            type="text"
-                            class="ui-field"
-                            placeholder="Search user or type email"
-                            @input="searchParticipant(slot)"
-                            @focus="slot.showResults = true"
-                            @blur="handleParticipantBlur(slot)"
-                          />
-
-                          <button
-                            v-else
-                            class="ui-selected-pill"
-                            @click="startEditParticipant(slot)"
-                          >
-                            <span class="truncate">{{ slot.userName || slot.email || 'Click to add user or email' }}</span>
-                          </button>
-                        </div>
-
+                    <div class="col-span-5 min-w-0">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <img
+                          v-if="getParticipantPhotoUrl(slot)"
+                          :src="getParticipantPhotoUrl(slot)"
+                          :alt="participantLabel(slot)"
+                          class="w-8 h-8 rounded-full object-cover border"
+                          style="border-color: var(--color-border);"
+                        />
                         <div
-                          v-if="!slot.isSelf && slot.isEditing && slot.searchResults.length > 0 && slot.showResults"
-                          class="ui-panel max-h-40 overflow-y-auto mt-1"
+                          v-else
+                          class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
+                          style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);"
                         >
-                          <button
-                            v-for="result in slot.searchResults"
-                            :key="result.userId"
-                            class="w-full text-left px-3 py-2 border-b last:border-b-0"
-                            style="border-color: var(--color-border);"
-                            @click="selectParticipant(slot, result)"
-                          >
-                            <div>{{ result.displayName || result.email }}</div>
-                            <div class="text-xs" style="color: var(--color-text-secondary);">{{ result.email }}</div>
-                          </button>
+                          {{ participantInitials(slot) }}
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-sm font-medium truncate">{{ participantLabel(slot) }}</p>
+                          <p class="text-xs truncate" style="color: var(--color-text-secondary);">
+                            {{ slot.isSelf ? 'You' : `Player ${idx + 1}` }}
+                          </p>
                         </div>
                       </div>
+                    </div>
 
-                      <div class="flex-1 md:px-2 md:pt-6">
+                    <div v-if="form.collaborationMode === 'race'" class="col-span-5 min-w-0">
                         <div v-if="assignmentDetails(slot).isPokemon && assignmentDetails(slot).value !== 'none'" class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md ui-panel" style="background-color: var(--color-bg-primary);">
                           <div class="w-8 h-8 rounded flex items-center justify-center overflow-hidden pokemon-image-bg">
                             <img
@@ -227,12 +356,56 @@
                           <span class="font-semibold">{{ assignmentDetails(slot).label }}:</span>
                           <span class="font-semibold ml-1">{{ assignmentDetails(slot).value }}</span>
                         </p>
-                      </div>
+                    </div>
 
-                      <button class="btn btn-h5 btn-primary md:w-28 md:mt-6" @click="assignForParticipant(slot)">
+                    <div class="col-span-2 flex justify-end">
+                      <button
+                        v-if="form.collaborationMode !== 'together'"
+                        type="button"
+                        class="btn btn-h5 btn-primary"
+                        @click="assignForParticipant(slot)"
+                      >
                         Assign
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                <div v-if="form.collaborationMode === 'together'" class="card card-flat card-no-hover card-blue-outline p-3 mt-4">
+                  <div class="flex flex-col md:flex-row md:items-start gap-3">
+                    <div class="flex-1 md:px-2 md:pt-1">
+                      <p class="text-sm font-semibold mb-1">Team Assignment</p>
+                      <div v-if="assignmentDetails(form.participants[0]).isPokemon && assignmentDetails(form.participants[0]).value !== 'none'" class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md ui-panel" style="background-color: var(--color-bg-primary);">
+                        <div class="w-8 h-8 rounded flex items-center justify-center overflow-hidden pokemon-image-bg">
+                          <img
+                            v-if="assignmentDetails(form.participants[0]).spriteUrl"
+                            :src="assignmentDetails(form.participants[0]).spriteUrl"
+                            :alt="assignmentDetails(form.participants[0]).value"
+                            class="w-full h-full object-contain"
+                          />
+                          <span v-else class="text-xs font-semibold">PK</span>
+                        </div>
+                        <p class="text-sm">
+                          <span class="font-semibold">{{ assignmentDetails(form.participants[0]).label }}:</span>
+                          <span class="font-semibold ml-1">{{ assignmentDetails(form.participants[0]).value }}</span>
+                        </p>
+                      </div>
+                      <p v-else class="text-sm">
+                        <span class="font-semibold">{{ assignmentDetails(form.participants[0]).label }}:</span>
+                        <span class="font-semibold ml-1">{{ assignmentDetails(form.participants[0]).value }}</span>
+                      </p>
+                      <p class="text-xs mt-2" style="color: var(--color-text-secondary);">
+                        This target is assigned to all players as one shared checklist.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="btn btn-h5 btn-primary md:w-36 md:mt-6"
+                      @click="assignForParticipant(form.participants[0])"
+                    >
+                      Assign Shared
+                    </button>
                   </div>
                 </div>
               </div>
@@ -307,7 +480,11 @@ import SuccessNotification from '../components/SuccessNotification.vue'
 const router = useRouter()
 const { user } = useAuth()
 
-const steps = [{ id: 'choose', label: 'Choose' }, { id: 'configure', label: 'Configure' }]
+const steps = [
+  { id: 'choose', label: 'Choose' },
+  { id: 'players', label: 'Players' },
+  { id: 'configure', label: 'Configure' }
+]
 const currentStep = ref(0)
 const selectedType = ref(null)
 
@@ -326,6 +503,7 @@ const makeParticipant = (idx, isSelf = false) => ({
   userId: isSelf ? user.value?.uid || null : null,
   userName: isSelf ? user.value?.displayName || user.value?.email || 'You' : null,
   email: isSelf ? user.value?.email || null : null,
+  photoUrl: isSelf ? user.value?.photoURL || null : null,
   input: '',
   isEditing: !isSelf,
   searching: false,
@@ -346,9 +524,10 @@ const form = ref({
   cardCountMode: 'all',
   fixedCardCount: 50,
   randomScope: 'all',
-  playerCount: 1,
+  collaborationMode: 'race',
   participants: [makeParticipant(1, true)]
 })
+const maxParticipants = 8
 
 const availableSets = ref([])
 const availablePokemon = ref([])
@@ -371,16 +550,54 @@ const canCreate = computed(() => {
   if (!form.value.challengeName.trim()) return false
   if (form.value.cardCountMode === 'fixed' && (!form.value.fixedCardCount || form.value.fixedCardCount < 1)) return false
 
-  const allPlayersValid = form.value.participants.every((slot, idx) => {
+  const allPlayersValid = form.value.participants.every((slot) => {
     const hasIdentity = slot.isSelf || Boolean(slot.userId || slot.email || (slot.input && slot.input.includes('@')))
     if (!hasIdentity) return false
+    if (form.value.collaborationMode === 'together') return true
     if (selectedType.value === 'set') return Boolean(slot.assignment.setId)
     if (selectedType.value === 'pokemon') return Boolean(slot.assignment.pokemonId)
     if (selectedType.value === 'trainer') return Boolean(slot.assignment.trainerId)
     return Boolean(slot.assignment.randomAssigned)
   })
-  return allPlayersValid
+
+  if (!allPlayersValid) return false
+
+  if (form.value.collaborationMode === 'together') {
+    const first = form.value.participants[0]
+    if (selectedType.value === 'set') return Boolean(first?.assignment?.setId)
+    if (selectedType.value === 'pokemon') return Boolean(first?.assignment?.pokemonId)
+    if (selectedType.value === 'trainer') return Boolean(first?.assignment?.trainerId)
+    return Boolean(first?.assignment?.randomAssigned)
+  }
+
+  return true
 })
+
+const canProceedPlayers = computed(() => {
+  return form.value.participants.every((slot) => {
+    return slot.isSelf || Boolean(slot.userId || slot.email || (slot.input && slot.input.includes('@')))
+  })
+})
+
+const participantLabel = (slot) => {
+  if (!slot) return 'Unknown player'
+  if (slot.isSelf) return user.value?.displayName || user.value?.email || 'You'
+  return slot.userName || slot.email || slot.input || 'Pending player'
+}
+
+const getParticipantPhotoUrl = (slot) => {
+  if (!slot) return null
+  if (slot.isSelf) return user.value?.photoURL || null
+  return slot.photoUrl || null
+}
+
+const participantInitials = (slot) => {
+  const label = participantLabel(slot)
+  if (!label) return '?'
+  const parts = label.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase()
+  return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase()
+}
 
 const toShuffled = (arr) => {
   const copy = [...arr]
@@ -486,21 +703,25 @@ const getRandomCards = async (languages) => {
   }
 }
 
-const syncParticipants = () => {
-  const desired = Math.min(4, Math.max(1, form.value.playerCount || 1))
-  const current = form.value.participants
-  const updated = [current[0] || makeParticipant(1, true)]
-  updated[0].isSelf = true
-  updated[0].userId = user.value?.uid || null
-  updated[0].userName = user.value?.displayName || user.value?.email || 'You'
-  updated[0].email = user.value?.email || null
+const syncSelfParticipant = () => {
+  const current = form.value.participants || []
+  const others = current.filter((slot) => !slot.isSelf)
+  const selfSlot = current.find((slot) => slot.isSelf) || makeParticipant(1, true)
+  selfSlot.isSelf = true
+  selfSlot.userId = user.value?.uid || null
+  selfSlot.userName = user.value?.displayName || user.value?.email || 'You'
+  selfSlot.email = user.value?.email || null
+  selfSlot.photoUrl = user.value?.photoURL || null
+  form.value.participants = [selfSlot, ...others]
+}
 
-  for (let i = 1; i < desired; i += 1) {
-    const slot = current[i] || makeParticipant(i + 1, false)
-    if (typeof slot.isEditing === 'undefined') slot.isEditing = false
-    updated.push(slot)
-  }
-  form.value.participants = updated
+const addParticipant = () => {
+  if (form.value.participants.length >= maxParticipants) return
+  form.value.participants.push(makeParticipant(form.value.participants.length + 1, false))
+}
+
+const removeParticipant = (participantKey) => {
+  form.value.participants = form.value.participants.filter((slot) => slot.isSelf || slot.key !== participantKey)
 }
 
 const setSelectionMode = (mode) => {
@@ -556,6 +777,7 @@ const selectParticipant = (target, result) => {
   target.userId = result.userId
   target.userName = result.displayName || result.email
   target.email = result.email || ''
+  target.photoUrl = result.photoURL || result.avatarUrl || result.profileImageUrl || null
   target.input = result.email || result.displayName || ''
   target.searchResults = []
   target.showResults = false
@@ -565,6 +787,24 @@ const selectParticipant = (target, result) => {
 const startEditParticipant = (slot) => {
   slot.isEditing = true
   slot.showResults = false
+}
+
+const saveParticipantEdit = (slot) => {
+  const value = (slot.input || '').trim()
+  if (!value) {
+    slot.showResults = false
+    slot.isEditing = false
+    return
+  }
+
+  if (!slot.userId && value.includes('@')) {
+    slot.email = value
+    slot.userName = null
+    slot.photoUrl = null
+  }
+
+  slot.showResults = false
+  slot.isEditing = false
 }
 
 const handleParticipantBlur = (slot) => {
@@ -587,16 +827,24 @@ const handleParticipantBlur = (slot) => {
 }
 
 const assignForParticipant = (slot) => {
+  const assignToSlots = form.value.collaborationMode === 'together' ? form.value.participants : [slot]
+
   if (form.value.selectionMode === 'random') {
-    if (selectedType.value === 'set') slot.assignment.setId = pickRandomSet() || ''
-    if (selectedType.value === 'pokemon') slot.assignment.pokemonId = pickRandomPokemon() || ''
-    if (selectedType.value === 'trainer') slot.assignment.trainerId = pickRandomTrainer() || ''
-    if (selectedType.value === 'randomNumber') slot.assignment.randomAssigned = true
+    assignToSlots.forEach((targetSlot) => {
+      if (selectedType.value === 'set') targetSlot.assignment.setId = pickRandomSet() || ''
+      if (selectedType.value === 'pokemon') targetSlot.assignment.pokemonId = pickRandomPokemon() || ''
+      if (selectedType.value === 'trainer') targetSlot.assignment.trainerId = pickRandomTrainer() || ''
+      if (selectedType.value === 'randomNumber') targetSlot.assignment.randomAssigned = true
+    })
     return
   }
   assignModal.value.open = true
-  assignModal.value.participantKey = slot.key
-  assignModal.value.slotLabel = slot.isSelf ? 'you' : (slot.userName || slot.email || 'this player')
+  assignModal.value.participantKey = form.value.collaborationMode === 'together'
+    ? form.value.participants[0].key
+    : slot.key
+  assignModal.value.slotLabel = form.value.collaborationMode === 'together'
+    ? 'all players'
+    : (slot.isSelf ? 'you' : (slot.userName || slot.email || 'this player'))
   assignModal.value.query = ''
 }
 
@@ -632,9 +880,12 @@ const modalItems = computed(() => {
 const selectModalItem = (item) => {
   const slot = form.value.participants.find((p) => p.key === assignModal.value.participantKey)
   if (!slot) return
-  if (selectedType.value === 'set') slot.assignment.setId = item.id
-  if (selectedType.value === 'pokemon') slot.assignment.pokemonId = item.id
-  if (selectedType.value === 'trainer') slot.assignment.trainerId = item.id
+  const applyToSlots = form.value.collaborationMode === 'together' ? form.value.participants : [slot]
+  applyToSlots.forEach((targetSlot) => {
+    if (selectedType.value === 'set') targetSlot.assignment.setId = item.id
+    if (selectedType.value === 'pokemon') targetSlot.assignment.pokemonId = item.id
+    if (selectedType.value === 'trainer') targetSlot.assignment.trainerId = item.id
+  })
   closeAssignModal()
 }
 
@@ -714,12 +965,18 @@ const createMasterSet = async () => {
     const firstPokemon = availablePokemon.value.find((x) => x.id === first.assignment.pokemonId)
     const firstTrainer = availableTrainers.value.find((x) => x.id === first.assignment.trainerId)
 
+    const knownMemberIds = form.value.participants
+      .map((slot) => (slot.isSelf ? user.value.uid : slot.userId))
+      .filter(Boolean)
+    const uniqueMemberIds = Array.from(new Set(knownMemberIds))
+
     const masterSetData = {
       name: form.value.challengeName.trim(),
       description: null,
       type: challengeType === 'trainer' ? 'pokemon' : challengeType, // compatibility for existing screens
       challengeType,
-      challengeMode: form.value.challengeMode,
+      challengeMode: form.value.challengeMode || 'master-set',
+      mode: form.value.collaborationMode,
       selectionMode: form.value.selectionMode,
       cardCountMode: form.value.cardCountMode,
       cardCount: form.value.cardCountMode === 'fixed' ? form.value.fixedCardCount : null,
@@ -732,9 +989,11 @@ const createMasterSet = async () => {
       targetTrainerName: firstTrainer?.trainerName || null,
       randomScope: selectedType.value === 'randomNumber' ? form.value.randomScope : null,
       battleOwnerId: user.value.uid,
-      battleOpponentId: form.value.playerCount > 1 ? (form.value.participants[1]?.userId || null) : null,
-      battleStatus: form.value.playerCount > 1 ? 'pending' : null,
-      playerCount: form.value.playerCount,
+      battleOpponentId: form.value.participants.length > 1 ? (form.value.participants[1]?.userId || null) : null,
+      battleStatus: form.value.participants.length > 1 ? 'pending' : null,
+      playerCount: form.value.participants.length,
+      memberIds: uniqueMemberIds,
+      memberHistoryIds: uniqueMemberIds,
       languages,
       createdBy: user.value.uid
     }
@@ -743,33 +1002,70 @@ const createMasterSet = async () => {
     if (!created.success) throw new Error(created.error || 'Failed to create master set')
     const masterSetId = created.data.id
 
-    for (let i = 0; i < form.value.participants.length; i += 1) {
-      const slot = form.value.participants[i]
-      const setObj = availableSets.value.find((x) => x.id === slot.assignment.setId)
-      const pokemonObj = availablePokemon.value.find((x) => x.id === slot.assignment.pokemonId)
-      const trainerObj = availableTrainers.value.find((x) => x.id === slot.assignment.trainerId)
-      const cardsByLang = await getCardsForParticipant(slot, languages)
+    if (form.value.collaborationMode === 'together') {
+      const sharedSlot = form.value.participants[0]
+      const sharedSetObj = availableSets.value.find((x) => x.id === sharedSlot.assignment.setId)
+      const sharedPokemonObj = availablePokemon.value.find((x) => x.id === sharedSlot.assignment.pokemonId)
+      const sharedTrainerObj = availableTrainers.value.find((x) => x.id === sharedSlot.assignment.trainerId)
+      const sharedCards = await getCardsForParticipant(sharedSlot, languages)
+      const pendingMemberEmails = form.value.participants
+        .filter((slot) => !slot.isSelf && !slot.userId)
+        .map((slot) => slot.email || (slot.input.includes('@') ? slot.input : null))
+        .filter(Boolean)
 
-      if ((cardsByLang.card_en.length + cardsByLang.card_ja.length) === 0) {
-        throw new Error(`No cards found for ${slot.isSelf ? 'you' : `player ${i + 1}`}.`)
+      if ((sharedCards.card_en.length + sharedCards.card_ja.length) === 0) {
+        throw new Error('No cards found for this shared assignment.')
       }
 
       await createAssignment({
         masterSetId,
-        userId: slot.isSelf ? user.value.uid : (slot.userId || null),
-        userEmail: slot.isSelf ? user.value.email : (slot.email || (slot.input.includes('@') ? slot.input : null)),
-        email: slot.isSelf ? user.value.email : (slot.email || (slot.input.includes('@') ? slot.input : null)),
-        userName: slot.isSelf ? (user.value.displayName || user.value.email) : (slot.userName || null),
-        card_en: cardsByLang.card_en,
-        card_ja: cardsByLang.card_ja,
+        isShared: true,
+        memberIds: uniqueMemberIds,
+        memberHistoryIds: uniqueMemberIds,
+        pendingMemberEmails,
+        userId: user.value.uid,
+        userEmail: user.value.email,
+        email: user.value.email,
+        userName: user.value.displayName || user.value.email,
+        card_en: sharedCards.card_en,
+        card_ja: sharedCards.card_ja,
         type: challengeType === 'random' ? 'set' : challengeType === 'trainer' ? 'pokemon' : challengeType,
-        setId: setObj?.id || null,
-        setName: setObj?.name || null,
-        pokemonId: pokemonObj ? String(pokemonObj.nationalDexNumber || pokemonObj.id) : (trainerObj?.id || null),
-        pokemonName: pokemonObj ? (pokemonObj.displayName || pokemonObj.name) : (trainerObj?.trainerName || null),
-        status: slot.isSelf ? 'accepted' : 'pending',
+        setId: sharedSetObj?.id || null,
+        setName: sharedSetObj?.name || null,
+        pokemonId: sharedPokemonObj ? String(sharedPokemonObj.nationalDexNumber || sharedPokemonObj.id) : (sharedTrainerObj?.id || null),
+        pokemonName: sharedPokemonObj ? (sharedPokemonObj.displayName || sharedPokemonObj.name) : (sharedTrainerObj?.trainerName || null),
+        status: 'accepted',
         createdBy: user.value.uid
       })
+    } else {
+      for (let i = 0; i < form.value.participants.length; i += 1) {
+        const slot = form.value.participants[i]
+        const setObj = availableSets.value.find((x) => x.id === slot.assignment.setId)
+        const pokemonObj = availablePokemon.value.find((x) => x.id === slot.assignment.pokemonId)
+        const trainerObj = availableTrainers.value.find((x) => x.id === slot.assignment.trainerId)
+        const cardsByLang = await getCardsForParticipant(slot, languages)
+
+        if ((cardsByLang.card_en.length + cardsByLang.card_ja.length) === 0) {
+          throw new Error(`No cards found for ${slot.isSelf ? 'you' : `player ${i + 1}`}.`)
+        }
+
+        await createAssignment({
+          masterSetId,
+          userId: slot.isSelf ? user.value.uid : (slot.userId || null),
+          userEmail: slot.isSelf ? user.value.email : (slot.email || (slot.input.includes('@') ? slot.input : null)),
+          email: slot.isSelf ? user.value.email : (slot.email || (slot.input.includes('@') ? slot.input : null)),
+          userName: slot.isSelf ? (user.value.displayName || user.value.email) : (slot.userName || null),
+          card_en: cardsByLang.card_en,
+          card_ja: cardsByLang.card_ja,
+          type: challengeType === 'random' ? 'set' : challengeType === 'trainer' ? 'pokemon' : challengeType,
+          setId: setObj?.id || null,
+          setName: setObj?.name || null,
+          pokemonId: pokemonObj ? String(pokemonObj.nationalDexNumber || pokemonObj.id) : (trainerObj?.id || null),
+          pokemonName: pokemonObj ? (pokemonObj.displayName || pokemonObj.name) : (trainerObj?.trainerName || null),
+          status: slot.isSelf ? 'accepted' : 'pending',
+          createdBy: user.value.uid
+        })
+      }
     }
 
     showSuccessNotification.value = true
@@ -788,7 +1084,7 @@ const selectType = (type) => {
   selectedType.value = type
   form.value.selectionMode = 'random'
   form.value.cardCountMode = 'all'
-  form.value.playerCount = 1
+  form.value.collaborationMode = 'race'
   form.value.participants = [makeParticipant(1, true)]
   if (!form.value.challengeName.trim()) {
     const label = challengeOptions.find((x) => x.id === type)?.label || 'Master Set'
@@ -846,9 +1142,9 @@ const loadTrainers = async () => {
 }
 
 watch(
-  () => [selectedType.value, currentStep.value, form.value.selectionMode, form.value.playerCount],
+  () => user.value,
   () => {
-    if (currentStep.value === 1) syncParticipants()
+    syncSelfParticipant()
   }
 )
 
@@ -859,7 +1155,16 @@ onMounted(() => {
     loadPokemon()
     loadTrainers()
   }
-  syncParticipants()
+  syncSelfParticipant()
 })
 </script>
+
+<style scoped>
+.flat-option-btn,
+.flat-option-btn:hover,
+.flat-option-btn:focus,
+.flat-option-btn:active {
+  box-shadow: none !important;
+}
+</style>
 

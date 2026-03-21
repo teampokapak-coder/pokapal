@@ -115,13 +115,20 @@
                 >
                   + Invite
                 </button>
-                    <router-link to="/profile" class="btn btn-h4 btn-ghost hidden sm:inline-flex">
-                      ← Back
-                    </router-link>
+                <button
+                  v-if="isAdmin"
+                  @click="deleteChallenge"
+                  class="btn btn-h4 btn-ghost"
+                  :disabled="isDeletingChallenge"
+                  style="color: #dc2626;"
+                  title="Delete this challenge and all related assignment data"
+                >
+                  {{ isDeletingChallenge ? 'Deleting...' : 'Delete' }}
+                </button>
                   </div>
                 </div>
               </div>
-              <div class="flex gap-2 ml-4 hidden sm:flex">
+              <div class="flex gap-2 ml-4 flex-shrink-0">
                 <router-link to="/profile" class="btn btn-h4 btn-ghost">
                   ← Back
                 </router-link>
@@ -169,11 +176,23 @@
               <div class="flex items-start justify-between gap-4 mb-4 flex-wrap">
                 <div class="flex-1 min-w-0">
                   <h3 class="mb-2 sm:mb-0">Master Set Summary</h3>
-                  <div v-if="challengeData.type === 'set' && challengeData.targetSetName" class="mt-2">
-                    <p class="text-lg font-medium">Set: {{ challengeData.targetSetName }}</p>
+                  <div v-if="challengeData.type === 'set' && summarySetDisplay" class="mt-2 space-y-1">
+                    <template v-if="summarySetDisplay.mode === 'single'">
+                      <p class="text-lg font-medium">Set: {{ summarySetDisplay.value }}</p>
+                    </template>
+                    <template v-else>
+                      <p class="text-lg font-medium">Sets <span class="text-base font-normal text-gray-600 dark:text-gray-400">(different per player)</span></p>
+                      <p class="text-base text-gray-700 dark:text-gray-300">{{ summarySetDisplay.values.join(' · ') }}</p>
+                    </template>
                   </div>
-                  <div v-else-if="challengeData.type === 'pokemon' && challengeData.targetPokemonName" class="mt-2">
-                    <p class="text-lg font-medium">Pokemon: {{ challengeData.targetPokemonName }}</p>
+                  <div v-else-if="challengeData.type === 'pokemon' && summaryPokemonDisplay" class="mt-2 space-y-1">
+                    <template v-if="summaryPokemonDisplay.mode === 'single'">
+                      <p class="text-lg font-medium">Pokémon: {{ summaryPokemonDisplay.value }}</p>
+                    </template>
+                    <template v-else>
+                      <p class="text-lg font-medium">Pokémon <span class="text-base font-normal text-gray-600 dark:text-gray-400">(different per player)</span></p>
+                      <p class="text-base text-gray-700 dark:text-gray-300">{{ summaryPokemonDisplay.values.join(' · ') }}</p>
+                    </template>
                   </div>
                 </div>
                 <button
@@ -253,8 +272,8 @@
                   </div>
                 </div>
 
-                <!-- Filters (only show for your own assignment) -->
-                <div v-if="assignment.userId === user?.uid && assignment.cards && assignment.cards.length > 0" class="mb-4 flex gap-4 flex-wrap">
+                <!-- Filters (only show when you can edit this assignment) -->
+                <div v-if="canEditAssignment(assignment) && assignment.cards && assignment.cards.length > 0" class="mb-4 flex gap-4 flex-wrap">
                   <select
                     v-model="filterStatus[assignment.id]"
                     class="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
@@ -282,10 +301,11 @@
                     :key="card.id"
                       :card="card"
                       :is-collected="card.isCollected"
-                      :show-collection-button="assignment.userId === user?.uid"
+                      :is-globally-collected="Boolean(card.isGloballyCollected)"
+                      :show-collection-button="canEditAssignment(assignment)"
                       :show-name-tooltip="true"
                       @click="selectCard(card)"
-                      @toggle-collected="assignment.userId === user?.uid ? toggleCard(card, assignment) : null"
+                      @toggle-collected="canEditAssignment(assignment) ? toggleCard(card, assignment) : null"
                     />
                   </div>
                 </div>
@@ -313,12 +333,12 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { collection, getDocs, query, where, doc, getDoc, setDoc, addDoc, updateDoc, serverTimestamp, FieldPath } from 'firebase/firestore'
+import { collection, getDocs, query, where, doc, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
 import { useAdmin } from '../composables/useAdmin'
-import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
-import { syncPokemonMasterSetCards } from '../utils/masterSetUtils'
+import { toggleCardCollected } from '../utils/userCards'
+import { syncPokemonMasterSetCards, getSharedCollectedCardIds, toggleSharedAssignmentCard } from '../utils/masterSetUtils'
 import PokemonCardMS from '../components/PokemonCardMS.vue'
 import CardModal from '../components/CardModal.vue'
 
@@ -342,6 +362,7 @@ const showInviteModal = ref(false)
 const inviteEmail = ref('')
 const isSendingInvite = ref(false)
 const isSyncingCards = ref(false)
+const isDeletingChallenge = ref(false)
 
 // Poké Ball icon paths (static assets from public folder)
 const pokeballIconPath = '/pokeball.svg'
@@ -373,6 +394,84 @@ const getPokeballIcon = (isCollected) => {
 const isCreator = computed(() => {
   return challengeData.value?.createdBy === user.value?.uid
 })
+
+/** Challenge doc `targetSetName` is copied from the first player only; battles can use different sets per person. */
+const summarySetDisplay = computed(() => {
+  const cd = challengeData.value
+  if (!cd || cd.type !== 'set') return null
+  const assignments = memberAssignments.value || []
+  const names = []
+  const seen = new Set()
+  for (const a of assignments) {
+    if (a.type !== 'set' || !a.setName) continue
+    const n = String(a.setName).trim()
+    if (!n || seen.has(n)) continue
+    seen.add(n)
+    names.push(n)
+  }
+  if (names.length === 0) {
+    return cd.targetSetName ? { mode: 'single', value: cd.targetSetName } : null
+  }
+  if (names.length === 1) return { mode: 'single', value: names[0] }
+  return { mode: 'multiple', values: names }
+})
+
+/** Same idea for Pokémon / trainer master battles with different targets per player. */
+const summaryPokemonDisplay = computed(() => {
+  const cd = challengeData.value
+  if (!cd || cd.type !== 'pokemon') return null
+  const assignments = memberAssignments.value || []
+  const names = []
+  const seen = new Set()
+  for (const a of assignments) {
+    if (a.type !== 'pokemon' || !a.pokemonName) continue
+    const n = String(a.pokemonName).trim()
+    if (!n || seen.has(n)) continue
+    seen.add(n)
+    names.push(n)
+  }
+  if (names.length === 0) {
+    return cd.targetPokemonName ? { mode: 'single', value: cd.targetPokemonName } : null
+  }
+  if (names.length === 1) return { mode: 'single', value: names[0] }
+  return { mode: 'multiple', values: names }
+})
+
+const canEditAssignment = (assignment) => {
+  if (!user.value || !assignment) return false
+  if (assignment.isShared) {
+    const memberIds = assignment.memberIds || challengeData.value?.memberIds || []
+    return memberIds.includes(user.value.uid)
+  }
+  return assignment.userId === user.value.uid
+}
+
+const getCollectedApiIdsForUser = async (userId, apiIds) => {
+  if (!userId || !apiIds?.length) return new Set()
+  const userCardsRef = collection(db, 'userCards')
+  const collectedApiIds = new Set()
+  const batchSize = 10
+
+  for (let i = 0; i < apiIds.length; i += batchSize) {
+    const batch = apiIds.slice(i, i + batchSize)
+    try {
+      const q = query(
+        userCardsRef,
+        where('userId', '==', userId),
+        where('cardId', 'in', batch)
+      )
+      const snapshot = await getDocs(q)
+      snapshot.docs.forEach((snap) => {
+        const data = snap.data()
+        if (data.cardId) collectedApiIds.add(data.cardId)
+      })
+    } catch (error) {
+      console.error('Error querying userCards batch:', error)
+    }
+  }
+
+  return collectedApiIds
+}
 
 const loadChallengeDetails = async () => {
   if (!challengeId) return
@@ -642,47 +741,22 @@ const loadChallengeDetails = async () => {
         }
       }
       
-      // Load global collected status from userCards for this user
-      // userCards stores cardId as API ID (like "me02-013"), not Firestore document ID
+      const apiIds = allCards.map((c) => c.cardId || c.id || c.apiId).filter(Boolean)
+
+      // Load collected status from shared assignment context OR assignment owner's userCards
       let collectedCardFirestoreIds = new Set()
-      if (assignmentData.userId && allCards.length > 0) {
-        // Get API IDs from cards (the cardId field we preserved, or fallback to id/apiId)
-        const apiIds = allCards.map(c => {
-          // Use the card's API ID field (the original id field we preserved as cardId)
-          return c.cardId || c.id || c.apiId
-        }).filter(Boolean)
-        
-        console.log(`Querying userCards for userId: ${assignmentData.userId}, API IDs:`, apiIds.slice(0, 5))
-        
-        // Query userCards collection by userId and cardId field (which stores API IDs)
-        const userCardsRef = collection(db, 'userCards')
-        const collectedApiIds = new Set()
-        
-        // Query in batches (Firestore 'in' query limit is 10)
-        const batchSize = 10
-        for (let i = 0; i < apiIds.length; i += batchSize) {
-          const batch = apiIds.slice(i, i + batchSize)
-          try {
-            const q = query(
-              userCardsRef,
-          where('userId', '==', assignmentData.userId),
-              where('cardId', 'in', batch)
-        )
-            const snapshot = await getDocs(q)
-            snapshot.docs.forEach(doc => {
-          const data = doc.data()
-              if (data.cardId) {
-                collectedApiIds.add(data.cardId)
-              }
-            })
-          } catch (error) {
-            console.error(`Error querying userCards batch:`, error)
+      if (assignmentData.isShared && allCards.length > 0) {
+        const sharedCollectedApiIds = await getSharedCollectedCardIds(assignmentDoc.id)
+
+        allCards.forEach(card => {
+          const apiId = card.cardId || card.id || card.apiId
+          if (apiId && sharedCollectedApiIds.has(apiId)) {
+            collectedCardFirestoreIds.add(card.id)
           }
-        }
-        
-        console.log(`Found ${collectedApiIds.size} collected cards out of ${apiIds.length} total`)
-        console.log(`Collected API IDs:`, Array.from(collectedApiIds).slice(0, 5))
-        
+        })
+      } else if (assignmentData.userId && allCards.length > 0) {
+        const collectedApiIds = await getCollectedApiIdsForUser(assignmentData.userId, apiIds)
+
         // Map collected API IDs back to Firestore document IDs for card matching
         allCards.forEach(card => {
           const apiId = card.cardId || card.id || card.apiId
@@ -701,17 +775,21 @@ const loadChallengeDetails = async () => {
         userId: assignmentData.userId
       })
       
+      // Also load signed-in user's global collection so card tiles can show personal state
+      const myGlobalCollectedApiIds = user.value?.uid && apiIds.length > 0
+        ? await getCollectedApiIdsForUser(user.value.uid, apiIds)
+        : new Set()
+
       // Merge card data with collected status
       // Use reactive refs to ensure Vue tracks changes
       const cards = allCards.map(card => {
+        const cardApiId = card.cardId || card.id || card.apiId
         const isCollected = collectedCardFirestoreIds.has(card.id)
-        if (isCollected) {
-          console.log(`Card ${card.id} (${card.name || card.cardId}) is collected`)
-        }
         // Create a new object with isCollected property to ensure reactivity
         return {
           ...card,
-          isCollected
+          isCollected,
+          isGloballyCollected: Boolean(cardApiId && myGlobalCollectedApiIds.has(cardApiId))
         }
       })
       
@@ -735,7 +813,9 @@ const loadChallengeDetails = async () => {
         id: assignmentDoc.id,
         userId: assignmentData.userId,
         email: assignmentData.email,
-        userName: userName || assignmentData.email || 'Unknown User',
+        userName: assignmentData.isShared ? 'Shared Checklist' : (userName || assignmentData.email || 'Unknown User'),
+        isShared: Boolean(assignmentData.isShared),
+        memberIds: assignmentData.memberIds || [],
         type: assignmentData.type,
         pokemonId: assignmentData.pokemonId,
         pokemonName,
@@ -783,16 +863,26 @@ const getFilteredCards = (assignment) => {
 }
 
 const toggleCard = async (card, assignment) => {
-  if (!user.value || assignment.userId !== user.value.uid) {
-    alert('You can only update your own collection')
+  if (!user.value || !canEditAssignment(assignment)) {
+    alert('You do not have permission to update this checklist')
     return
   }
   
   try {
-    // Use API ID (cardId) for userCards collection, not Firestore document ID
     const cardApiId = card.cardId || card.apiId || card.id
-    // Toggle card in global userCards collection
-    const result = await toggleCardCollected(user.value.uid, cardApiId)
+    let result
+    if (assignment.isShared) {
+      result = await toggleSharedAssignmentCard({
+        assignmentId: assignment.id,
+        masterSetId: challengeId,
+        userId: user.value.uid,
+        cardId: cardApiId,
+        cardCollection: card.language === 'ja' ? 'card_ja' : 'card_en',
+        language: card.language || 'en'
+      })
+    } else {
+      result = await toggleCardCollected(user.value.uid, cardApiId)
+    }
     
     if (result.success) {
       // Update local state - ensure reactivity by updating the card object
@@ -807,6 +897,16 @@ const toggleCard = async (card, assignment) => {
         // Fallback: update card directly
         card.isCollected = result.isCollected
       }
+
+      // Keep personal/global icon in sync across all lanes for this card
+      memberAssignments.value.forEach((lane) => {
+        lane.cards?.forEach((laneCard) => {
+          const laneCardApiId = laneCard.cardId || laneCard.apiId || laneCard.id
+          if (laneCardApiId === cardApiId) {
+            laneCard.isGloballyCollected = result.isCollected
+          }
+        })
+      })
     
       // Update progress
       if (result.isCollected) {
@@ -940,14 +1040,16 @@ const sendInvite = async () => {
       return
     }
     
-    // Check if already a member
-    if (challengeData.value.members && challengeData.value.members.includes(inviteEmail.value)) {
+    // Check if already a member (legacy + masterSet together fields)
+    const memberEmails = challengeData.value.memberEmails || challengeData.value.members || []
+    if (memberEmails.includes(inviteEmail.value)) {
       alert('This email is already a member of this challenge')
       isSendingInvite.value = false
       return
     }
     
-    if (existingUserId && challengeData.value.members && challengeData.value.members.includes(existingUserId)) {
+    const memberIds = challengeData.value.memberIds || []
+    if (existingUserId && memberIds.includes(existingUserId)) {
       alert('This user is already a member of this challenge')
       isSendingInvite.value = false
       return
@@ -955,6 +1057,7 @@ const sendInvite = async () => {
     
     // Create invite
     await addDoc(invitesRef, {
+      masterSetId: isMasterSet ? challengeId : null,
       challengeId,
       challengeName: challengeData.value.name,
       invitedBy: user.value.uid,
@@ -978,6 +1081,63 @@ const sendInvite = async () => {
   }
 }
 
+const deleteChallenge = async () => {
+  if (!isAdmin.value || !challengeId) return
+
+  const label = isMasterSet ? 'master set' : 'challenge'
+  const confirmed = confirm(`Delete this ${label}? This will remove assignments, invite records, and collected assignment progress. This cannot be undone.`)
+  if (!confirmed) return
+
+  isDeletingChallenge.value = true
+  try {
+    // Remove assignments and assignment-level collected cards
+    const assignmentsRef = collection(db, 'assignments')
+    const assignmentsQuery = query(
+      assignmentsRef,
+      where(isMasterSet ? 'masterSetId' : 'challengeId', '==', challengeId)
+    )
+    const assignmentsSnapshot = await getDocs(assignmentsQuery)
+
+    for (const assignmentDoc of assignmentsSnapshot.docs) {
+      const collectedRef = collection(db, 'collectedCards')
+      const collectedQuery = query(collectedRef, where('assignmentId', '==', assignmentDoc.id))
+      const collectedSnapshot = await getDocs(collectedQuery)
+      await Promise.all(collectedSnapshot.docs.map((snap) => deleteDoc(doc(db, 'collectedCards', snap.id))))
+      await deleteDoc(doc(db, 'assignments', assignmentDoc.id))
+    }
+
+    // Remove collectedCards linked directly by masterSet/challenge id
+    const collectedRef = collection(db, 'collectedCards')
+    const collectedMasterSetQuery = query(collectedRef, where('masterSetId', '==', challengeId))
+    const collectedMasterSetSnapshot = await getDocs(collectedMasterSetQuery)
+    await Promise.all(collectedMasterSetSnapshot.docs.map((snap) => deleteDoc(doc(db, 'collectedCards', snap.id))))
+
+    // Remove invites linked to this challenge/master set
+    const invitesRef = collection(db, 'invites')
+    const inviteQueries = [
+      query(invitesRef, where('challengeId', '==', challengeId)),
+      query(invitesRef, where('masterSetId', '==', challengeId))
+    ]
+    const [invitesByChallenge, invitesByMasterSet] = await Promise.all(inviteQueries.map((q) => getDocs(q)))
+    const inviteIds = new Set([
+      ...invitesByChallenge.docs.map((d) => d.id),
+      ...invitesByMasterSet.docs.map((d) => d.id)
+    ])
+    await Promise.all(Array.from(inviteIds).map((inviteId) => deleteDoc(doc(db, 'invites', inviteId))))
+
+    // Remove the main challenge/master set document
+    await deleteDoc(doc(db, isMasterSet ? 'masterSets' : 'challenges', challengeId))
+
+    alert(`${label.charAt(0).toUpperCase() + label.slice(1)} deleted.`)
+    router.push('/profile')
+  } catch (error) {
+    console.error(`Error deleting ${label}:`, error)
+    alert(`Error deleting ${label}: ${error.message}`)
+  } finally {
+    isDeletingChallenge.value = false
+  }
+}
+
 
 const selectedCard = ref(null)
 
@@ -986,41 +1146,50 @@ const selectCard = (card) => {
 }
 
 const handleModalCollectionChange = ({ card, isCollected }) => {
-  // Find the assignment that contains this card and update it
-  // Match by both Firestore ID and API ID to handle different card formats
-  for (const assignment of memberAssignments.value) {
-    const cardApiId = card.cardId || card.apiId || card.id
-    const cardIndex = assignment.cards.findIndex(c => {
-      // Match by Firestore document ID or API ID
-      return c.id === card.id || 
-             (c.cardId || c.apiId) === cardApiId ||
-             c.id === cardApiId
+  // CardModal only toggles global userCards — it must not update another player's
+  // challenge row. Previously we updated the *first* assignment containing the card,
+  // which could be someone else's swimlane.
+  const cardApiId = card.cardId || card.apiId || card.id
+
+  // Modal toggles global userCards, so update personal icon everywhere this card appears
+  memberAssignments.value.forEach((assignment) => {
+    assignment.cards?.forEach((assignmentCard) => {
+      const assignmentCardApiId = assignmentCard.cardId || assignmentCard.apiId || assignmentCard.id
+      if (assignmentCardApiId === cardApiId) {
+        assignmentCard.isGloballyCollected = isCollected
+      }
     })
-    
-    if (cardIndex !== -1) {
-      // Update the card in the assignment's cards array
-      assignment.cards[cardIndex].isCollected = isCollected
-      
-      // Update progress
-      if (isCollected) {
-        assignment.collected = (assignment.collected || 0) + 1
-      } else {
-        assignment.collected = Math.max(0, (assignment.collected || 0) - 1)
-      }
-      assignment.progress = assignment.total > 0 
-        ? Math.round((assignment.collected / assignment.total) * 100) 
-        : 0
-      
-      // Also update the selectedCard reference if it's the same card
-      if (selectedCard.value) {
-        const selectedCardApiId = selectedCard.value.cardId || selectedCard.value.apiId || selectedCard.value.id
-        if (selectedCard.value.id === card.id || selectedCardApiId === cardApiId) {
-          selectedCard.value.isCollected = isCollected
-        }
-      }
-      
-      break
+  })
+
+  for (const assignment of memberAssignments.value) {
+    if (assignment.isShared) {
+      // Shared checklist uses collectedCards, not global userCards — modal Collect does not change it
+      continue
     }
+    if (assignment.userId !== user.value?.uid) continue
+
+    const cardIndex = assignment.cards.findIndex(c =>
+      c.id === card.id ||
+      (c.cardId || c.apiId) === cardApiId ||
+      c.id === cardApiId
+    )
+
+    if (cardIndex === -1) continue
+
+    assignment.cards[cardIndex].isCollected = isCollected
+    const collected = assignment.cards.filter((c) => c.isCollected).length
+    assignment.collected = collected
+    assignment.progress = assignment.total > 0
+      ? Math.round((collected / assignment.total) * 100)
+      : 0
+
+    if (selectedCard.value) {
+      const selectedCardApiId = selectedCard.value.cardId || selectedCard.value.apiId || selectedCard.value.id
+      if (selectedCard.value.id === card.id || selectedCardApiId === cardApiId) {
+        selectedCard.value.isCollected = isCollected
+      }
+    }
+    break
   }
 }
 

@@ -473,12 +473,20 @@ const loadAssignments = async () => {
       assignmentsRef,
       where('userId', '==', user.value.uid)
     )
-    const snapshot = await getDocs(q)
+    const sharedQ = query(
+      assignmentsRef,
+      where('isShared', '==', true),
+      where('memberIds', 'array-contains', user.value.uid)
+    )
+    const [snapshot, sharedSnapshot] = await Promise.all([getDocs(q), getDocs(sharedQ)])
+    const assignmentDocsById = new Map()
+    snapshot.docs.forEach((d) => assignmentDocsById.set(d.id, d))
+    sharedSnapshot.docs.forEach((d) => assignmentDocsById.set(d.id, d))
     
     const masterSetMap = new Map()
     
     // Load all assignments and group by masterSetId
-    for (const assignmentDoc of snapshot.docs) {
+    for (const assignmentDoc of assignmentDocsById.values()) {
       const assignmentData = { id: assignmentDoc.id, ...assignmentDoc.data() }
       
       if (!assignmentData.masterSetId) continue
@@ -694,20 +702,40 @@ const acceptInvite = async (invite) => {
     
     // Update assignment: find by email and update to userId
     const assignmentsRef = collection(db, 'assignments')
+    const inviteMasterSetId = invite.masterSetId || invite.challengeId
     const assignmentsQuery = query(
       assignmentsRef,
-      where('masterSetId', '==', invite.masterSetId || invite.challengeId),
+      where('masterSetId', '==', inviteMasterSetId),
       where('email', '==', invite.email)
     )
     const assignmentsSnapshot = await getDocs(assignmentsQuery)
     
     if (!assignmentsSnapshot.empty) {
       const assignmentDoc = assignmentsSnapshot.docs[0]
-      await updateDoc(doc(db, 'assignments', assignmentDoc.id), {
-        userId: user.value.uid,
-        email: null, // Clear email since we now have userId
+      const assignmentData = assignmentDoc.data()
+      const assignmentUpdate = {
         status: 'accepted',
         acceptedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }
+
+      if (assignmentData.isShared) {
+        assignmentUpdate.memberIds = arrayUnion(user.value.uid)
+        assignmentUpdate.memberHistoryIds = arrayUnion(user.value.uid)
+      } else {
+        assignmentUpdate.userId = user.value.uid
+        assignmentUpdate.email = null // Clear email since we now have userId
+      }
+
+      await updateDoc(doc(db, 'assignments', assignmentDoc.id), assignmentUpdate)
+    }
+
+    // Add accepted users to master set active/history membership
+    if (inviteMasterSetId) {
+      const masterSetRef = doc(db, 'masterSets', inviteMasterSetId)
+      await updateDoc(masterSetRef, {
+        memberIds: arrayUnion(user.value.uid),
+        memberHistoryIds: arrayUnion(user.value.uid),
         updatedAt: serverTimestamp()
       })
     }

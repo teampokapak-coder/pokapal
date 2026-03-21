@@ -18,15 +18,16 @@
         <div v-else>
           <!-- Header -->
           <div class="mb-6 md:mb-8">
-            <router-link 
-              to="/" 
+            <button
+              type="button"
               class="text-sm mb-4 inline-block transition-colors"
               style="color: var(--color-text-secondary);"
+              @click="goBack"
               @mouseenter="$event.target.style.color = 'var(--color-text-primary)'"
               @mouseleave="$event.target.style.color = 'var(--color-text-secondary)'"
             >
-              ← Back to Home
-            </router-link>
+              ← Back
+            </button>
             
             <!-- Mobile Layout: Side by Side -->
             <div class="md:hidden">
@@ -352,6 +353,14 @@ const formatDate = (date) => {
 
 const selectCard = (card) => {
   selectedCard.value = card
+}
+
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+    return
+  }
+  router.push('/sets')
 }
 
 const toggleCollected = async (card) => {

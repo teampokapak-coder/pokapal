@@ -7,6 +7,7 @@ import {
   collection,
   addDoc,
   updateDoc,
+  deleteDoc,
   getDoc,
   getDocs,
   query,
@@ -453,6 +454,83 @@ export const syncPokemonMasterSetCards = async (masterSetId) => {
     }
   } catch (error) {
     console.error('Error syncing Pokemon master set cards:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Get collected API card IDs for a shared assignment
+ * @param {string} assignmentId
+ * @returns {Promise<Set<string>>}
+ */
+export const getSharedCollectedCardIds = async (assignmentId) => {
+  try {
+    if (!assignmentId) return new Set()
+
+    const collectedCardsRef = collection(db, 'collectedCards')
+    const q = query(collectedCardsRef, where('assignmentId', '==', assignmentId))
+    const snapshot = await getDocs(q)
+    const ids = new Set()
+
+    snapshot.docs.forEach((snap) => {
+      const data = snap.data()
+      if (data?.cardId) ids.add(data.cardId)
+    })
+
+    return ids
+  } catch (error) {
+    console.error('Error getting shared collected card IDs:', error)
+    return new Set()
+  }
+}
+
+/**
+ * Toggle shared assignment collected state for a card.
+ * Anyone on the assignment can mark/unmark.
+ * @param {Object} data
+ * @returns {Promise<{success: boolean, isCollected?: boolean, error?: string}>}
+ */
+export const toggleSharedAssignmentCard = async (data) => {
+  try {
+    const { assignmentId, masterSetId, userId, cardId, cardCollection, language } = data || {}
+    if (!assignmentId || !userId || !cardId || !cardCollection) {
+      return { success: false, error: 'assignmentId, userId, cardId, and cardCollection are required' }
+    }
+
+    const collectedCardsRef = collection(db, 'collectedCards')
+    const existingQuery = query(
+      collectedCardsRef,
+      where('assignmentId', '==', assignmentId),
+      where('cardId', '==', cardId),
+      where('cardCollection', '==', cardCollection)
+    )
+    const existingSnapshot = await getDocs(existingQuery)
+
+    if (!existingSnapshot.empty) {
+      await deleteDoc(doc(db, 'collectedCards', existingSnapshot.docs[0].id))
+      await updateAssignmentStats(assignmentId)
+      if (masterSetId) await updateMasterSetStats(masterSetId)
+      return { success: true, isCollected: false }
+    }
+
+    await addDoc(collectedCardsRef, {
+      assignmentId,
+      masterSetId: masterSetId || null,
+      cardId,
+      cardCollection,
+      language: language || (cardCollection === 'card_ja' ? 'ja' : 'en'),
+      userId,
+      collectedByUserId: userId,
+      quantity: 1,
+      shared: true,
+      collectedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    })
+    await updateAssignmentStats(assignmentId)
+    if (masterSetId) await updateMasterSetStats(masterSetId)
+    return { success: true, isCollected: true }
+  } catch (error) {
+    console.error('Error toggling shared assignment card:', error)
     return { success: false, error: error.message }
   }
 }
