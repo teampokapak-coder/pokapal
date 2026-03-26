@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon_pull.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     
     <!-- Primary Meta Tags -->
     <title>PULL TCG</title>
@@ -25,9 +25,81 @@
     <meta name="twitter:title" content="PULL TCG — Chase the pull" />
     <meta name="twitter:description" content="Pull TCG is where collectors chase complete sets. Track master set progress, organize your collection, and see exactly what cards you're missing." />
     <meta name="twitter:image" content="/web_preview_pull.jpg" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background-color: #0b1a33;
+      }
+      @keyframes cap-pre-vue-bar {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(350%); }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- Shown only in Capacitor until Vue mounts (covers router.isReady + Firebase init) -->
+      <div
+        id="cap-pre-vue-splash"
+        hidden
+        style="
+          position: fixed;
+          inset: 0;
+          z-index: 2147483646;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          padding: max(env(safe-area-inset-top, 0px), 24px) max(env(safe-area-inset-right, 0px), 20px)
+            max(env(safe-area-inset-bottom, 0px), 24px) max(env(safe-area-inset-left, 0px), 20px);
+          background: linear-gradient(155deg, #040a14 0%, #0b1a33 28%, #1e3a6e 52%, #2563eb 78%, #5ba8db 100%);
+          font-family: Syne, 'DM Sans', system-ui, sans-serif;
+          color: rgba(255, 255, 255, 0.92);
+        "
+      >
+        <span style="font-weight: 700; letter-spacing: 0.12em; font-size: 0.8125rem; text-transform: uppercase"
+          >Pull TCG</span
+        >
+        <span
+          style="
+            width: 6rem;
+            height: 3px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            position: relative;
+          "
+          aria-hidden="true"
+        >
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 40%;
+              border-radius: inherit;
+              background: rgba(255, 255, 255, 0.95);
+              animation: cap-pre-vue-bar 1.1s ease-in-out infinite;
+            "
+          />
+        </span>
+      </div>
+    </div>
+    <script>
+      (function () {
+        try {
+          var c = window.Capacitor
+          if (c && typeof c.isNativePlatform === 'function' && c.isNativePlatform()) {
+            var el = document.getElementById('cap-pre-vue-splash')
+            if (el) el.removeAttribute('hidden')
+          }
+        } catch (_) {}
+      })()
+    </script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

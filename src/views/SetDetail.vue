@@ -4,7 +4,10 @@
       <div class="section-container">
         <!-- Loading State -->
         <div v-if="isLoading" class="w-full">
-          <LoadingSpinner />
+          <LoadingSpinner
+            :variant="isAppShell ? 'brand' : 'default'"
+            full-viewport
+          />
         </div>
 
         <!-- Set Not Found -->
@@ -62,7 +65,7 @@
                       class="btn btn-h5 btn-primary text-sm py-1.5 px-3"
                       :title="!user ? 'Log in to start your master set' : ''"
                     >
-                      Start Master Set
+                      Start Battleset
                     </button>
                   </div>
                 </div>
@@ -132,7 +135,7 @@
                     class="btn btn-h4 btn-primary"
                     :title="!user ? 'Log in to start your master set' : ''"
                   >
-                    Start Master Set
+                    Start Battleset
                   </button>
                 </div>
 
@@ -209,7 +212,10 @@
             </div>
 
             <!-- Cards Grid -->
-            <div v-if="isLoadingCards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div v-if="isLoadingCards && isAppShell" class="py-10 flex justify-center">
+              <LoadingSpinner variant="brand" text="Loading cards…" container-class="w-full max-w-sm" />
+            </div>
+            <div v-else-if="isLoadingCards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               <div v-for="i in 12" :key="i" class="card animate-pulse">
                 <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
                 <div class="card-body p-3">
@@ -246,7 +252,7 @@
     <CardModal
       :card="selectedCard"
       @close="selectedCard = null"
-      @login="showLoginModal = true"
+      @login="promptCardLogin"
     />
 
     <!-- Start Master Set Modal -->
@@ -287,6 +293,13 @@ import { doc, getDoc, Timestamp, serverTimestamp, collection, query, where, getD
 import { db } from '../config/firebase'
 import { getAllPokemonCards, getSet, getCardsBySet } from '../utils/firebasePokemon'
 import { useAuth } from '../composables/useAuth'
+import { useAppShell } from '../app/composables/useAppShell'
+import {
+  useLoginPrompt,
+  consumeMasterSetLoginIntent,
+  MASTER_SET_LOGIN_INTENT_KEY
+} from '../app/composables/useLoginPrompt'
+import { getIsNativeApp } from '../app/composables/useIsNativeApp'
 import { toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
 import { getSetLogoUrl, formatSetDisplayName, formatSeriesDisplayName } from '../utils/setDisplayHelper'
@@ -301,6 +314,12 @@ import { createMasterSet, createAssignment, getCardIdsForSet } from '../utils/ma
 const route = useRoute()
 const router = useRouter()
 const { user } = useAuth()
+const { isAppShell } = useAppShell()
+const { requestLogin } = useLoginPrompt()
+
+const promptCardLogin = () => {
+  if (!requestLogin()) showLoginModal.value = true
+}
 const setId = route.params.setId
 
 const set = ref(null)
@@ -673,6 +692,11 @@ const handleCreateMasterSet = async (formData) => {
 
 const handleStartMasterSetClick = () => {
   if (!user.value) {
+    if (getIsNativeApp()) {
+      sessionStorage.setItem(MASTER_SET_LOGIN_INTENT_KEY, '1')
+      router.push({ path: '/login', query: { redirect: route.fullPath } })
+      return
+    }
     loginFromMasterSetButton.value = true
     showLoginModal.value = true
     return
@@ -697,6 +721,12 @@ watch(set, (newSet) => {
     document.title = `PULL TCG — ${formatSetDisplayName(newSet)}`
   }
 }, { immediate: true })
+
+watch(user, (u) => {
+  if (u && consumeMasterSetLoginIntent()) {
+    showStartMasterSetModal.value = true
+  }
+})
 
 // Reload collected cards and hearts when user logs in or cards change
 watch([user, cards], ([newUser, newCards]) => {

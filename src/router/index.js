@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { auth } from '../config/firebase'
-import { onAuthStateChanged } from 'firebase/auth'
+import { onAuthStateChanged } from '../config/authApi'
+import { getIsNativeApp } from '../app/composables/useIsNativeApp'
 import Home from '../views/Home.vue'
 
 const routes = [
@@ -108,37 +109,62 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    }
+    return { top: 0, left: 0 }
+  },
 })
 
-// Wait for auth to initialize
+/** Native shell scrolls `<main>`, not `window` — reset it on every navigation. */
+router.afterEach(() => {
+  if (typeof document === 'undefined') return
+  if (!getIsNativeApp()) return
+  const main = document.querySelector('.mobile-shell main')
+  if (main) main.scrollTop = 0
+})
+
+const AUTH_GUARD_TIMEOUT_MS = 6000
+
+// Wait for auth to initialize (first onAuthStateChanged). WKWebView / bad config can stall the listener
+// forever; never block router.isReady() or the app will never mount and the splash never clears.
 const waitForAuth = () => {
   return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    let settled = false
+    let unsubscribe = () => {}
+    const finish = (firebaseUser) => {
+      if (settled) return
+      settled = true
       unsubscribe()
-      resolve(user)
+      resolve(firebaseUser ?? null)
+    }
+    unsubscribe = onAuthStateChanged(auth, (user) => {
+      finish(user)
     })
+    setTimeout(() => finish(auth.currentUser), AUTH_GUARD_TIMEOUT_MS)
   })
 }
 
-// Route guards - protect admin routes
+// Route guards: admin (web + app), and full app shell requires sign-in first
 router.beforeEach(async (to, from, next) => {
+  const isLoginRoute = to.path === '/login'
   const isAdminRoute = to.path.startsWith('/admin')
-  
-  if (isAdminRoute) {
-    // Wait for auth state to be determined
+  const isNativeShell = getIsNativeApp()
+
+  const requiresAuth =
+    isAdminRoute || (isNativeShell && !isLoginRoute)
+
+  if (requiresAuth) {
     const user = await waitForAuth()
-    
     if (!user) {
-      // Not logged in, redirect to login
       next({ path: '/login', query: { redirect: to.fullPath } })
-    } else {
-      // Logged in, allow access
-      next()
+      return
     }
-  } else {
-    next()
   }
+
+  next()
 })
 
 export default router

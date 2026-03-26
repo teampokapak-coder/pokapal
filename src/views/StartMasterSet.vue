@@ -48,12 +48,12 @@
             </div>
           </div>
 
-          <div v-if="currentStep === 0" class="card">
-            <div class="card-header">
+          <div v-if="currentStep === 0" class="space-y-5">
+            <div class="mb-5">
               <h3 class="card-title">Choose Challenge Type</h3>
-              <p class="card-subtitle">Pick what you want to master</p>
+              <p class="card-subtitle">Pick what you want to battle</p>
             </div>
-            <div class="card-body">
+            <div>
               <div class="grid grid-cols-2 gap-3 sm:gap-4">
                 <button
                   v-for="option in challengeOptions"
@@ -85,86 +85,91 @@
             </div>
           </div>
 
-          <div v-else-if="currentStep === 1" class="card">
-            <div class="card-header">
+          <div v-else-if="currentStep === 1" class="space-y-5">
+            <div class="mb-5">
               <h3 class="card-title">Add Players</h3>
               <p class="card-subtitle">Invite players by username or email</p>
             </div>
-            <div class="card-body space-y-4">
+            <div class="space-y-4">
               <div class="pt-2 ui-divider">
                 <label class="block text-sm mb-2">Players</label>
                 <div class="ui-panel overflow-hidden">
-                  <div class="grid grid-cols-12 gap-3 px-3 py-2 text-xs font-semibold uppercase tracking-wide" style="color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border);">
-                    <div class="col-span-7">Player</div>
-                    <div class="col-span-5">Status</div>
+                  <div
+                    class="flex items-center justify-between gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide"
+                    style="color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border);"
+                  >
+                    <span class="min-w-0">Player</span>
+                    <span class="shrink-0 text-[0.625rem] font-semibold tracking-wide opacity-90">Status</span>
                   </div>
                   <div
                     v-for="(slot, idx) in form.participants"
                     :key="slot.key"
-                    class="grid grid-cols-12 gap-3 px-3 py-3 items-center"
+                    class="px-3 py-3 flex flex-col gap-2"
                     style="border-bottom: 1px solid var(--color-border);"
                   >
-                    <div class="col-span-7 min-w-0">
-                      <div class="flex items-center gap-2">
+                    <div class="flex items-start gap-0 min-w-0 w-full">
+                      <div class="flex min-w-0 flex-1 items-start gap-2.5 pr-1">
                         <img
                           v-if="getParticipantPhotoUrl(slot)"
                           :src="getParticipantPhotoUrl(slot)"
                           :alt="participantLabel(slot)"
-                          class="w-8 h-8 rounded-full object-cover border"
+                          class="w-9 h-9 shrink-0 rounded-full object-cover border mt-0.5"
                           style="border-color: var(--color-border);"
                         />
                         <div
                           v-else
-                          class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
+                          class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold mt-0.5"
                           style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);"
                         >
                           {{ participantInitials(slot) }}
                         </div>
-                        <div class="min-w-0 flex-1">
-                          <p class="text-sm font-medium truncate">{{ participantLabel(slot) }}</p>
-                          <p class="text-xs truncate" style="color: var(--color-text-secondary);">
+                        <div class="min-w-0 flex-1 flex flex-col gap-1">
+                          <p class="text-sm font-medium break-words leading-snug">{{ participantLabel(slot) }}</p>
+                          <p class="text-xs" style="color: var(--color-text-secondary);">
                             {{ slot.isSelf ? 'You' : `Player ${idx + 1}` }}
                           </p>
-                        </div>
-                        <div v-if="!slot.isSelf" class="ml-auto flex items-center gap-3">
-                          <button
-                            type="button"
-                            class="text-xs font-medium"
-                            style="color: var(--color-text-secondary);"
-                            @click="startEditParticipant(slot)"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            class="text-xs font-medium"
-                            style="color: var(--color-text-secondary);"
-                            @click="removeParticipant(slot.key)"
-                          >
-                            Remove
-                          </button>
+                          <div v-if="!slot.isSelf" class="flex flex-wrap items-center gap-x-4 gap-y-1 pt-0.5">
+                            <button
+                              type="button"
+                              class="text-xs font-medium py-0.5"
+                              style="color: var(--color-accent);"
+                              @click="startEditParticipant(slot)"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              class="text-xs font-medium py-0.5 text-red-500 hover:text-red-400"
+                              @click="removeParticipant(slot.key)"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div class="col-span-5">
-                      <span class="text-xs px-2 py-1 rounded ui-panel">
+                      <span
+                        class="shrink-0 self-start max-w-[4.75rem] text-right text-[0.625rem] leading-tight pl-1 pr-1 py-[3px] rounded start-flow-status-chip"
+                      >
                         {{ slot.isSelf ? 'Ready' : (slot.userId ? 'User found' : (slot.email ? 'Email invite' : 'Needs input')) }}
                       </span>
                     </div>
-                    <div v-if="!slot.isSelf && slot.isEditing" class="col-span-12">
-                      <div class="flex items-center gap-2">
+                    <div v-if="!slot.isSelf && slot.isEditing" class="w-full min-w-0">
+                      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <input
                           v-model="slot.input"
                           type="text"
-                          class="ui-field flex-1"
+                          class="ui-field w-full sm:flex-1 min-h-[44px] sm:min-h-0"
                           placeholder="Search user or type email"
+                          autocomplete="off"
+                          autocorrect="off"
+                          autocapitalize="off"
                           @input="searchParticipant(slot)"
                           @focus="slot.showResults = true"
                           @blur="handleParticipantBlur(slot)"
                         />
                         <button
                           type="button"
-                          class="btn btn-h5 btn-primary"
+                          class="btn btn-h5 btn-primary w-full shrink-0 sm:w-auto"
                           @click="saveParticipantEdit(slot)"
                         >
                           Save
@@ -191,7 +196,7 @@
                   </div>
                 </div>
                 <div class="mt-3 flex items-center justify-between">
-                  <button type="button" class="btn btn-h5 btn-primary" :disabled="form.participants.length >= maxParticipants" @click="addParticipant">
+                  <button type="button" class="btn btn-h5 start-flow-toggle-btn" :disabled="form.participants.length >= maxParticipants" @click="addParticipant">
                     + Add Friend
                   </button>
                   <p class="text-xs" style="color: var(--color-text-secondary);">
@@ -209,70 +214,74 @@
             </div>
           </div>
 
-          <div v-else class="card">
-            <div class="card-header">
+          <div v-else class="space-y-5">
+            <div class="mb-5">
               <h3 class="card-title">Configure Challenge</h3>
               <p class="card-subtitle">Players, assignment mode, and card limits</p>
             </div>
-            <div class="card-body space-y-4">
-              <div>
-                <label class="block text-sm mb-2">Challenge Name</label>
+            <div class="space-y-4">
+              <div class="pt-1">
+                <label class="block text-xs uppercase tracking-wide mb-1.5" style="color: var(--color-text-tertiary);">Challenge Name</label>
                 <input
                   v-model="form.challengeName"
                   type="text"
-                  class="ui-field"
-                  placeholder="e.g., Pull TCG Challenge"
+                  class="w-full challenge-name-input border-0 border-b pb-2 text-2xl sm:text-3xl font-semibold focus:outline-none"
+                  style="border-color: var(--color-border); color: var(--color-text-primary); background-color: transparent;"
+                  placeholder="Pokemon Challenge"
                 />
               </div>
 
-              <div class="ui-panel p-3">
-                <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--color-text-tertiary);">Players</p>
-                <p class="text-sm" style="color: var(--color-text-secondary);">
-                  {{ form.participants.map((slot) => participantLabel(slot)).join(' • ') }}
-                </p>
+              <div class="pt-2 ui-divider">
+                <label class="block text-sm mb-2">Collaboration Mode</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <button type="button" class="btn btn-h4 w-full" :class="form.collaborationMode === 'race' ? 'start-flow-toggle-btn-active' : 'start-flow-toggle-btn'" @click="form.collaborationMode = 'race'">
+                      Battle Against
+                    </button>
+                    <p class="text-xs mt-2 start-flow-collab-hint" style="color: var(--color-text-secondary);">
+                      Everyone gets their own assignment and races to finish first.
+                    </p>
+                  </div>
+                  <div>
+                    <button type="button" class="btn btn-h4 w-full" :class="form.collaborationMode === 'together' ? 'start-flow-toggle-btn-active' : 'start-flow-toggle-btn'" @click="form.collaborationMode = 'together'">
+                      Battle Together
+                    </button>
+                    <p class="text-xs mt-2 start-flow-collab-hint" style="color: var(--color-text-secondary);">
+                      One shared team assignment where everyone collects together.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div class="ui-panel p-3 space-y-4" style="background-color: rgba(91,168,219,0.08); border-color: rgba(91,168,219,0.28);">
-                <div>
-                  <label class="block text-sm mb-2">Collaboration Mode</label>
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <button type="button" class="btn btn-h4 w-full" :class="form.collaborationMode === 'race' ? 'btn-primary' : 'btn-ghost'" @click="form.collaborationMode = 'race'">
-                        Battle Against
-                      </button>
-                      <p class="text-xs mt-2" style="color: var(--color-text-secondary);">
-                        Everyone gets their own assignment and races to finish first.
-                      </p>
-                    </div>
-                    <div>
-                      <button type="button" class="btn btn-h4 w-full" :class="form.collaborationMode === 'together' ? 'btn-primary' : 'btn-ghost'" @click="form.collaborationMode = 'together'">
-                        Battle Together
-                      </button>
-                      <p class="text-xs mt-2" style="color: var(--color-text-secondary);">
-                        One shared team assignment where everyone collects together.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label class="block text-sm mb-2">Assignment Method</label>
-                  <div class="grid grid-cols-2 gap-3">
-                    <button type="button" class="btn btn-h4 flat-option-btn" :class="form.selectionMode === 'random' ? 'btn-primary' : 'btn-ghost'" @click="setSelectionMode('random')">
-                      🎲 Random
-                    </button>
-                    <button type="button" class="btn btn-h4 flat-option-btn" :class="form.selectionMode === 'choose' ? 'btn-primary' : 'btn-ghost'" @click="setSelectionMode('choose')">
-                      📋 Select
-                    </button>
-                  </div>
-                </div>
-
+              <div class="pt-2 ui-divider">
+                <label class="block text-sm mb-2">Assignment Method</label>
                 <div class="grid grid-cols-2 gap-3">
-                  <button type="button" class="btn btn-h4 flat-option-btn" :class="form.cardCountMode === 'all' ? 'btn-primary' : 'btn-ghost'" @click="form.cardCountMode = 'all'">
+                  <button type="button" class="btn btn-h4 flat-option-btn" :class="form.selectionMode === 'random' ? 'start-flow-toggle-btn-active' : 'start-flow-toggle-btn'" @click="setSelectionMode('random')">
+                    🎲 Random
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-h4 flat-option-btn"
+                    :class="form.selectionMode === 'choose' ? 'start-flow-toggle-btn-active' : 'start-flow-toggle-btn'"
+                    :disabled="selectedType === 'randomNumber'"
+                    @click="setSelectionMode('choose')"
+                  >
+                    📋 Select
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                  <button
+                    type="button"
+                    class="btn btn-h4 flat-option-btn"
+                    :class="form.cardCountMode === 'all' ? 'start-flow-toggle-btn-active' : 'start-flow-toggle-btn'"
+                    :disabled="selectedType === 'randomNumber'"
+                    @click="form.cardCountMode = 'all'"
+                  >
                     All Cards
                   </button>
-                  <button type="button" class="btn btn-h4 flat-option-btn" :class="form.cardCountMode === 'fixed' ? 'btn-primary' : 'btn-ghost'" @click="form.cardCountMode = 'fixed'">
-                    Max number of cards
+                  <button type="button" class="btn btn-h4 flat-option-btn" :class="form.cardCountMode === 'fixed' ? 'start-flow-toggle-btn-active' : 'start-flow-toggle-btn'" @click="form.cardCountMode = 'fixed'">
+                    # of Cards
                   </button>
                 </div>
                 <div v-if="form.cardCountMode === 'fixed'" class="mt-3">
@@ -280,9 +289,13 @@
                     v-model.number="form.fixedCardCount"
                     type="number"
                     min="1"
+                    :max="selectedType === 'randomNumber' ? 100 : undefined"
                     class="ui-field"
                     placeholder="Enter max number of cards"
                   />
+                  <p v-if="selectedType === 'randomNumber'" class="text-xs mt-1" style="color: var(--color-text-secondary);">
+                    Random Number challenges support up to 100 cards.
+                  </p>
                 </div>
                 <div v-if="selectedType === 'randomNumber'" class="mt-3">
                   <label class="block text-sm mb-2">Random Pool</label>
@@ -489,10 +502,10 @@ const currentStep = ref(0)
 const selectedType = ref(null)
 
 const challengeOptions = [
-  { id: 'set', label: 'Sets', icon: '/sets.svg', short: 'Master complete sets.', description: 'Choose or randomly pick a set and track completion for all cards in that set.' },
-  { id: 'pokemon', label: 'Pokemon', icon: '/pokemon.svg', short: 'Master a Pokemon line.', description: 'Choose or randomly pick a Pokemon and track all related cards across supported languages.' },
-  { id: 'trainer', label: 'Trainers', icon: '/trainers.svg', short: 'Master trainer-linked cards.', description: 'MVP: card matching is based on trainer name text in card data.' },
-  { id: 'randomNumber', label: 'Random Number', icon: '/random.svg', short: 'Build random-card challenges.', description: 'Pick a random pool and generate a challenge by card count.' }
+  { id: 'set', label: 'Sets', icon: '/sets.svg', short: 'Battle complete sets.', description: 'Choose or randomly pick a set and track completion for all cards in that set.' },
+  { id: 'pokemon', label: 'Pokemon', icon: '/pokemon.svg', short: 'Battle a Pokemon line.', description: 'Choose or randomly pick a Pokemon and track all related cards across supported languages.' },
+  { id: 'trainer', label: 'Trainers', icon: '/trainers.svg', short: 'Battle trainer-linked cards.', description: 'MVP: card matching is based on trainer name text in card data.' },
+  { id: 'randomNumber', label: 'Random Number', icon: '/random.svg', short: 'Battle random-card challenges.', description: 'Pick a random pool and generate a challenge by card count.' }
 ]
 
 const activeTypeMeta = computed(() => challengeOptions.find((x) => x.id === selectedType.value) || challengeOptions[0])
@@ -549,6 +562,7 @@ const canCreate = computed(() => {
   if (!selectedType.value) return false
   if (!form.value.challengeName.trim()) return false
   if (form.value.cardCountMode === 'fixed' && (!form.value.fixedCardCount || form.value.fixedCardCount < 1)) return false
+  if (selectedType.value === 'randomNumber' && form.value.fixedCardCount > 100) return false
 
   const allPlayersValid = form.value.participants.every((slot) => {
     const hasIdentity = slot.isSelf || Boolean(slot.userId || slot.email || (slot.input && slot.input.includes('@')))
@@ -725,6 +739,7 @@ const removeParticipant = (participantKey) => {
 }
 
 const setSelectionMode = (mode) => {
+  if (selectedType.value === 'randomNumber' && mode !== 'random') return
   form.value.selectionMode = mode
   form.value.participants.forEach((slot) => {
     slot.assignment.setId = ''
@@ -1082,8 +1097,12 @@ const createMasterSet = async () => {
 
 const selectType = (type) => {
   selectedType.value = type
+  const isRandomNumber = type === 'randomNumber'
   form.value.selectionMode = 'random'
-  form.value.cardCountMode = 'all'
+  form.value.cardCountMode = isRandomNumber ? 'fixed' : 'all'
+  if (isRandomNumber) {
+    form.value.fixedCardCount = Math.min(100, Math.max(1, form.value.fixedCardCount || 50))
+  }
   form.value.collaborationMode = 'race'
   form.value.participants = [makeParticipant(1, true)]
   if (!form.value.challengeName.trim()) {
@@ -1091,6 +1110,17 @@ const selectType = (type) => {
     form.value.challengeName = `${label} Challenge`
   }
 }
+
+watch(
+  [selectedType, () => form.value.fixedCardCount, () => form.value.selectionMode, () => form.value.cardCountMode],
+  () => {
+    if (selectedType.value !== 'randomNumber') return
+    if (form.value.selectionMode !== 'random') form.value.selectionMode = 'random'
+    if (form.value.cardCountMode !== 'fixed') form.value.cardCountMode = 'fixed'
+    if (!form.value.fixedCardCount || form.value.fixedCardCount < 1) form.value.fixedCardCount = 1
+    if (form.value.fixedCardCount > 100) form.value.fixedCardCount = 100
+  }
+)
 
 const nextStep = () => {
   if (currentStep.value < steps.length - 1) currentStep.value += 1
@@ -1165,6 +1195,65 @@ onMounted(() => {
 .flat-option-btn:focus,
 .flat-option-btn:active {
   box-shadow: none !important;
+}
+
+.challenge-name-input {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.challenge-name-input:focus {
+  border-color: var(--color-accent) !important;
+}
+
+.start-flow-toggle-btn {
+  background-color: rgba(30, 90, 158, 0.13) !important;
+  color: #0b1a33 !important;
+  border: 1px solid rgba(30, 90, 158, 0.3) !important;
+  font-weight: 600 !important;
+}
+
+.start-flow-toggle-btn:hover,
+.start-flow-toggle-btn:focus-visible {
+  background-color: rgba(30, 90, 158, 0.24) !important;
+  color: #0b1a33 !important;
+  border-color: rgba(30, 90, 158, 0.52) !important;
+}
+
+.start-flow-toggle-btn-active {
+  background-color: rgba(30, 90, 158, 0.3) !important;
+  color: #0b1a33 !important;
+  border: 1px solid rgba(30, 90, 158, 0.62) !important;
+  font-weight: 600 !important;
+}
+
+.start-flow-status-chip {
+  background-color: rgba(30, 90, 158, 0.14) !important;
+  border: 1px solid rgba(30, 90, 158, 0.32) !important;
+  color: #2f4b6b !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .start-flow-toggle-btn {
+    color: rgba(255, 255, 255, 0.92) !important;
+    border-color: rgba(147, 197, 253, 0.42) !important;
+  }
+
+  .start-flow-toggle-btn:hover,
+  .start-flow-toggle-btn:focus-visible {
+    color: #ffffff !important;
+    border-color: rgba(147, 197, 253, 0.58) !important;
+  }
+
+  .start-flow-toggle-btn-active {
+    color: #ffffff !important;
+    border-color: rgba(147, 197, 253, 0.68) !important;
+  }
+
+  .start-flow-status-chip {
+    color: rgba(255, 255, 255, 0.9) !important;
+    border-color: rgba(147, 197, 253, 0.42) !important;
+  }
 }
 </style>
 

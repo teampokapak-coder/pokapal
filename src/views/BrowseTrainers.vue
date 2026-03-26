@@ -38,7 +38,7 @@
         <!-- Mobile Filter Overlay -->
         <div 
           v-if="showMobileFilters"
-          class="fixed inset-0 bg-black bg-opacity-50 z-[100] md:hidden"
+          class="app-mobile-drawer-backdrop fixed inset-0 bg-black bg-opacity-50 z-[100] md:hidden"
           @click="showMobileFilters = false"
         ></div>
 
@@ -47,7 +47,7 @@
           <aside 
             :class="[
               'w-full md:w-64 flex-shrink-0 transition-all duration-300',
-              showMobileFilters ? 'fixed top-0 left-0 h-full z-[101] overflow-y-auto md:relative md:z-auto md:h-auto' : 'hidden md:block'
+              showMobileFilters ? 'app-mobile-drawer-panel fixed top-0 left-0 h-full z-[101] overflow-y-auto md:relative md:z-auto md:h-auto' : 'hidden md:block'
             ]"
           >
             <div class="card md:sticky md:top-4 h-full md:h-auto" style="background-color: var(--color-bg-primary);">
@@ -126,7 +126,7 @@
 
             <!-- Loading State -->
             <div v-if="isLoading" class="w-full">
-              <LoadingSpinner />
+              <LoadingSpinner :variant="isAppShell ? 'brand' : 'default'" />
             </div>
 
             <!-- Trainers Grid -->
@@ -165,8 +165,10 @@ import { useRouter } from 'vue-router'
 import { getAllTrainers } from '../utils/firebaseTrainers'
 import TrainerListItem from '../components/TrainerListItem.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
+import { useAppShell } from '../app/composables/useAppShell'
 
 const router = useRouter()
+const { isAppShell } = useAppShell()
 const trainers = ref([])
 const isLoading = ref(false)
 const searchTimeout = ref(null)

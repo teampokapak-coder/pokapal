@@ -9,9 +9,9 @@
 
         <!-- Search and Filters -->
         <div class="mb-6">
-          <div class="flex gap-4 flex-wrap">
+          <div :class="isAppShell ? 'flex flex-col gap-3' : 'flex gap-4 flex-wrap'">
             <!-- Search -->
-            <div class="flex-1 min-w-[200px]">
+            <div :class="isAppShell ? 'w-full' : 'flex-1 min-w-[200px]'">
               <input
                 v-model="searchQuery"
                 type="text"
@@ -25,7 +25,10 @@
             <!-- Language Filter -->
             <select
               v-model="filterLanguage"
-              class="px-3 md:px-4 py-2 text-sm md:text-base border rounded-md focus:outline-none focus:ring-2"
+              :class="[
+                'px-3 md:px-4 py-2 text-sm md:text-base border rounded-md focus:outline-none focus:ring-2',
+                isAppShell ? 'w-full' : '',
+              ]"
               style="border-color: var(--color-border);"
               @change="applyFilters"
             >
@@ -37,7 +40,10 @@
             <!-- Series Filter -->
             <select
               v-model="filterSeries"
-              class="px-3 md:px-4 py-2 text-sm md:text-base border rounded-md focus:outline-none focus:ring-2"
+              :class="[
+                'px-3 md:px-4 py-2 text-sm md:text-base border rounded-md focus:outline-none focus:ring-2',
+                isAppShell ? 'w-full' : '',
+              ]"
               style="border-color: var(--color-border);"
               @change="applyFilters"
             >
@@ -50,7 +56,10 @@
         </div>
 
         <!-- Sets Grid -->
-        <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-4">
+        <div v-if="isLoading && isAppShell" class="py-10 flex justify-center">
+          <LoadingSpinner variant="brand" text="Loading sets…" container-class="w-full max-w-sm" />
+        </div>
+        <div v-else-if="isLoading" class="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-4">
           <div v-for="i in 12" :key="i" class="card animate-pulse">
             <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
             <div class="card-body p-2 md:p-4">
@@ -103,12 +112,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import { useAppShell } from '../app/composables/useAppShell'
 import { getAllSets } from '../utils/firebasePokemon'
 import { Timestamp } from 'firebase/firestore'
 import { getSetLogoUrl, formatSetDisplayName, formatSeriesDisplayName } from '../utils/setDisplayHelper'
 import { getSetIdInitials } from '../utils/cardImageFallback'
 
 const router = useRouter()
+const { isAppShell } = useAppShell()
 
 const sets = ref([])
 const isLoading = ref(false)

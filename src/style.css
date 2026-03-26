@@ -97,6 +97,33 @@
   #app {
     @apply min-h-screen;
   }
+
+  /* Mobile filter overlays above app tab bar (Capacitor / VITE_FORCE_NATIVE_SHELL) */
+  [data-app-shell='true'] .app-mobile-drawer-backdrop {
+    z-index: 350 !important;
+  }
+
+  [data-app-shell='true'] .app-mobile-drawer-panel {
+    z-index: 360 !important;
+  }
+
+  /*
+   * iOS Safari / WKWebView zooms the page when a focused input has font-size < 16px.
+   * Apply under the native app shell only so web layout typography stays unchanged.
+   */
+  [data-app-shell='true'] input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']):not([type='image']):not([type='file']):not([type='color']),
+  [data-app-shell='true'] textarea,
+  [data-app-shell='true'] select {
+    font-size: max(16px, 1rem) !important;
+  }
+
+  /* Start flow: tighter collaboration blurbs on small native screens */
+  @media (max-width: 639.98px) {
+    [data-app-shell='true'] .start-flow-collab-hint {
+      font-size: 0.625rem;
+      line-height: 1.35;
+    }
+  }
 }
 
 /* ============================================

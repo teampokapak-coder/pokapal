@@ -3,10 +3,12 @@
 // Get these from: https://console.firebase.google.com/
 
 import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth as getWebAuth } from 'firebase/auth'
+import { getAuth as getCordovaAuth } from 'firebase/auth/cordova'
 import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 import { getAnalytics, isSupported } from 'firebase/analytics'
+import { getIsCapacitorNative } from '../app/composables/useIsNativeApp'
 
 // Your web app's Firebase configuration
 // Replace these values with your actual Firebase config
@@ -22,8 +24,9 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
 
-// Initialize Firebase services
-export const auth = getAuth(app)
+// Capacitor WKWebView: use Firebase's Cordova entry (cordovaPopupRedirectResolver). Browser getAuth + signInWithRedirect
+// often never completes there. Desktop web: standard getWebAuth.
+export const auth = getIsCapacitorNative() ? getCordovaAuth(app) : getWebAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app)
 

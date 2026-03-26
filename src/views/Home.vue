@@ -1,5 +1,11 @@
 <template>
-  <div class="h-screen flex flex-col overflow-hidden" style="background-color: var(--color-bg-primary);">
+  <div
+    :class="[
+      'flex flex-col overflow-hidden',
+      isAppShell ? 'min-h-full' : 'h-screen',
+    ]"
+    style="background-color: var(--color-bg-primary);"
+  >
     <div class="flex flex-1 overflow-hidden">
       <!-- Sidebar: Trending Master Sets (Desktop Only) -->
       <aside class="hidden lg:flex w-64 sidebar flex-col overflow-hidden">
@@ -120,7 +126,7 @@
                   </div>
                   <div v-else class="flex flex-row gap-2 sm:gap-4 w-full">
                     <router-link to="/start" class="btn btn-h4 btn-primary flex-1 sm:flex-none">
-                      Start Master Set
+                      Start Battleset
                     </router-link>
                     <router-link to="/profile" class="btn btn-h4 btn-secondary flex-1 sm:flex-none">
                       My Profile
@@ -146,7 +152,10 @@
           </div>
 
           <!-- Sets Grid -->
-          <div v-if="isLoadingSets" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4">
+          <div v-if="isLoadingSets && isAppShell" class="py-8 flex justify-center">
+            <LoadingSpinner variant="brand" text="Loading sets…" container-class="w-full max-w-sm" />
+          </div>
+          <div v-else-if="isLoadingSets" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4">
             <div v-for="i in 16" :key="i" class="card animate-pulse">
               <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
               <div class="card-body p-2 sm:p-4">
@@ -207,7 +216,10 @@
           </div>
 
           <!-- Pokemon Grid -->
-          <div v-if="isLoadingPokemon" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1.5 sm:gap-2 md:gap-3">
+          <div v-if="isLoadingPokemon && isAppShell" class="py-8 flex justify-center">
+            <LoadingSpinner variant="brand" text="Loading Pokémon…" container-class="w-full max-w-sm" />
+          </div>
+          <div v-else-if="isLoadingPokemon" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1.5 sm:gap-2 md:gap-3">
             <div v-for="i in 16" :key="i" class="card animate-pulse">
               <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
               <div class="card-body p-1.5 sm:p-2">
@@ -248,7 +260,10 @@
           </div>
 
           <!-- Trainers Grid -->
-          <div v-if="isLoadingTrainers" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1.5 sm:gap-2 md:gap-3">
+          <div v-if="isLoadingTrainers && isAppShell" class="py-8 flex justify-center">
+            <LoadingSpinner variant="brand" text="Loading trainers…" container-class="w-full max-w-sm" />
+          </div>
+          <div v-else-if="isLoadingTrainers" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1.5 sm:gap-2 md:gap-3">
             <div v-for="i in 16" :key="i" class="card animate-pulse">
               <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
               <div class="card-body p-1.5 sm:p-2">
@@ -288,7 +303,10 @@
           </div>
 
           <!-- Cards Grid -->
-          <div v-if="isLoadingCards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4">
+          <div v-if="isLoadingCards && isAppShell" class="py-8 flex justify-center">
+            <LoadingSpinner variant="brand" text="Loading cards…" container-class="w-full max-w-sm" />
+          </div>
+          <div v-else-if="isLoadingCards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4">
             <div v-for="i in 16" :key="i" class="card animate-pulse">
               <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
               <div class="card-body p-2 sm:p-3">
@@ -326,7 +344,7 @@
     <CardModal
       :card="selectedCard"
       @close="selectedCard = null"
-      @login="showLoginModal = true"
+      @login="promptCardLogin"
     />
 
     <!-- Login Modal -->
@@ -342,6 +360,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
+import { useAppShell } from '../app/composables/useAppShell'
+import { useLoginPrompt } from '../app/composables/useLoginPrompt'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
 import { getAllSets, getAllPokemonCards, getAllPokemon } from '../utils/firebasePokemon'
 import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
@@ -356,6 +377,12 @@ import { getSetIdInitials } from '../utils/cardImageFallback'
 
 const router = useRouter()
 const { user } = useAuth()
+const { isAppShell } = useAppShell()
+const { requestLogin } = useLoginPrompt()
+
+const promptCardLogin = () => {
+  if (!requestLogin()) showLoginModal.value = true
+}
 
 const sets = ref([])
 const isLoadingSets = ref(false)
@@ -555,6 +582,9 @@ const loadSets = async () => {
           const dateB = b.releaseDate?.toDate ? b.releaseDate.toDate() : new Date(b.releaseDate || 0)
           return dateB - dateA
         })
+    } else {
+      console.error('[Home] getAllSets failed:', result.error)
+      sets.value = []
     }
   } catch (error) {
     console.error('Error loading sets:', error)
@@ -569,7 +599,10 @@ const loadFeaturedPokemon = async () => {
     // Query pokemon collection
     const result = await getAllPokemon()
     if (!result.success) {
-      console.error('Failed to load Pokemon:', result.error)
+      console.error('[Home] getAllPokemon failed:', result.error)
+      featuredPokemon.value = []
+      trendingPokemon.value = []
+      trendingTypes.value = []
       return
     }
     

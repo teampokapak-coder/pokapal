@@ -1,5 +1,15 @@
 <template>
-  <div class="flex flex-col items-center justify-center py-8 sm:py-12" :class="containerClass">
+  <div
+    v-if="variant === 'brand'"
+    :class="[containerClass, fullViewport ? 'min-h-[68vh] sm:min-h-[72vh] flex flex-col items-center justify-center w-full' : '']"
+  >
+    <AppBrandLoader :label="text" />
+  </div>
+  <div
+    v-else
+    class="flex flex-col items-center justify-center py-8 sm:py-12"
+    :class="[containerClass, fullViewport ? '!py-0 min-h-[68vh] sm:min-h-[72vh] justify-center' : '']"
+  >
     <!-- Animated Poké Balls -->
     <div class="flex items-center gap-2 mb-4">
       <div 
@@ -45,8 +55,15 @@
 
 <script setup>
 import { computed } from 'vue'
+import AppBrandLoader from '../app/components/AppBrandLoader.vue'
 
 const props = defineProps({
+  /** Use Pull TCG gradient + white wordmark (recommended in app shell). */
+  variant: {
+    type: String,
+    default: 'default',
+    validator: (v) => ['default', 'brand'].includes(v)
+  },
   text: {
     type: String,
     default: 'Loading...'
@@ -58,6 +75,11 @@ const props = defineProps({
   containerClass: {
     type: String,
     default: ''
+  },
+  /** Center loader in at least one viewport height (detail pages). */
+  fullViewport: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -89,6 +111,12 @@ const balls = computed(() => Array(props.ballCount).fill(0))
   color: var(--color-text-primary);
   display: inline-flex;
   gap: 0.1em;
+}
+
+@media (prefers-color-scheme: light) {
+  .pixel-text {
+    color: #0b1a33;
+  }
 }
 
 .pixel-char {

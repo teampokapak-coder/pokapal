@@ -20,22 +20,22 @@
 
           <!-- Links -->
           <nav class="flex flex-wrap justify-center gap-4 text-sm">
-            <router-link to="/" class="transition-colors footer-link">
+            <router-link :to="'/'" class="transition-colors footer-link">
               Home
             </router-link>
-            <router-link to="/browse" class="transition-colors footer-link">
+            <router-link :to="'/browse'" class="transition-colors footer-link">
               Browse
             </router-link>
-            <router-link to="/blog" class="transition-colors footer-link">
+            <router-link :to="'/blog'" class="transition-colors footer-link">
               Blog
             </router-link>
-            <router-link v-if="user" to="/start" class="transition-colors footer-link">
-              Start Master Set
+            <router-link v-if="user" :to="'/start'" class="transition-colors footer-link">
+              Start Battleset
             </router-link>
-            <router-link v-if="user" to="/profile" class="transition-colors footer-link">
+            <router-link v-if="user" :to="'/profile'" class="transition-colors footer-link">
               Profile
             </router-link>
-            <router-link v-if="!user" to="/login" class="transition-colors footer-link">
+            <router-link v-if="!user" :to="'/login'" class="transition-colors footer-link">
               Login
             </router-link>
           </nav>

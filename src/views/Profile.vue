@@ -3,13 +3,13 @@
     <section class="section section-spacing-md">
       <div class="section-container">
         <div class="section-header">
-          <div class="flex justify-between items-start">
+          <div class="flex justify-between items-start gap-3" :class="isAppShell && 'flex-col'">
             <div>
               <h2>Profile</h2>
               <p class="section-subtitle">{{ user?.displayName || user?.email || 'Your profile' }}</p>
             </div>
-            <router-link to="/start" class="btn btn-h4 btn-primary">
-              + Start New Master Set
+            <router-link to="/start" class="btn btn-h4 btn-primary" :class="isAppShell && 'w-full text-center'">
+              + Start New Battleset
             </router-link>
           </div>
         </div>
@@ -17,14 +17,20 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Main Content -->
           <div class="lg:col-span-2 space-y-6">
-            <!-- Master Set Challenges -->
+            <!-- Battleset Challenges -->
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title">Master Set Challenges</h3>
+                <h3 class="card-title">Battleset Challenges</h3>
               </div>
               <div class="">
                 <div v-if="isLoadingAssignments" class="text-center py-8">
-                  <p class="text-gray-600">Loading master sets...</p>
+                  <LoadingSpinner
+                    v-if="isAppShell"
+                    variant="brand"
+                    text="Loading battlesets…"
+                    container-class="w-full max-w-sm mx-auto"
+                  />
+                  <p v-else style="color: var(--color-text-secondary);">Loading master sets...</p>
                 </div>
 
                 <div v-else-if="allMasterSets.length > 0" class="space-y-4">
@@ -102,8 +108,14 @@
                           />
                         </div>
                       </div>
-                      <div v-else-if="expandedMasterSets[masterSet.id] && (!masterSet.cards || masterSet.cards.length === 0)" class="text-center py-4 text-gray-500 text-sm">
-                        <p>Loading cards...</p>
+                      <div v-else-if="expandedMasterSets[masterSet.id] && (!masterSet.cards || masterSet.cards.length === 0)" class="text-center py-4 text-sm">
+                        <LoadingSpinner
+                          v-if="isAppShell"
+                          variant="brand"
+                          text="Loading cards…"
+                          container-class="w-full max-w-xs mx-auto py-2"
+                        />
+                        <p v-else style="color: var(--color-text-tertiary);">Loading cards...</p>
                       </div>
                     </div>
                   </div>
@@ -113,7 +125,7 @@
                 <div v-else class="text-center py-8">
                   <p class="text-gray-600 mb-4">No master sets yet</p>
                   <router-link to="/start" class="btn btn-h4 btn-primary">
-                    Start Your First Master Set
+                    Start Your First Battleset
                   </router-link>
                 </div>
               </div>
@@ -127,7 +139,13 @@
               </div>
               <div class="card-body">
                 <div v-if="isLoadingCollection" class="text-center py-8">
-                  <p class="text-gray-600">Loading collection...</p>
+                  <LoadingSpinner
+                    v-if="isAppShell"
+                    variant="brand"
+                    text="Loading collection…"
+                    container-class="w-full max-w-sm mx-auto"
+                  />
+                  <p v-else style="color: var(--color-text-secondary);">Loading collection...</p>
                 </div>
 
                 <div v-else-if="collectedCards.length > 0" class="space-y-4">
@@ -194,7 +212,13 @@
               </div>
               <div class="">
                 <div v-if="isLoadingInvites" class="text-center py-8">
-                  <p class="text-gray-600">Loading invites...</p>
+                  <LoadingSpinner
+                    v-if="isAppShell"
+                    variant="brand"
+                    text="Loading invites…"
+                    container-class="w-full max-w-sm mx-auto"
+                  />
+                  <p v-else style="color: var(--color-text-secondary);">Loading invites...</p>
                 </div>
 
                 <div v-else-if="pendingInvites.length > 0" class="space-y-4">
@@ -328,7 +352,13 @@
               </div>
               <div class="card-body">
                 <div v-if="isLoadingHearts" class="text-center py-4">
-                  <p style="color: var(--color-text-secondary);">Loading hearts...</p>
+                  <LoadingSpinner
+                    v-if="isAppShell"
+                    variant="brand"
+                    text="Loading hearts…"
+                    container-class="w-full max-w-sm mx-auto py-2"
+                  />
+                  <p v-else style="color: var(--color-text-secondary);">Loading hearts...</p>
                 </div>
                 <div v-else>
                   <!-- Hearted Pokemon -->
@@ -403,7 +433,7 @@
       :card="selectedCard"
       @close="selectedCard = null"
       @collection-changed="handleCardModalToggleCollected"
-      @login="showLoginModal = true"
+      @login="promptCardLogin"
     />
 
     <!-- Login Modal -->
@@ -418,7 +448,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
-import { updateProfile } from 'firebase/auth'
+import { updateProfile } from '../config/authApi'
 import { db, auth } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
 import { getUserCollectedCards, removeCardFromCollection, toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
@@ -428,10 +458,19 @@ import PokemonCard from '../components/PokemonCard.vue'
 import PokemonCardMS from '../components/PokemonCardMS.vue'
 import CardModal from '../components/CardModal.vue'
 import LoginModal from '../components/LoginModal.vue'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import { useAppShell } from '../app/composables/useAppShell'
+import { useLoginPrompt } from '../app/composables/useLoginPrompt'
 
 const route = useRoute()
 const router = useRouter()
 const { user, logout } = useAuth()
+const { isAppShell } = useAppShell()
+const { requestLogin } = useLoginPrompt()
+
+const promptCardLogin = () => {
+  if (!requestLogin()) showLoginModal.value = true
+}
 
 const assignments = ref([])
 const allMasterSets = ref([])

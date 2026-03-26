@@ -1,15 +1,29 @@
 <template>
   <div
     v-if="card"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    :class="[
+      'fixed inset-0 flex bg-black/50 z-50',
+      isAppShell
+        ? 'z-[400] items-stretch justify-stretch p-0 bg-black/90'
+        : 'items-center justify-center p-4',
+    ]"
     @click="handleClose"
   >
     <div
-      class="rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+      :class="[
+        'rounded-lg w-full overflow-y-auto',
+        isAppShell ? 'max-h-[100dvh] h-full max-w-none rounded-none' : 'max-w-2xl max-h-[90vh]',
+      ]"
       style="background-color: var(--color-bg-tertiary);"
       @click.stop
     >
-      <div class="p-6">
+      <div
+        :class="[
+          'p-6',
+          isAppShell &&
+            'pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]',
+        ]"
+      >
         <div class="flex justify-between items-start mb-4">
           <h3>{{ formatCardName(card) }}</h3>
           <button
@@ -155,6 +169,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import { useAppShell } from '../app/composables/useAppShell'
 import { getTypeColorClass } from '../utils/pokemonTypes'
 import { formatCardName } from '../utils/cardNameFormatter'
 import { formatSetName, formatSeriesName } from '../utils/setNameFormatter'
@@ -220,6 +235,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'collection-changed', 'login'])
 
 const { user } = useAuth()
+const { isAppShell } = useAppShell()
 
 const imageError = ref(false)
 const isHearted = ref(false)

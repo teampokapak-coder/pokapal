@@ -4,7 +4,7 @@
     v-if="!isOpen"
     @click="toggleWidget"
     class="feedback-widget-button"
-    :class="{ 'animate-bounce': !hasInteracted }"
+    :class="{ 'animate-bounce': !hasInteracted, 'feedback-widget-button--app-shell': isNativeShell }"
     aria-label="Send feedback"
   >
     <img 
@@ -16,7 +16,11 @@
 
   <!-- Chat Widget -->
   <transition name="slide-up">
-    <div v-if="isOpen" class="feedback-widget-container">
+    <div
+      v-if="isOpen"
+      class="feedback-widget-container"
+      :class="{ 'feedback-widget-container--app-shell': isNativeShell }"
+    >
       <!-- Header -->
       <div class="feedback-widget-header">
         <p class="feedback-widget-title-compact">Hey there — got feedback? Let me know.</p>
@@ -137,6 +141,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { getIsNativeApp } from '../app/composables/useIsNativeApp'
+
+const isNativeShell = getIsNativeApp()
 
 const isOpen = ref(false)
 const hasInteracted = ref(false)
@@ -234,6 +241,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.feedback-widget-button--app-shell {
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  z-index: 400;
+}
+
+.feedback-widget-container--app-shell {
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  z-index: 400;
+}
+
 .feedback-widget-button {
   position: fixed;
   bottom: 24px;
@@ -560,11 +579,23 @@ onMounted(() => {
     max-height: calc(100vh - 32px);
   }
 
+  .feedback-widget-container--app-shell {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    right: max(1rem, env(safe-area-inset-right, 0px));
+    width: calc(100vw - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    max-width: calc(100vw - 2rem);
+  }
+
   .feedback-widget-button {
     bottom: 16px;
     right: 16px;
     width: 56px;
     height: 56px;
+  }
+
+  .feedback-widget-button--app-shell {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    right: max(1rem, env(safe-area-inset-right, 0px));
   }
 }
 </style>

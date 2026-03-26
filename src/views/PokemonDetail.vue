@@ -4,7 +4,10 @@
       <div class="section-container">
         <!-- Loading State -->
         <div v-if="isLoading" class="w-full">
-          <LoadingSpinner />
+          <LoadingSpinner
+            :variant="isAppShell ? 'brand' : 'default'"
+            full-viewport
+          />
         </div>
 
         <!-- Pokemon Not Found -->
@@ -92,9 +95,9 @@
                     <button
                       @click="handleStartMasterSetClick"
                       class="btn btn-h5 btn-primary text-sm py-1.5 px-3"
-                      :title="!user ? 'Log in to start your master set' : ''"
+                      :title="!user ? 'Log in to start your battleset' : ''"
                     >
-                      Start Master Set
+                      Start Battleset
                     </button>
                   </div>
                 </div>
@@ -193,7 +196,7 @@
                     class="btn btn-h4 btn-primary"
                     :title="!user ? 'Log in to start your master set' : ''"
                   >
-                    Start Master Set
+                    Start Battleset
                   </button>
                 </div>
 
@@ -272,7 +275,10 @@
             </div>
 
             <!-- Cards Grid -->
-            <div v-if="isLoadingCards" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-1.5 sm:gap-2 md:gap-4">
+            <div v-if="isLoadingCards && isAppShell" class="py-10 flex justify-center">
+              <LoadingSpinner variant="brand" text="Loading cards…" container-class="w-full max-w-sm" />
+            </div>
+            <div v-else-if="isLoadingCards" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-1.5 sm:gap-2 md:gap-4">
               <div v-for="i in 12" :key="i" class="card animate-pulse">
                 <div class="aspect-square bg-gray-200 rounded-t-lg"></div>
                 <div class="card-body p-2 sm:p-3">
@@ -310,7 +316,7 @@
       :card="selectedCard"
       @close="selectedCard = null"
       @toggle-collected="(card) => toggleCollected(card.id)"
-      @login="showLoginModal = true"
+      @login="promptCardLogin"
     />
 
     <!-- Success Notification -->
@@ -352,6 +358,13 @@ import pokemonListData from '../data/pokemonList.json'
 import { db } from '../config/firebase'
 import { getAllPokemonCards, getPokemon, getAllPokemon, getPokemonByDexNumber } from '../utils/firebasePokemon'
 import { useAuth } from '../composables/useAuth'
+import { useAppShell } from '../app/composables/useAppShell'
+import {
+  useLoginPrompt,
+  consumeMasterSetLoginIntent,
+  MASTER_SET_LOGIN_INTENT_KEY
+} from '../app/composables/useLoginPrompt'
+import { getIsNativeApp } from '../app/composables/useIsNativeApp'
 import { toggleCardCollected, getCollectedCardIds } from '../utils/userCards'
 import { heartPokemon, unheartPokemon, isPokemonHearted as checkPokemonHearted } from '../utils/hearts'
 import PokemonCard from '../components/PokemonCard.vue'
@@ -366,6 +379,12 @@ import { createMasterSet, createAssignment, getCardIdsForPokemon } from '../util
 const route = useRoute()
 const router = useRouter()
 const { user } = useAuth()
+const { isAppShell } = useAppShell()
+const { requestLogin } = useLoginPrompt()
+
+const promptCardLogin = () => {
+  if (!requestLogin()) showLoginModal.value = true
+}
 const pokemonId = route.params.pokemonId
 const pokemon = ref(null)
 const cards = ref([])
@@ -872,6 +891,11 @@ const handleCreateMasterSet = async (formData) => {
 
 const handleStartMasterSetClick = () => {
   if (!user.value) {
+    if (getIsNativeApp()) {
+      sessionStorage.setItem(MASTER_SET_LOGIN_INTENT_KEY, '1')
+      router.push({ path: '/login', query: { redirect: route.fullPath } })
+      return
+    }
     loginFromMasterSetButton.value = true
     showLoginModal.value = true
     return
@@ -901,12 +925,15 @@ watch(pokemon, (newPokemon) => {
 
 // Watch for user changes
 watch(() => user.value, async (newUser) => {
+  if (newUser && consumeMasterSetLoginIntent()) {
+    showStartMasterSetModal.value = true
+  }
   if (newUser && cards.value.length > 0) {
     await loadCollectedStatus()
   } else {
     collectedCards.value.clear()
   }
-  
+
   if (newUser && pokemon.value?.nationalDexNumber) {
     await loadPokemonHeartStatus()
   } else {

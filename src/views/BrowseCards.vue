@@ -26,7 +26,7 @@
         <!-- Mobile Filter Overlay -->
         <div 
           v-if="showMobileFilters"
-          class="fixed inset-0 bg-black bg-opacity-50 z-[100] md:hidden"
+          class="app-mobile-drawer-backdrop fixed inset-0 bg-black bg-opacity-50 z-[100] md:hidden"
           @click="showMobileFilters = false"
         ></div>
 
@@ -35,7 +35,7 @@
           <aside 
             :class="[
               'w-full md:w-64 flex-shrink-0 transition-all duration-300',
-              showMobileFilters ? 'fixed top-0 left-0 h-full z-[101] overflow-y-auto md:relative md:z-auto md:h-auto' : 'hidden md:block'
+              showMobileFilters ? 'app-mobile-drawer-panel fixed top-0 left-0 h-full z-[101] overflow-y-auto md:relative md:z-auto md:h-auto' : 'hidden md:block'
             ]"
           >
             <div class="card md:sticky md:top-4 h-full md:h-auto" style="background-color: var(--color-bg-primary);">
@@ -212,7 +212,13 @@
 
             <!-- Loading State -->
             <div v-if="isLoading" class="text-center py-12">
-              <p style="color: var(--color-text-secondary);">Loading cards...</p>
+              <LoadingSpinner
+                v-if="isAppShell"
+                variant="brand"
+                text="Loading cards…"
+                container-class="w-full max-w-sm mx-auto"
+              />
+              <p v-else style="color: var(--color-text-secondary);">Loading cards...</p>
             </div>
 
             <!-- Cards Grid -->
@@ -260,7 +266,7 @@
     <CardModal
       :card="selectedCard"
       @close="selectedCard = null"
-      @login="showLoginModal = true"
+      @login="promptCardLogin"
     />
 
     <!-- Login Modal -->
@@ -280,8 +286,17 @@ import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
 import CardModal from '../components/CardModal.vue'
 import LoginModal from '../components/LoginModal.vue'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import { useAppShell } from '../app/composables/useAppShell'
+import { useLoginPrompt } from '../app/composables/useLoginPrompt'
 
 const { user } = useAuth()
+const { isAppShell } = useAppShell()
+const { requestLogin } = useLoginPrompt()
+
+const promptCardLogin = () => {
+  if (!requestLogin()) showLoginModal.value = true
+}
 const cards = ref([])
 const availableSets = ref([])
 const isLoading = ref(false)
