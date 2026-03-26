@@ -762,26 +762,39 @@ const loadChallengeDetails = async () => {
           
           allCards = [...cardsEn, ...cardsJa]
         } else if (assignmentData.type === 'pokemon' && assignmentData.assignmentPokemonId) {
-          // Query by nationalDexNumber
-          const cardEnRef = collection(db, 'card_en')
-          const qEn = query(cardEnRef, where('nationalDexNumber', '==', parseInt(assignmentData.assignmentPokemonId)))
-          const snapshotEn = await getDocs(qEn)
-          const cardsEn = snapshotEn.docs.map(doc => ({
-            id: doc.id,
-            language: 'en',
-            ...doc.data()
-          }))
-          
-          const cardJaRef = collection(db, 'card_ja')
-          const qJa = query(cardJaRef, where('nationalDexNumber', '==', parseInt(assignmentData.assignmentPokemonId)))
-          const snapshotJa = await getDocs(qJa)
-          const cardsJa = snapshotJa.docs.map(doc => ({
-                id: doc.id,
-            language: 'ja',
-                ...doc.data()
+          // Query by both direct nationalDexNumber and dexId[] to include multi-Pokemon cards (Tag Team, etc.)
+          const dexNumber = parseInt(assignmentData.assignmentPokemonId)
+
+          if (!isNaN(dexNumber)) {
+            const loadCardsForLanguage = async (collectionName, language) => {
+              const cardsRef = collection(db, collectionName)
+              const [directSnapshot, multiSnapshot] = await Promise.all([
+                getDocs(query(cardsRef, where('nationalDexNumber', '==', dexNumber))),
+                getDocs(query(cardsRef, where('dexId', 'array-contains', dexNumber)))
+              ])
+
+              const uniqueCards = Array.from(
+                new Map(
+                  [...directSnapshot.docs, ...multiSnapshot.docs].map((docSnap) => [docSnap.id, docSnap])
+                ).values()
+              )
+
+              return uniqueCards.map((docSnap) => ({
+                id: docSnap.id,
+                language,
+                ...docSnap.data()
               }))
-          
-          allCards = [...cardsEn, ...cardsJa]
+            }
+
+            const [cardsEn, cardsJa] = await Promise.all([
+              loadCardsForLanguage('card_en', 'en'),
+              loadCardsForLanguage('card_ja', 'ja')
+            ])
+
+            allCards = [...cardsEn, ...cardsJa]
+          } else {
+            allCards = []
+          }
         }
       }
       

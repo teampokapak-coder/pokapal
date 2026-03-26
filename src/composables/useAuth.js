@@ -15,6 +15,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../config/firebase'
 import { getIsCapacitorNative } from '../app/composables/useIsNativeApp'
+import { syncPushNotificationsForUser } from '../app/composables/usePushNotifications'
 
 // Shared state
 const user = ref(null)
@@ -36,7 +37,11 @@ async function ensureUserDoc(firebaseUser) {
       updatedAt: serverTimestamp(),
       groups: [],
       collections: [],
-      isAdmin: false
+      isAdmin: false,
+      notifications: {
+        invitesEnabled: true,
+        challengeUpdatesEnabled: true
+      }
     })
   }
 }
@@ -52,6 +57,7 @@ export const useAuth = () => {
     onAuthStateChanged(auth, (firebaseUser) => {
       user.value = firebaseUser
       loading.value = false
+      void syncPushNotificationsForUser(firebaseUser)
     })
     // WKWebView / first launch can delay the first callback; never block the app forever
     const AUTH_LOADING_FALLBACK_MS = 5000
@@ -82,7 +88,11 @@ export const useAuth = () => {
         updatedAt: serverTimestamp(),
         groups: [],
         collections: [],
-        isAdmin: false
+        isAdmin: false,
+        notifications: {
+          invitesEnabled: true,
+          challengeUpdatesEnabled: true
+        }
       })
       
       return { success: true, user: userCredential.user }

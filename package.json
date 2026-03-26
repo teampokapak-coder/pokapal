@@ -21,6 +21,7 @@
     "@capacitor/app": "^8.0.1",
     "@capacitor/browser": "^8.0.2",
     "@capacitor/core": "^8.2.0",
+    "@capacitor/push-notifications": "^8.0.3",
     "@emailjs/browser": "^4.4.1",
     "@tiptap/extension-image": "^3.11.1",
     "@tiptap/extension-link": "^3.11.1",

@@ -281,6 +281,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { getAllPokemonCards } from '../utils/firebasePokemon'
 import { getAllSets } from '../utils/firebasePokemon'
+import { searchPokemonCardsByName } from '../utils/firebasePokemon'
 import { useAuth } from '../composables/useAuth'
 import { getCollectedCardIds, toggleCardCollected } from '../utils/userCards'
 import PokemonCard from '../components/PokemonCard.vue'
@@ -431,8 +432,7 @@ const loadCollectedCards = async () => {
 const debouncedSearch = () => {
   clearTimeout(searchTimeout.value)
   searchTimeout.value = setTimeout(() => {
-    // When searching, reload cards (search requires loading all cards for text matching)
-    // Other filters use efficient server-side queries
+    // Use dedicated server-side name search for cleaner, faster loading.
     loadCards(true)
   }, 300)
 }
@@ -491,16 +491,18 @@ const loadCards = async (applyFilters = false) => {
       }
     }
     
-    // If search is active, we need to load all cards (no server-side text search)
-    // Otherwise, use server-side filters with limit for performance
-    const needsFullLoad = filters.value.search || (filters.value.set && !queryFilters.setApiId && !queryFilters.setId)
-    
+    const searchTerm = filters.value.search?.trim()
+    const isSearching = !!searchTerm
+
+    // Non-search browsing remains capped for responsiveness.
     const options = {
       ...queryFilters,
-      ...(needsFullLoad ? {} : { limit: 500 }) // Only limit if not searching
+      ...(isSearching ? { limit: 400 } : { limit: 500 })
     }
-    
-    const result = await getAllPokemonCards(options)
+
+    const result = isSearching
+      ? await searchPokemonCardsByName(searchTerm, options)
+      : await getAllPokemonCards(options)
       if (result.success) {
         cards.value = result.data
         // Load collected cards after cards are loaded

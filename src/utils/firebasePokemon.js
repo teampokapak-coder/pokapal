@@ -13,6 +13,8 @@ import {
   where,
   orderBy,
   limit,
+  startAt,
+  endAt,
   serverTimestamp 
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
@@ -170,6 +172,11 @@ export const getCardCountsByDexNumber = async (language = 'all') => {
 export const getAllPokemonCards = async (filters = {}) => {
   try {
     const language = filters.language || 'all' // 'en', 'ja', or 'all'
+    const rawDexFilter = filters.nationalDexNumber
+    const parsedDexFilter = rawDexFilter !== undefined && rawDexFilter !== null
+      ? (typeof rawDexFilter === 'string' ? parseInt(rawDexFilter) : rawDexFilter)
+      : null
+    const hasDexFilter = parsedDexFilter !== null && !isNaN(parsedDexFilter)
     
     // Extract search filter (client-side only)
     const searchFilter = filters.search
@@ -189,57 +196,66 @@ export const getAllPokemonCards = async (filters = {}) => {
     }
     
     // Build queries for each collection
-    const queries = collections.map(({ ref }) => {
-      let q = query(ref)
+    const queries = collections.map(async ({ ref }) => {
+      let baseQuery = query(ref)
       
       // Apply filters
       if (filters.setId) {
-        q = query(q, where('setId', '==', filters.setId))
+        baseQuery = query(baseQuery, where('setId', '==', filters.setId))
       }
       if (filters.apiSetId) {
-        q = query(q, where('setApiId', '==', filters.apiSetId))
-      }
-      if (filters.nationalDexNumber !== undefined && filters.nationalDexNumber !== null) {
-        // Ensure nationalDexNumber is a number for consistent querying
-        const dexNumber = typeof filters.nationalDexNumber === 'string' 
-          ? parseInt(filters.nationalDexNumber) 
-          : filters.nationalDexNumber
-        if (!isNaN(dexNumber)) {
-          q = query(q, where('nationalDexNumber', '==', dexNumber))
-        }
+        baseQuery = query(baseQuery, where('setApiId', '==', filters.apiSetId))
       }
       if (filters.rarity) {
-        q = query(q, where('rarity', '==', filters.rarity))
+        baseQuery = query(baseQuery, where('rarity', '==', filters.rarity))
       }
       if (filters.type) {
         // Use array-contains for single type filter (server-side)
-        q = query(q, where('types', 'array-contains', filters.type))
+        baseQuery = query(baseQuery, where('types', 'array-contains', filters.type))
       }
       if (filters.category) {
-        q = query(q, where('category', '==', filters.category))
+        baseQuery = query(baseQuery, where('category', '==', filters.category))
       }
       if (filters.setApiId) {
-        q = query(q, where('setApiId', '==', filters.setApiId))
+        baseQuery = query(baseQuery, where('setApiId', '==', filters.setApiId))
       }
       if (filters.setName) {
         // Note: setName filtering requires loading all cards (no index on set name)
         // This is less efficient but sometimes necessary
-        q = query(q)
+        baseQuery = query(baseQuery)
       }
       
       // Order by localId if available (API field name)
       try {
-        q = query(q, orderBy('localId', 'asc'))
+        baseQuery = query(baseQuery, orderBy('localId', 'asc'))
       } catch (e) {
         // If ordering fails, continue without ordering
       }
       
       // Apply limit at query level
       if (filters.limit && filters.limit > 0) {
-        q = query(q, limit(filters.limit))
+        baseQuery = query(baseQuery, limit(filters.limit))
       }
-      
-      return getDocs(q)
+
+      // Pokemon card lookups should match both direct nationalDexNumber and multi-Pokemon dex arrays (Tag Team, etc.)
+      if (!hasDexFilter) {
+        return getDocs(baseQuery)
+      }
+
+      const directDexQuery = query(baseQuery, where('nationalDexNumber', '==', parsedDexFilter))
+      const multiDexQuery = query(baseQuery, where('dexId', 'array-contains', parsedDexFilter))
+      const [directDexSnapshot, multiDexSnapshot] = await Promise.all([
+        getDocs(directDexQuery),
+        getDocs(multiDexQuery)
+      ])
+
+      const uniqueDocs = Array.from(
+        new Map(
+          [...directDexSnapshot.docs, ...multiDexSnapshot.docs].map((docSnap) => [docSnap.id, docSnap])
+        ).values()
+      )
+
+      return { docs: uniqueDocs }
     })
     
     // Execute all queries in parallel
@@ -344,6 +360,95 @@ export const getCardsBySet = async (setId, language = 'en') => {
 
 export const getCardsByPokemon = async (nationalDexNumber, language = 'all') => {
   return getAllPokemonCards({ nationalDexNumber, language })
+}
+
+/**
+ * Search cards by name with server-side prefix matching.
+ * Uses Firestore range query on `name` to avoid loading the full card catalog.
+ */
+export const searchPokemonCardsByName = async (searchTerm, filters = {}) => {
+  try {
+    const language = filters.language || 'all'
+    const term = String(searchTerm || '').trim()
+    if (!term) {
+      return getAllPokemonCards(filters)
+    }
+
+    const collections = []
+    if (language === 'all' || language === 'en') {
+      collections.push({ ref: collection(db, 'card_en'), name: 'card_en' })
+    }
+    if (language === 'all' || language === 'ja') {
+      collections.push({ ref: collection(db, 'card_ja'), name: 'card_ja' })
+    }
+    if (collections.length === 0) {
+      return { success: true, data: [] }
+    }
+
+    const titleCaseTerm = term
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+      .join(' ')
+    const searchVariants = Array.from(new Set([term, titleCaseTerm])).filter(Boolean)
+    const perVariantLimit = filters.limit && filters.limit > 0 ? filters.limit : 300
+
+    const snapshots = await Promise.all(
+      collections.map(async ({ ref }) => {
+        const queries = []
+        for (const variant of searchVariants) {
+          let q = query(ref)
+          if (filters.setId) q = query(q, where('setId', '==', filters.setId))
+          if (filters.apiSetId) q = query(q, where('setApiId', '==', filters.apiSetId))
+          if (filters.rarity) q = query(q, where('rarity', '==', filters.rarity))
+          if (filters.type) q = query(q, where('types', 'array-contains', filters.type))
+          if (filters.category) q = query(q, where('category', '==', filters.category))
+
+          q = query(q, orderBy('name'), startAt(variant), endAt(`${variant}\uf8ff`), limit(perVariantLimit))
+          queries.push(getDocs(q))
+        }
+        const resultSnapshots = await Promise.all(queries)
+        return resultSnapshots.flatMap((snap) => snap.docs)
+      })
+    )
+
+    let cards = []
+    snapshots.forEach((docs, index) => {
+      const collectionCards = docs.map((docSnap) => {
+        const cardData = docSnap.data()
+        const apiId = cardData.id || cardData.apiId || cardData.cardId
+        return {
+          ...cardData,
+          id: docSnap.id,
+          cardId: apiId,
+          collection: collections[index].name,
+          language: collections[index].name === 'card_ja' ? 'ja' : 'en'
+        }
+      })
+      cards = cards.concat(collectionCards)
+    })
+
+    // Deduplicate and apply a final contains check for cleaner UX.
+    const dedupedCards = Array.from(new Map(cards.map((card) => [card.id, card])).values())
+    const searchLower = term.toLowerCase()
+    let filtered = dedupedCards.filter((card) =>
+      card.name?.toLowerCase().includes(searchLower) ||
+      card.localId?.toLowerCase().includes(searchLower)
+    )
+
+    if (filters.setName) {
+      filtered = filtered.filter((card) => {
+        const cardSetName = typeof card.set === 'string' ? card.set : card.set?.name
+        return cardSetName === filters.setName
+      })
+    }
+
+    filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    return { success: true, data: filtered }
+  } catch (error) {
+    console.error('Error searching cards by name:', error)
+    return { success: false, error: error.message }
+  }
 }
 
 // ============================================

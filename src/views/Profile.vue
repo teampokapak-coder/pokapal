@@ -340,6 +340,52 @@
               </div>
             </div>
 
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Notifications</h3>
+                <p class="card-subtitle">Choose which push notifications you receive</p>
+              </div>
+              <div class="card-body">
+                <div class="space-y-4">
+                  <label class="flex items-start gap-3 cursor-pointer">
+                    <input
+                      v-model="notificationPrefs.invitesEnabled"
+                      type="checkbox"
+                      class="mt-1"
+                      :disabled="isSavingNotificationPrefs || isLoadingNotificationPrefs"
+                      @change="saveNotificationPreferences('invitesEnabled')"
+                    />
+                    <div>
+                      <p class="font-medium" style="color: var(--color-text-primary);">Battle invites</p>
+                      <p class="text-sm" style="color: var(--color-text-secondary);">Notify me when someone invites me to a battle set.</p>
+                    </div>
+                  </label>
+
+                  <label class="flex items-start gap-3 cursor-pointer">
+                    <input
+                      v-model="notificationPrefs.challengeUpdatesEnabled"
+                      type="checkbox"
+                      class="mt-1"
+                      :disabled="isSavingNotificationPrefs || isLoadingNotificationPrefs"
+                      @change="saveNotificationPreferences('challengeUpdatesEnabled')"
+                    />
+                    <div>
+                      <p class="font-medium" style="color: var(--color-text-primary);">Challenge updates</p>
+                      <p class="text-sm" style="color: var(--color-text-secondary);">Notify me when someone collects cards in my challenge.</p>
+                    </div>
+                  </label>
+
+                  <p
+                    v-if="notificationPreferencesMessage"
+                    class="text-xs"
+                    style="color: var(--color-text-secondary);"
+                  >
+                    {{ notificationPreferencesMessage }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <!-- Hearts Section -->
             <div class="card">
               <div class="card-header">
@@ -447,7 +493,7 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, setDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
 import { updateProfile } from '../config/authApi'
 import { db, auth } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
@@ -492,6 +538,13 @@ const collectionFilterSet = ref('')
 const selectedCard = ref(null)
 const showLoginModal = ref(false)
 const expandedMasterSets = ref({})
+const notificationPrefs = ref({
+  invitesEnabled: true,
+  challengeUpdatesEnabled: true
+})
+const isLoadingNotificationPrefs = ref(false)
+const isSavingNotificationPrefs = ref(false)
+const notificationPreferencesMessage = ref('')
 
 const handleLogout = async () => {
   try {
@@ -499,6 +552,48 @@ const handleLogout = async () => {
     router.push('/')
   } catch (error) {
     console.error('Error logging out:', error)
+  }
+}
+
+const loadNotificationPreferences = async () => {
+  if (!user.value) return
+  isLoadingNotificationPrefs.value = true
+  try {
+    const userRef = doc(db, 'users', user.value.uid)
+    const userSnap = await getDoc(userRef)
+    const notifications = userSnap.data()?.notifications || {}
+    notificationPrefs.value = {
+      invitesEnabled: notifications.invitesEnabled !== false,
+      challengeUpdatesEnabled: notifications.challengeUpdatesEnabled !== false
+    }
+  } catch (error) {
+    console.error('Error loading notification preferences:', error)
+  } finally {
+    isLoadingNotificationPrefs.value = false
+  }
+}
+
+const saveNotificationPreferences = async () => {
+  if (!user.value) return
+  isSavingNotificationPrefs.value = true
+  notificationPreferencesMessage.value = ''
+  try {
+    await setDoc(doc(db, 'users', user.value.uid), {
+      notifications: {
+        invitesEnabled: !!notificationPrefs.value.invitesEnabled,
+        challengeUpdatesEnabled: !!notificationPrefs.value.challengeUpdatesEnabled
+      },
+      updatedAt: serverTimestamp()
+    }, { merge: true })
+    notificationPreferencesMessage.value = 'Notification preferences saved.'
+  } catch (error) {
+    console.error('Error saving notification preferences:', error)
+    notificationPreferencesMessage.value = 'Unable to save notification preferences.'
+  } finally {
+    isSavingNotificationPrefs.value = false
+    setTimeout(() => {
+      notificationPreferencesMessage.value = ''
+    }, 2500)
   }
 }
 
@@ -1135,11 +1230,16 @@ watch(() => user.value, (newUser) => {
     loadInvites()
     loadCollection()
     loadHearts()
+    loadNotificationPreferences()
   } else {
     assignments.value = []
     allMasterSets.value = []
     pendingInvites.value = []
     collectedCards.value = []
+    notificationPrefs.value = {
+      invitesEnabled: true,
+      challengeUpdatesEnabled: true
+    }
   }
 }, { immediate: true })
 
@@ -1156,6 +1256,7 @@ onMounted(() => {
     loadInvites()
     loadCollection()
     loadHearts()
+    loadNotificationPreferences()
     
     // Track Google Ads conversion for signup (only once per user)
     if (typeof window !== 'undefined' && window.gtag) {
