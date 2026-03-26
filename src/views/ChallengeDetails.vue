@@ -229,9 +229,17 @@
                   class="summary-member-card rounded-lg p-4"
                 >
                   <div class="flex items-start justify-between mb-2">
-                    <p class="font-medium text-gray-900 dark:text-gray-100">
-                      {{ assignment.userName || assignment.email || 'Unknown User' }}
-                    </p>
+                    <div class="min-w-0">
+                      <p class="font-medium text-gray-900 dark:text-gray-100">
+                        {{ assignment.userName || assignment.email || 'Unknown User' }}
+                      </p>
+                      <p
+                        v-if="assignment.isShared && assignment.sharedMemberNames && assignment.sharedMemberNames.length > 0"
+                        class="text-xs mt-0.5 text-gray-600 dark:text-gray-400 truncate"
+                      >
+                        {{ assignment.sharedMemberNames.join(' · ') }}
+                      </p>
+                    </div>
                     <span v-if="assignment.userId === user?.uid" class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">You</span>
                   </div>
                   <div class="mt-2">
@@ -268,6 +276,12 @@
                       {{ assignment.userName || assignment.email || 'Unknown User' }}
                       <span v-if="assignment.userId === user?.uid" class="text-sm font-normal text-gray-500">(You)</span>
                     </h4>
+                    <p
+                      v-if="assignment.isShared && assignment.sharedMemberNames && assignment.sharedMemberNames.length > 0"
+                      class="text-xs text-gray-600 mt-1"
+                    >
+                      {{ assignment.sharedMemberNames.join(' · ') }}
+                    </p>
                     <p class="text-sm text-gray-600 mt-1">
                       <span v-if="assignment.type === 'pokemon' && assignment.pokemonName">
                         Master Setting: {{ assignment.pokemonName }}
@@ -490,6 +504,25 @@ const loadChallengeDetails = async () => {
   
   isLoading.value = true
   try {
+    const userNameCache = new Map()
+    const getUserDisplayName = async (uid) => {
+      if (!uid) return null
+      if (userNameCache.has(uid)) return userNameCache.get(uid)
+      try {
+        const userRef = doc(db, 'users', uid)
+        const userSnap = await getDoc(userRef)
+        const value = userSnap.exists()
+          ? (userSnap.data().displayName || userSnap.data().email || null)
+          : null
+        userNameCache.set(uid, value)
+        return value
+      } catch (error) {
+        console.error('Error loading user:', error)
+        userNameCache.set(uid, null)
+        return null
+      }
+    }
+
     // Load master set or challenge data
     const collectionName = isMasterSet ? 'masterSets' : 'challenges'
     const dataRef = doc(db, collectionName, challengeId)
@@ -520,15 +553,14 @@ const loadChallengeDetails = async () => {
       // Get user name if userId exists
       let userName = null
       if (assignmentData.userId) {
-        try {
-          const userRef = doc(db, 'users', assignmentData.userId)
-          const userSnap = await getDoc(userRef)
-          if (userSnap.exists()) {
-            userName = userSnap.data().displayName || userSnap.data().email
-          }
-        } catch (error) {
-          console.error('Error loading user:', error)
-        }
+        userName = await getUserDisplayName(assignmentData.userId)
+      }
+
+      let sharedMemberNames = []
+      if (assignmentData.isShared) {
+        const ids = assignmentData.memberIds || challengeData.value?.memberIds || []
+        const resolved = await Promise.all(ids.map((uid) => getUserDisplayName(uid)))
+        sharedMemberNames = Array.from(new Set(resolved.filter(Boolean)))
       }
       
       // Get Pokemon/Set name (use stored name or fetch)
@@ -828,6 +860,7 @@ const loadChallengeDetails = async () => {
         userName: assignmentData.isShared ? 'Shared Checklist' : (userName || assignmentData.email || 'Unknown User'),
         isShared: Boolean(assignmentData.isShared),
         memberIds: assignmentData.memberIds || [],
+        sharedMemberNames,
         type: assignmentData.type,
         pokemonId: assignmentData.pokemonId,
         pokemonName,
