@@ -20,6 +20,39 @@
         <div v-else>
           <!-- Header -->
           <div class="section-header mb-6">
+            <div class="sm:hidden mb-3 flex items-center justify-between gap-2 mobile-header-actions">
+              <router-link to="/profile" class="btn btn-h5 btn-ghost">
+                ← Back
+              </router-link>
+              <div class="flex items-center gap-2">
+                <button
+                  v-if="(isCreator || isAdmin) && challengeData.type === 'pokemon'"
+                  @click="syncCards"
+                  class="btn btn-h5 btn-secondary"
+                  :disabled="isSyncingCards"
+                  title="Sync cards - add any new cards that have been added for this Pokemon"
+                >
+                  {{ isSyncingCards ? 'Syncing...' : '🔄 Sync' }}
+                </button>
+                <button
+                  v-if="isCreator"
+                  @click="showInviteModal = true"
+                  class="btn btn-h5 btn-primary"
+                >
+                  + Invite
+                </button>
+                <button
+                  v-if="isAdmin"
+                  @click="deleteChallenge"
+                  class="btn btn-h5 btn-ghost"
+                  :disabled="isDeletingChallenge"
+                  style="color: #dc2626;"
+                  title="Delete this challenge and all related assignment data"
+                >
+                  {{ isDeletingChallenge ? 'Deleting...' : 'Delete' }}
+                </button>
+              </div>
+            </div>
             <div class="flex justify-between items-start">
               <div class="flex-1">
                 <div v-if="!isEditingName" class="flex items-center gap-3">
@@ -111,14 +144,14 @@
                 <button
                   v-if="isCreator"
                   @click="showInviteModal = true"
-                  class="btn btn-h4 btn-primary"
+                  class="hidden sm:inline-flex btn btn-h4 btn-primary"
                 >
                   + Invite
                 </button>
                 <button
                   v-if="isAdmin"
                   @click="deleteChallenge"
-                  class="btn btn-h4 btn-ghost"
+                  class="hidden sm:inline-flex btn btn-h4 btn-ghost"
                   :disabled="isDeletingChallenge"
                   style="color: #dc2626;"
                   title="Delete this challenge and all related assignment data"
@@ -128,7 +161,7 @@
                   </div>
                 </div>
               </div>
-              <div class="flex gap-2 ml-4 flex-shrink-0">
+              <div class="hidden sm:flex gap-2 ml-4 flex-shrink-0">
                 <router-link to="/profile" class="btn btn-h4 btn-ghost">
                   ← Back
                 </router-link>
@@ -138,16 +171,21 @@
 
           <!-- Invite Modal -->
           <div v-if="showInviteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showInviteModal = false">
-            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4" @click.stop>
+            <div
+              class="rounded-lg p-6 max-w-md w-full mx-4 border"
+              style="background-color: var(--color-bg-secondary); border-color: var(--color-border);"
+              @click.stop
+            >
               <h3 class="mb-4">Invite to Challenge</h3>
               <div class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                  <label class="block text-sm font-medium mb-2" style="color: var(--color-text-primary);">Email Address</label>
                   <input
                     v-model="inviteEmail"
                     type="email"
                     placeholder="friend@example.com"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2"
+                    style="background-color: var(--color-bg-primary); color: var(--color-text-primary); border-color: var(--color-border);"
                     @keyup.enter="sendInvite"
                   />
                 </div>
@@ -171,34 +209,13 @@
           </div>
 
           <!-- Master Set Summary -->
-          <div class="card mb-6">
-            <div class="card-body">
+          <div class="mb-6">
               <div class="flex items-start justify-between gap-4 mb-4 flex-wrap">
-                <div class="flex-1 min-w-0">
-                  <h3 class="mb-2 sm:mb-0">Master Set Summary</h3>
-                  <div v-if="challengeData.type === 'set' && summarySetDisplay" class="mt-2 space-y-1">
-                    <template v-if="summarySetDisplay.mode === 'single'">
-                      <p class="text-lg font-medium">Set: {{ summarySetDisplay.value }}</p>
-                    </template>
-                    <template v-else>
-                      <p class="text-lg font-medium">Sets <span class="text-base font-normal text-gray-600 dark:text-gray-400">(different per player)</span></p>
-                      <p class="text-base text-gray-700 dark:text-gray-300">{{ summarySetDisplay.values.join(' · ') }}</p>
-                    </template>
-                  </div>
-                  <div v-else-if="challengeData.type === 'pokemon' && summaryPokemonDisplay" class="mt-2 space-y-1">
-                    <template v-if="summaryPokemonDisplay.mode === 'single'">
-                      <p class="text-lg font-medium">Pokémon: {{ summaryPokemonDisplay.value }}</p>
-                    </template>
-                    <template v-else>
-                      <p class="text-lg font-medium">Pokémon <span class="text-base font-normal text-gray-600 dark:text-gray-400">(different per player)</span></p>
-                      <p class="text-base text-gray-700 dark:text-gray-300">{{ summaryPokemonDisplay.values.join(' · ') }}</p>
-                    </template>
-                  </div>
-                </div>
+                <div class="flex-1 min-w-0"></div>
                 <button
                   v-if="(isCreator || isAdmin) && challengeData.type === 'pokemon'"
                   @click="syncCards"
-                  class="btn btn-h5 btn-secondary flex-shrink-0"
+                  class="hidden sm:inline-flex btn btn-h5 btn-secondary flex-shrink-0"
                   :disabled="isSyncingCards"
                   title="Sync cards - add any new cards that have been added for this Pokemon"
                 >
@@ -209,7 +226,7 @@
                 <div
                   v-for="assignment in memberAssignments"
                   :key="assignment.id"
-                  class="border border-gray-200 rounded-lg p-4"
+                  class="summary-member-card rounded-lg p-4"
                 >
                   <div class="flex items-start justify-between mb-2">
                     <p class="font-medium text-gray-900 dark:text-gray-100">
@@ -234,14 +251,10 @@
                   </div>
                 </div>
               </div>
-            </div>
           </div>
 
           <!-- Swimlanes: Cards Progress -->
-          <div class="card">
-            <div class="card-body">
-              <h3 class="mb-6">Card Progress</h3>
-              
+          <div>
               <!-- Each member gets a swimlane -->
               <div
                 v-for="assignment in memberAssignments"
@@ -265,7 +278,7 @@
                     </p>
                   </div>
                   <div class="text-right">
-                    <p class="text-2xl font-bold text-gray-900">
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">
                       {{ assignment.collected || 0 }} / {{ assignment.total || 0 }}
                     </p>
                     <p class="text-sm text-gray-600">{{ assignment.progress || 0 }}% Complete</p>
@@ -273,10 +286,10 @@
                 </div>
 
                 <!-- Filters (only show when you can edit this assignment) -->
-                <div v-if="canEditAssignment(assignment) && assignment.cards && assignment.cards.length > 0" class="mb-4 flex gap-4 flex-wrap">
+                <div v-if="canEditAssignment(assignment) && assignment.cards && assignment.cards.length > 0" class="mb-4 flex items-center gap-2 sm:gap-4 flex-nowrap">
                   <select
                     v-model="filterStatus[assignment.id]"
-                    class="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    class="w-32 sm:w-auto shrink-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                   >
                     <option value="all">All Cards</option>
                     <option value="checked">Have</option>
@@ -286,7 +299,7 @@
                     v-model="searchQuery[assignment.id]"
                     type="text"
                     placeholder="Search cards..."
-                    class="flex-1 min-w-64 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    class="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                   />
                 </div>
 
@@ -314,7 +327,6 @@
                   <p v-else>No cards available yet</p>
                 </div>
               </div>
-            </div>
           </div>
         </div>
       </div>
@@ -829,6 +841,12 @@ const loadChallengeDetails = async () => {
     }
     
     memberAssignments.value = assignments
+    // Ensure filter dropdowns always render with a visible default value.
+    const nextFilterStatus = {}
+    assignments.forEach((assignment) => {
+      nextFilterStatus[assignment.id] = filterStatus.value[assignment.id] || 'all'
+    })
+    filterStatus.value = nextFilterStatus
   } catch (error) {
     console.error('Error loading challenge details:', error)
   } finally {
@@ -1224,6 +1242,38 @@ onMounted(() => {
 
 .cards-scroll-container::-webkit-scrollbar-thumb:hover {
   background-color: var(--color-border-hover);
+}
+
+.summary-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-bg-tertiary) 95%, var(--color-accent) 5%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, var(--color-accent) 12%);
+}
+
+.summary-member-card {
+  background: color-mix(in srgb, var(--color-bg-tertiary) 97%, var(--color-accent) 3%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 92%, var(--color-accent) 8%);
+}
+
+@media (max-width: 640px) {
+  .mobile-header-actions .btn {
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.84rem !important;
+    line-height: 1.1 !important;
+    min-height: 2rem;
+  }
+
+  .summary-member-card {
+    padding: 0.85rem;
+    border-width: 1px;
+  }
 }
 </style>
 
