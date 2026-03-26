@@ -156,18 +156,11 @@
 
           <!-- Cards Section -->
           <div class="mt-6 sm:mt-8">
-            <div class="flex justify-between items-center mb-4 sm:mb-6">
-              <h2 class="text-lg sm:text-2xl">All Cards</h2>
-              <div class="text-xs sm:text-sm" style="color: var(--color-text-secondary);">
-                {{ filteredCards.length }} {{ filteredCards.length === 1 ? 'card' : 'cards' }}
-              </div>
-            </div>
-
             <!-- Filters -->
-            <div class="mb-4 sm:mb-6 flex gap-2 sm:gap-4 flex-wrap">
+            <div class="mb-4 sm:mb-6 grid grid-cols-2 gap-2 sm:gap-3 md:flex md:flex-wrap md:gap-4">
               <select
                 v-model="filterCardType"
-                class="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 flex-1 sm:flex-none min-w-0"
+                class="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 w-full md:w-auto min-w-0"
                 style="border-color: var(--color-border);"
               >
                 <option value="all">All Cards</option>
@@ -175,7 +168,7 @@
               </select>
               <select
                 v-model="filterLanguage"
-                class="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 flex-1 sm:flex-none min-w-0"
+                class="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 w-full md:w-auto min-w-0"
                 style="border-color: var(--color-border);"
               >
                 <option value="all">All Languages</option>
@@ -184,7 +177,7 @@
               </select>
               <select
                 v-model="filterSet"
-                class="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 flex-1 sm:flex-none min-w-0"
+                class="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 w-full md:w-auto min-w-0"
                 style="border-color: var(--color-border);"
               >
                 <option value="">All Sets</option>
@@ -194,7 +187,7 @@
               </select>
               <select
                 v-model="filterRarity"
-                class="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 flex-1 sm:flex-none min-w-0"
+                class="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 w-full md:w-auto min-w-0"
                 style="border-color: var(--color-border);"
               >
                 <option value="">All Rarities</option>

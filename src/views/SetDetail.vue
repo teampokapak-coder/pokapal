@@ -173,18 +173,11 @@
 
           <!-- Cards Section -->
           <div class="mt-8">
-            <div class="flex justify-between items-center mb-6">
-              <h2>All Cards</h2>
-              <div class="text-sm text-gray-600">
-                {{ filteredCards.length }} {{ filteredCards.length === 1 ? 'card' : 'cards' }}
-              </div>
-            </div>
-
             <!-- Filters -->
-            <div class="mb-4 md:mb-6 flex flex-wrap gap-2 md:gap-4">
+            <div class="mb-4 md:mb-6 grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-4">
               <select
                 v-model="filterType"
-                class="filter-input flex-1 md:flex-none min-w-[calc(50%-0.25rem)] md:min-w-0"
+                class="filter-input w-full md:w-auto"
               >
                 <option value="">All Types</option>
                 <option v-for="type in uniqueTypes" :key="type" :value="type">
@@ -193,7 +186,7 @@
               </select>
               <select
                 v-model="filterRarity"
-                class="filter-input flex-1 md:flex-none min-w-[calc(50%-0.25rem)] md:min-w-0"
+                class="filter-input w-full md:w-auto"
               >
                 <option value="">All Rarities</option>
                 <option v-for="rarity in uniqueRarities" :key="rarity" :value="rarity">
@@ -202,7 +195,7 @@
               </select>
               <select
                 v-model="filterCardType"
-                class="filter-input flex-1 md:flex-none min-w-[calc(50%-0.25rem)] md:min-w-0"
+                class="filter-input w-full md:w-auto"
               >
                 <option value="">All Card Types</option>
                 <option value="Pokemon">Pokemon</option>
