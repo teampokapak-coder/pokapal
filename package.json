@@ -15,7 +15,8 @@
     "cap:sync": "source ~/.nvm/nvm.sh && nvm use 22 && npx cap sync ios",
     "ios:open": "source ~/.nvm/nvm.sh && nvm use 22 && npx cap open ios",
     "ios:run": "source ~/.nvm/nvm.sh && nvm use 22 && npm run build && npx cap run ios",
-    "ios:targets": "source ~/.nvm/nvm.sh && nvm use 22 && npx cap run ios --list"
+    "ios:targets": "source ~/.nvm/nvm.sh && nvm use 22 && npx cap run ios --list",
+    "assets:ios": "source ~/.nvm/nvm.sh && nvm use 22 && npx @capacitor/assets generate --ios"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.1",
@@ -32,6 +33,7 @@
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.2.0",
     "@capacitor/ios": "^8.2.0",
     "@vitejs/plugin-vue": "^6.0.1",
