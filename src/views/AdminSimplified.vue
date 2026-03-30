@@ -36,6 +36,52 @@
             </div>
           </div>
 
+          <!-- Illustrators (card_en + card_ja) -->
+          <div class="card">
+            <div class="card-header flex items-center justify-between gap-2 flex-wrap">
+              <h3 class="card-title">Illustrators</h3>
+              <button
+                type="button"
+                class="btn btn-h6 btn-primary"
+                :disabled="loadingIllustrators"
+                @click="loadIllustrators"
+              >
+                {{ loadingIllustrators ? 'Loading…' : 'Refresh counts' }}
+              </button>
+            </div>
+            <div class="card-body">
+              <p class="text-sm mb-4" style="color: var(--color-text-secondary);">
+                Distinct <code class="px-1 py-0.5 rounded" style="background-color: var(--color-bg-secondary);">illustrator</code> values with total card counts (EN + JA).
+              </p>
+              <div v-if="loadingIllustrators" class="text-center py-8">
+                <p class="text-sm" style="color: var(--color-text-secondary);">Scanning cards…</p>
+              </div>
+              <div v-else class="overflow-x-auto max-h-[28rem] overflow-y-auto rounded-md border" style="border-color: var(--color-border);">
+                <table class="w-full text-sm">
+                  <thead class="sticky top-0 z-[1]" style="background-color: var(--color-bg-secondary);">
+                    <tr style="border-bottom: 1px solid var(--color-border);">
+                      <th class="text-left py-2 px-3 font-medium" style="color: var(--color-text-primary);">Illustrator</th>
+                      <th class="text-right py-2 px-3 font-medium" style="color: var(--color-text-primary);">Cards</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="row in illustrators"
+                      :key="row.id"
+                      style="border-bottom: 1px solid var(--color-border);"
+                    >
+                      <td class="py-2 px-3 max-w-md break-words" style="color: var(--color-text-primary);">{{ row.label }}</td>
+                      <td class="py-2 px-3 text-right tabular-nums" style="color: var(--color-text-secondary);">{{ row.cardCount }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p v-if="illustrators.length === 0" class="text-center py-6 text-sm" style="color: var(--color-text-secondary);">
+                  No illustrator data. Refresh after cards are imported.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <!-- Pokemon Collection -->
           <div class="card">
             <div class="card-header">
@@ -90,6 +136,7 @@
                     <tr style="border-bottom: 1px solid var(--color-border);">
                       <th class="text-left py-2 px-3 font-medium" style="color: var(--color-text-primary);">Image</th>
                       <th class="text-left py-2 px-3 font-medium" style="color: var(--color-text-primary);">Name</th>
+                      <th class="text-right py-2 px-3 font-medium" style="color: var(--color-text-primary);">Matched cards</th>
                       <th class="text-left py-2 px-3 font-medium" style="color: var(--color-text-primary);">Icon URL</th>
                       <th class="text-left py-2 px-3 font-medium" style="color: var(--color-text-primary);">Actions</th>
                     </tr>
@@ -118,6 +165,9 @@
                       </td>
                       <td class="py-2 px-3" style="color: var(--color-text-primary);">
                         {{ trainer.trainerName }}
+                      </td>
+                      <td class="py-2 px-3 text-right tabular-nums" style="color: var(--color-text-secondary);">
+                        {{ trainer.cardCount ?? '—' }}
                       </td>
                       <td class="py-2 px-3">
                         <div class="max-w-xs truncate text-xs" style="color: var(--color-text-secondary);">
@@ -855,6 +905,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { db, storage } from '../config/firebase'
 import { seedPokemonCollection, seedSets, seedCardsForSet } from '../utils/simplifiedSeeder'
 import { getAllTrainers, saveTrainer } from '../utils/firebaseTrainers'
+import { aggregateIllustratorCounts, computeTrainerCardCounts } from '../utils/cardAggregates'
 import { fetchSetById } from '../utils/tcgdxAPI'
 import { mapTCGdxSetToSchema } from '../utils/tcgdxAPI'
 import { Timestamp } from 'firebase/firestore'
@@ -873,6 +924,8 @@ const isSeedingSetsJa = ref(false)
 // Trainers
 const trainers = ref([])
 const loadingTrainers = ref(false)
+const illustrators = ref([])
+const loadingIllustrators = ref(false)
 const trainerSearchQuery = ref('')
 const currentTrainerPage = ref(1)
 const trainersPerPage = 10
@@ -1071,12 +1124,13 @@ watch(trainerSearchQuery, () => {
   currentTrainerPage.value = 1
 })
 
-// Load trainers
+// Load trainers (with MVP name-match card counts)
 const loadTrainers = async () => {
   loadingTrainers.value = true
   try {
     const allTrainers = await getAllTrainers()
-    trainers.value = allTrainers.sort((a, b) => 
+    const withCounts = await computeTrainerCardCounts(allTrainers)
+    trainers.value = withCounts.sort((a, b) =>
       (a.trainerName || '').localeCompare(b.trainerName || '')
     )
   } catch (error) {
@@ -1085,6 +1139,19 @@ const loadTrainers = async () => {
     messageType.value = 'error'
   } finally {
     loadingTrainers.value = false
+  }
+}
+
+const loadIllustrators = async () => {
+  loadingIllustrators.value = true
+  try {
+    illustrators.value = await aggregateIllustratorCounts()
+  } catch (error) {
+    console.error('Error loading illustrators:', error)
+    message.value = `❌ Error loading illustrators: ${error.message}`
+    messageType.value = 'error'
+  } finally {
+    loadingIllustrators.value = false
   }
 }
 
@@ -1697,6 +1764,7 @@ onMounted(() => {
   loadCounts()
   loadSets()
   loadTrainers()
+  loadIllustrators()
 })
 </script>
 

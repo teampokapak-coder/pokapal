@@ -11,7 +11,8 @@
       <router-view />
     </main>
     <Footer />
-    <FeedbackWidget />
+    <!-- Glint feedback bubble — disabled: was cluttering the web UI; re-enable by uncommenting import + component -->
+    <!-- <FeedbackWidget /> -->
   </div>
 </template>
 
@@ -22,7 +23,7 @@ import NativeAuthBootstrap from './app/components/NativeAuthBootstrap.vue'
 import MobileShell from './app/layouts/MobileShell.vue'
 import Navigation from './components/Navigation.vue'
 import Footer from './components/Footer.vue'
-import FeedbackWidget from './components/FeedbackWidget.vue'
+// import FeedbackWidget from './components/FeedbackWidget.vue'
 import { getIsNativeApp } from './app/composables/useIsNativeApp'
 import { useAuth } from './composables/useAuth'
 

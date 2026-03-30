@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen" style="background-color: var(--color-bg-primary);">
-    <section class="section section-spacing-md">
+    <section class="section section-spacing-md challenge-details-section">
       <div class="section-container">
         <!-- Loading State -->
         <div v-if="isLoading" class="text-center py-12">
@@ -20,37 +20,43 @@
         <div v-else>
           <!-- Header -->
           <div class="section-header mb-6">
-            <div class="sm:hidden mb-3 flex items-center justify-between gap-2 mobile-header-actions">
-              <router-link to="/profile" class="btn btn-h5 btn-ghost">
-                ← Back
-              </router-link>
-              <div class="flex items-center gap-2">
-                <button
-                  v-if="(isCreator || isAdmin) && challengeData.type === 'pokemon'"
-                  @click="syncCards"
-                  class="btn btn-h5 btn-secondary"
-                  :disabled="isSyncingCards"
-                  title="Sync cards - add any new cards that have been added for this Pokemon"
-                >
-                  {{ isSyncingCards ? 'Syncing...' : '🔄 Sync' }}
-                </button>
-                <button
-                  v-if="isCreator"
-                  @click="showInviteModal = true"
-                  class="btn btn-h5 btn-primary"
-                >
-                  + Invite
-                </button>
-                <button
-                  v-if="isAdmin"
-                  @click="deleteChallenge"
-                  class="btn btn-h5 btn-ghost"
-                  :disabled="isDeletingChallenge"
-                  style="color: #dc2626;"
-                  title="Delete this challenge and all related assignment data"
-                >
-                  {{ isDeletingChallenge ? 'Deleting...' : 'Delete' }}
-                </button>
+            <div class="sm:hidden mb-3">
+              <div class="flex items-center justify-between gap-2 mobile-header-actions">
+                <router-link to="/profile" class="btn btn-h5 btn-ghost shrink-0">
+                  ← Back
+                </router-link>
+                <!-- min-w-0 + flex-1 so this column can shrink under overflow-x-hidden (MobileShell main); otherwise Delete clips off-screen on narrow app WebViews -->
+                <div class="flex min-w-0 flex-1 items-center justify-end gap-2 flex-wrap">
+                  <!--
+                  <button
+                    v-if="(isCreator || isAdmin) && challengeData.type === 'pokemon'"
+                    @click="syncCards"
+                    class="btn btn-h5 btn-secondary"
+                    :disabled="isSyncingCards"
+                    title="Sync cards - add any new cards that have been added for this Pokemon"
+                  >
+                    {{ isSyncingCards ? 'Syncing...' : '🔄 Sync' }}
+                  </button>
+                  -->
+                  <button
+                    v-if="isCreator"
+                    type="button"
+                    @click="showInviteModal = true"
+                    class="btn btn-h5 btn-primary shrink-0"
+                  >
+                    + Invite
+                  </button>
+                  <button
+                    v-if="isAdmin"
+                    type="button"
+                    class="btn btn-h5 challenge-detail-delete-btn shrink-0"
+                    :disabled="isDeletingChallenge"
+                    title="Delete this challenge and all related assignment data"
+                    @click="deleteChallenge"
+                  >
+                    {{ isDeletingChallenge ? 'Deleting…' : 'Delete' }}
+                  </button>
+                </div>
               </div>
             </div>
             <div class="flex justify-between items-start">
@@ -143,6 +149,7 @@
                   <div class="flex gap-2">
                 <button
                   v-if="isCreator"
+                  type="button"
                   @click="showInviteModal = true"
                   class="hidden sm:inline-flex btn btn-h4 btn-primary"
                 >
@@ -150,13 +157,13 @@
                 </button>
                 <button
                   v-if="isAdmin"
-                  @click="deleteChallenge"
-                  class="hidden sm:inline-flex btn btn-h4 btn-ghost"
+                  type="button"
+                  class="hidden sm:inline-flex btn btn-h4 challenge-detail-delete-btn"
                   :disabled="isDeletingChallenge"
-                  style="color: #dc2626;"
                   title="Delete this challenge and all related assignment data"
+                  @click="deleteChallenge"
                 >
-                  {{ isDeletingChallenge ? 'Deleting...' : 'Delete' }}
+                  {{ isDeletingChallenge ? 'Deleting…' : 'Delete' }}
                 </button>
                   </div>
                 </div>
@@ -210,18 +217,12 @@
 
           <!-- Master Set Summary -->
           <div class="mb-6">
-              <div class="flex items-start justify-between gap-4 mb-4 flex-wrap">
-                <div class="flex-1 min-w-0"></div>
-                <button
-                  v-if="(isCreator || isAdmin) && challengeData.type === 'pokemon'"
-                  @click="syncCards"
-                  class="hidden sm:inline-flex btn btn-h5 btn-secondary flex-shrink-0"
-                  :disabled="isSyncingCards"
-                  title="Sync cards - add any new cards that have been added for this Pokemon"
-                >
-                  {{ isSyncingCards ? 'Syncing...' : '🔄 Sync Cards' }}
-                </button>
-              </div>
+              <!-- Sync (web + app): temporarily hidden — restore block below when re-enabling
+                <div class="flex items-start justify-between gap-4 mb-4 flex-wrap">
+                  <div class="flex-1 min-w-0"></div>
+                  <button v-if="(isCreator || isAdmin) && challengeData.type === 'pokemon'" ...>Sync Cards</button>
+                </div>
+              -->
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div
                   v-for="assignment in memberAssignments"
@@ -242,20 +243,16 @@
                     </div>
                     <span v-if="assignment.userId === user?.uid" class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">You</span>
                   </div>
-                  <div class="mt-2">
-                    <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                      <span>Progress</span>
-                      <span>{{ assignment.progress || 0 }}%</span>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div class="flex items-center gap-2 min-h-[1.25rem]">
+                    <div class="summary-progress-track flex-1 min-w-0 rounded-full h-2">
                       <div
                         class="bg-gray-900 dark:bg-green-500 h-2 rounded-full transition-all duration-300"
                         :style="{ width: `${assignment.progress || 0}%` }"
                       ></div>
                     </div>
-                    <div class="flex items-center justify-between text-xs text-gray-500 mt-1">
-                      <span>{{ assignment.collected || 0 }} / {{ assignment.total || 0 }} cards</span>
-                    </div>
+                    <span class="text-[0.625rem] sm:text-xs tabular-nums text-gray-600 dark:text-gray-400 shrink-0 leading-none self-center">
+                      {{ assignment.collected || 0 }} / {{ assignment.total || 0 }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -284,10 +281,16 @@
                     </p>
                     <p class="text-sm text-gray-600 mt-1">
                       <span v-if="assignment.type === 'pokemon' && assignment.pokemonName">
-                        Master Setting: {{ assignment.pokemonName }}
+                        Chosen Pokémon: {{ assignment.pokemonName }}
                       </span>
                       <span v-else-if="assignment.type === 'set' && assignment.setName">
-                        Master Setting: {{ assignment.setName }}
+                        Chosen Set: {{ assignment.setName }}
+                      </span>
+                      <span v-else-if="assignment.type === 'generation' && assignment.generationLabel">
+                        Chosen Generation: {{ assignment.generationLabel }}
+                      </span>
+                      <span v-else-if="assignment.type === 'illustrator' && assignment.illustratorName">
+                        Chosen Illustrator: {{ assignment.illustratorName }} (illustrator)
                       </span>
                     </p>
                   </div>
@@ -317,23 +320,29 @@
                   />
                 </div>
 
-                <!-- Cards Grid Container (scrollable, max 4 rows) -->
+                <!-- Cards: vertical mini-scroll (all breakpoints); multi-column grid -->
                   <div
-                  v-if="getFilteredCards(assignment).length > 0" 
-                  class="cards-scroll-container max-h-[600px] sm:max-h-[500px] overflow-y-auto overflow-x-hidden pr-2"
+                  v-if="getFilteredCards(assignment).length > 0"
+                  class="cards-scroll-container max-md:max-h-[min(52vh,24rem)] max-md:overflow-y-auto max-md:overflow-x-hidden max-md:px-1 max-md:-mx-1 max-md:touch-pan-y max-md:overscroll-y-contain md:mx-0 md:max-h-[600px] md:overflow-y-auto md:overflow-x-hidden md:px-0 md:touch-auto pr-2"
                 >
-                  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-8 gap-2 sm:gap-3 pb-2">
-                    <PokemonCardMS
-                    v-for="card in getFilteredCards(assignment)"
-                    :key="card.id"
-                      :card="card"
-                      :is-collected="card.isCollected"
-                      :is-globally-collected="Boolean(card.isGloballyCollected)"
-                      :show-collection-button="canEditAssignment(assignment)"
-                      :show-name-tooltip="true"
-                      @click="selectCard(card)"
-                      @toggle-collected="canEditAssignment(assignment) ? toggleCard(card, assignment) : null"
-                    />
+                  <div
+                    class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-8 gap-2 sm:gap-3 pb-2 min-w-0"
+                  >
+                    <div
+                      v-for="card in getFilteredCards(assignment)"
+                      :key="card.id"
+                      class="challenge-card-slot min-w-0"
+                    >
+                      <PokemonCardMS
+                        :card="card"
+                        :is-collected="card.isCollected"
+                        :is-globally-collected="Boolean(card.isGloballyCollected)"
+                        :show-collection-button="canEditAssignment(assignment)"
+                        :show-name-tooltip="true"
+                        @click="selectCard(card)"
+                        @toggle-collected="canEditAssignment(assignment) ? toggleCard(card, assignment) : null"
+                      />
+                    </div>
                   </div>
                 </div>
                 <div v-else class="text-center py-8 text-gray-500">
@@ -879,6 +888,9 @@ const loadChallengeDetails = async () => {
         pokemonName,
         setId: assignmentData.setId,
         setName,
+        generationKey: assignmentData.generationKey || null,
+        generationLabel: assignmentData.generationLabel || null,
+        illustratorName: assignmentData.illustratorName || null,
         cards,
         collected,
         total,
@@ -1267,14 +1279,68 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.challenge-details-section :deep(.section-container) {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+@media (min-width: 640px) {
+  .challenge-details-section :deep(.section-container) {
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+}
+
+.challenge-detail-delete-btn {
+  background-color: transparent;
+  color: #dc2626;
+  border: 1.5px solid #dc2626;
+  box-shadow: none;
+}
+
+.challenge-detail-delete-btn:hover:not(:disabled) {
+  background-color: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.challenge-detail-delete-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.28);
+}
+
+:global(html.dark) .challenge-detail-delete-btn {
+  color: #f87171;
+  border-color: #f87171;
+}
+
+:global(html.dark) .challenge-detail-delete-btn:hover:not(:disabled) {
+  background-color: rgba(248, 113, 113, 0.12);
+  color: #fca5a5;
+  border-color: #fca5a5;
+}
+
+.summary-progress-track {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+:global(html.dark) .summary-progress-track {
+  background-color: rgb(55 65 81); /* gray-700 */
+  border-color: transparent;
+}
+
 /* Custom scrollbar styling for cards grid */
 .cards-scroll-container {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
+  -webkit-overflow-scrolling: touch;
 }
 
 .cards-scroll-container::-webkit-scrollbar {
   width: 8px;
+  height: 6px;
 }
 
 .cards-scroll-container::-webkit-scrollbar-track {

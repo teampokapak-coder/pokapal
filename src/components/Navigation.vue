@@ -46,7 +46,7 @@
           </router-link>
           <router-link 
             to="/start" 
-            class="btn btn-h6 btn-primary"
+            class="btn btn-h6 btn-primary nav-header-soft-cta"
           >
             Start Battleset
           </router-link>
@@ -55,9 +55,10 @@
           <div v-if="user" class="flex items-center gap-3 ml-4 pl-4" style="border-left: 1px solid var(--color-border);">
             <router-link 
               to="/profile"
-              class="trainer-badge"
+              class="trainer-badge nav-header-soft-cta max-w-[min(100%,18rem)]"
             >
-              <span class="font-semibold">Trainer</span> {{ user.displayName || user.email }}
+              <span class="font-semibold shrink-0">Trainer</span>
+              <span class="truncate">{{ user.displayName || user.email }}</span>
             </router-link>
           </div>
           <router-link 
@@ -179,7 +180,7 @@
               <div class="space-y-1">
                 <router-link 
                   to="/start" 
-                  class="block px-4 py-3 rounded-lg btn btn-h4 btn-primary text-center"
+                  class="btn btn-h6 btn-primary nav-cta block w-full text-center"
                   @click="mobileMenuOpen = false"
                 >
                   Start Battleset
@@ -201,10 +202,11 @@
             <div v-if="user" class="space-y-2">
               <router-link 
                 to="/profile"
-                class="trainer-badge block text-center"
+                class="trainer-badge nav-cta flex w-full items-center justify-center gap-1 text-center"
                 @click="mobileMenuOpen = false"
               >
-                <span class="font-bold">Trainer</span> {{ user.displayName || user.email }}
+                <span class="font-semibold shrink-0">Trainer</span>
+                <span class="min-w-0 truncate">{{ user.displayName || user.email }}</span>
               </router-link>
             </div>
             <router-link 

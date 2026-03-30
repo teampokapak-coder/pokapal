@@ -41,7 +41,7 @@
                   >
                     <div class="card-body">
                       <!-- Header (always visible) -->
-                      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0 mb-3">
+                      <div class="mb-3">
                         <div class="flex-1 cursor-pointer" @click="toggleMasterSetExpand(masterSet.id)">
                           <div class="flex items-center gap-2">
                             <svg 
@@ -63,31 +63,28 @@
                             </div>
                           </div>
                         </div>
-                        <router-link
-                          :to="`/master-set/${masterSet.id}`"
-                          class="btn btn-h5 btn-primary w-full sm:w-auto flex-shrink-0"
-                          @click.stop
-                        >
-                          View Details
-                        </router-link>
                       </div>
-                      
+
                       <!-- Progress (always visible) -->
                       <div class="mb-3">
-                        <div class="flex justify-between text-sm text-gray-600 mb-1">
-                          <span>Your Progress</span>
-                          <span>{{ masterSet.progress || 0 }}%</span>
-                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1 text-right tabular-nums">
+                          {{ masterSet.collected || 0 }} / {{ masterSet.total || 0 }} cards
+                        </p>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                           <div 
                             class="bg-gray-900 dark:bg-green-500 h-2 rounded-full transition-all"
                             :style="{ width: `${masterSet.progress || 0}%` }"
                           ></div>
                         </div>
-                        <div class="text-xs text-gray-500 mt-1">
-                          {{ masterSet.collected || 0 }} / {{ masterSet.total || 0 }} cards
-                        </div>
                       </div>
+
+                      <router-link
+                        :to="`/master-set/${masterSet.id}`"
+                        class="btn btn-h5 btn-primary-soft w-full sm:w-auto flex-shrink-0 mb-3"
+                        @click.stop
+                      >
+                        View Details
+                      </router-link>
 
                       <!-- Cards Preview (collapsible, scrollable, max 4 rows) -->
                       <div 

@@ -2,11 +2,6 @@
   <div class="min-h-screen pull-page-bg start-flow">
     <section class="section py-2 sm:py-4 md:py-6">
       <div class="section-container">
-        <div class="section-header">
-          <h2>Create a Battleset</h2>
-          <p class="section-subtitle">Choose your challenge type, then configure it</p>
-        </div>
-
         <div v-if="!user" class="max-w-3xl mx-auto">
           <div class="card text-center py-12">
             <h3 class="mb-4">Log in to start your battleset</h3>
@@ -19,65 +14,71 @@
           </div>
         </div>
 
-        <div v-else class="max-w-4xl mx-auto">
-          <div class="mb-8 w-full">
-            <!-- 5 equal columns: step | line | step | line | step (balanced on all breakpoints) -->
-            <div class="grid grid-cols-5 gap-x-2 sm:gap-x-4 items-center w-full">
-              <template v-for="(step, idx) in steps" :key="step.id">
-                <div class="flex flex-col items-center justify-center min-w-0">
-                  <div
-                    class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors shrink-0"
-                    :class="currentStep > idx ? 'btn-primary text-white' : currentStep === idx ? 'btn-secondary' : 'btn-ghost'"
-                  >
-                    {{ idx + 1 }}
-                  </div>
+        <div
+          v-else
+          class="max-w-4xl mx-auto md:pb-0 start-flow-wizard-pad"
+          :class="isAppShell ? 'start-flow-wizard-pad--shell' : 'start-flow-wizard-pad--browser'"
+        >
+          <div class="start-flow-stepper mb-6 md:mb-8 w-full" role="navigation" aria-label="Battleset setup steps">
+            <p class="start-flow-stepper-kicker">Create your battleset</p>
+            <div class="start-flow-stepper-track">
+              <div
+                v-for="(step, idx) in steps"
+                :key="step.id"
+                class="start-flow-stepper-cell"
+              >
+                <div v-if="currentStep === idx" class="start-flow-stepper-active" aria-current="step">
+                  <span class="start-flow-stepper-active-num" aria-hidden="true">{{ idx + 1 }}</span>
+                  <span class="start-flow-stepper-active-label">{{ step.label }}</span>
                 </div>
-                <div
-                  v-if="idx < steps.length - 1"
-                  class="h-px w-full min-w-[0.75rem] self-center"
-                  style="background-color: var(--color-border);"
-                  aria-hidden="true"
-                />
-              </template>
-            </div>
-            <div class="grid grid-cols-5 gap-x-2 sm:gap-x-4 w-full mt-2">
-              <template v-for="(step, idx) in steps" :key="`${step.id}-label`">
-                <p class="text-xs text-center text-balance leading-tight">{{ step.label }}</p>
-                <div v-if="idx < steps.length - 1" class="min-h-0 min-w-0" aria-hidden="true" />
-              </template>
+                <div v-else-if="currentStep > idx" class="start-flow-stepper-done">
+                  <span class="start-flow-stepper-check" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="start-flow-stepper-check-icon">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                  </span>
+                  <span class="start-flow-stepper-done-label">{{ step.label }}</span>
+                </div>
+                <div v-else class="start-flow-stepper-todo">
+                  <span class="start-flow-stepper-todo-num" aria-hidden="true">{{ idx + 1 }}</span>
+                  <span class="start-flow-stepper-todo-label">{{ step.label }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div v-if="currentStep === 0" class="space-y-5">
-            <div class="mb-5">
-              <h3 class="card-title">Choose Challenge Type</h3>
-              <p class="card-subtitle">Pick what you want to battle</p>
-            </div>
+          <div v-if="currentStep === 0" class="space-y-4 md:space-y-5">
             <div>
-              <div class="grid grid-cols-2 gap-3 sm:gap-4">
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                 <button
                   v-for="option in challengeOptions"
                   :key="option.id"
-                  class="card card-flat p-5 text-left transition-all cursor-pointer border-2"
+                  class="card card-flat p-3 sm:p-4 md:p-5 text-left transition-all cursor-pointer border-2"
                   :class="selectedType === option.id ? 'ring-2 ring-offset-2 ring-offset-transparent' : ''"
                   :style="selectedType === option.id ? 'border-color: var(--color-accent); box-shadow: var(--shadow-md); background-color: rgba(91,168,219,0.10);' : 'border-color: var(--color-border);'"
                   @click="selectType(option.id)"
                 >
-                  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-3">
+                  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-1.5 md:gap-3">
+                    <IllustratorPaintBrushIcon
+                      v-if="option.id === 'illustrator'"
+                      class="challenge-type-icon w-7 h-7 sm:w-9 sm:h-9 md:w-12 md:h-12 object-contain order-1 md:order-2 self-start"
+                      style="color: var(--color-text-primary)"
+                    />
                     <img
+                      v-else
                       :src="option.icon"
                       :alt="`${option.label} icon`"
-                      class="challenge-type-icon w-9 h-9 md:w-12 md:h-12 object-contain order-1 md:order-2 self-start"
+                      class="challenge-type-icon w-7 h-7 sm:w-9 sm:h-9 md:w-12 md:h-12 object-contain order-1 md:order-2 self-start"
                     />
-                    <div class="order-2 md:order-1">
-                      <h4 class="card-title mb-1">{{ option.label }}</h4>
-                      <p class="text-sm" style="color: var(--color-text-secondary);">{{ option.short }}</p>
+                    <div class="order-2 md:order-1 min-w-0">
+                      <h4 class="card-title mb-0.5 md:mb-1 text-sm sm:text-base leading-tight">{{ option.label }}</h4>
+                      <p class="text-xs sm:text-sm leading-snug" style="color: var(--color-text-secondary);">{{ option.short }}</p>
                     </div>
                   </div>
                 </button>
               </div>
 
-              <div class="mt-6 flex justify-end">
+              <div class="mt-4 md:mt-6 hidden md:flex justify-end">
                 <button class="btn btn-h3 btn-primary" :disabled="!selectedType" @click="nextStep">
                   Next
                 </button>
@@ -86,10 +87,6 @@
           </div>
 
           <div v-else-if="currentStep === 1" class="space-y-5">
-            <div class="mb-5">
-              <h3 class="card-title">Add Players</h3>
-              <p class="card-subtitle">Invite players by username or email</p>
-            </div>
             <div class="space-y-4">
               <div class="pt-2 ui-divider">
                 <label class="block text-sm mb-2">Players</label>
@@ -205,7 +202,7 @@
                 </div>
               </div>
 
-              <div class="flex justify-between pt-2">
+              <div class="hidden md:flex justify-between pt-2">
                 <button type="button" class="btn btn-h3 btn-ghost" @click="prevStep">Back</button>
                 <button type="button" class="btn btn-h3 btn-primary" :disabled="!canProceedPlayers" @click="nextStep">
                   Next
@@ -215,10 +212,6 @@
           </div>
 
           <div v-else class="space-y-5">
-            <div class="mb-5">
-              <h3 class="card-title">Configure Challenge</h3>
-              <p class="card-subtitle">Players, assignment mode, and card limits</p>
-            </div>
             <div class="space-y-4">
               <div class="pt-1">
                 <label class="block text-xs uppercase tracking-wide mb-1.5" style="color: var(--color-text-tertiary);">Challenge Name</label>
@@ -313,7 +306,7 @@
               <div class="pt-2 ui-divider">
                 <label class="block text-sm mb-2">{{ form.collaborationMode === 'together' ? 'Players' : 'Players & Assignments' }}</label>
                 <div class="ui-panel overflow-hidden">
-                  <div class="grid grid-cols-12 gap-3 px-3 py-2 text-xs font-semibold uppercase tracking-wide" style="color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border);">
+                  <div class="hidden md:grid grid-cols-12 gap-3 px-3 py-2 text-xs font-semibold uppercase tracking-wide" style="color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border);">
                     <div class="col-span-5">Player</div>
                     <div v-if="form.collaborationMode === 'race'" class="col-span-5">Assignment</div>
                     <div class="col-span-2">Action</div>
@@ -321,10 +314,10 @@
                   <div
                     v-for="(slot, idx) in form.participants"
                     :key="slot.key"
-                    class="grid grid-cols-12 gap-3 px-3 py-3 items-center"
+                    class="flex flex-col gap-3 px-3 py-3 md:grid md:grid-cols-12 md:gap-3 md:items-start"
                     style="border-bottom: 1px solid var(--color-border);"
                   >
-                    <div class="col-span-5 min-w-0">
+                    <div class="md:col-span-5 min-w-0 w-full">
                       <div class="flex items-center gap-2 min-w-0">
                         <img
                           v-if="getParticipantPhotoUrl(slot)"
@@ -349,9 +342,11 @@
                       </div>
                     </div>
 
-                    <div v-if="form.collaborationMode === 'race'" class="col-span-5 min-w-0">
-                        <div v-if="assignmentDetails(slot).isPokemon && assignmentDetails(slot).value !== 'none'" class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md ui-panel" style="background-color: var(--color-bg-primary);">
-                          <div class="w-8 h-8 rounded flex items-center justify-center overflow-hidden pokemon-image-bg">
+                    <div v-if="form.collaborationMode === 'race'" class="md:col-span-5 min-w-0 w-full pl-0 md:pl-0">
+                      <p class="text-[0.65rem] font-semibold uppercase tracking-wide md:hidden mb-1.5" style="color: var(--color-text-tertiary);">Assignment</p>
+                      <div class="w-full min-w-0">
+                        <div v-if="assignmentDetails(slot).isPokemon && assignmentDetails(slot).value !== 'none'" class="flex flex-col gap-2 sm:flex-row sm:items-center px-2.5 py-2 rounded-md ui-panel max-w-full" style="background-color: var(--color-bg-primary);">
+                          <div class="w-9 h-9 sm:w-8 sm:h-8 shrink-0 rounded flex items-center justify-center overflow-hidden pokemon-image-bg self-start sm:self-center">
                             <img
                               v-if="assignmentDetails(slot).spriteUrl"
                               :src="assignmentDetails(slot).spriteUrl"
@@ -360,22 +355,23 @@
                             />
                             <span v-else class="text-xs font-semibold">PK</span>
                           </div>
-                          <p class="text-sm">
+                          <p class="text-sm break-words min-w-0 leading-snug">
                             <span class="font-semibold">{{ assignmentDetails(slot).label }}:</span>
                             <span class="font-semibold ml-1">{{ assignmentDetails(slot).value }}</span>
                           </p>
                         </div>
-                        <p v-else class="text-sm md:pt-2">
+                        <p v-else class="text-sm break-words">
                           <span class="font-semibold">{{ assignmentDetails(slot).label }}:</span>
                           <span class="font-semibold ml-1">{{ assignmentDetails(slot).value }}</span>
                         </p>
+                      </div>
                     </div>
 
-                    <div class="col-span-2 flex justify-end">
+                    <div class="w-full md:col-span-2 flex md:justify-end md:pt-0">
                       <button
                         v-if="form.collaborationMode !== 'together'"
                         type="button"
-                        class="btn btn-h5 btn-primary"
+                        class="btn btn-h5 btn-primary w-full sm:w-auto md:w-auto shrink-0"
                         @click="assignForParticipant(slot)"
                       >
                         Assign
@@ -385,11 +381,11 @@
                 </div>
 
                 <div v-if="form.collaborationMode === 'together'" class="card card-flat card-no-hover card-blue-outline p-3 mt-4">
-                  <div class="flex flex-col md:flex-row md:items-start gap-3">
-                    <div class="flex-1 md:px-2 md:pt-1">
+                  <div class="flex flex-col gap-3 md:flex-row md:items-start">
+                    <div class="flex-1 md:px-2 md:pt-1 min-w-0 order-1">
                       <p class="text-sm font-semibold mb-1">Team Assignment</p>
-                      <div v-if="assignmentDetails(form.participants[0]).isPokemon && assignmentDetails(form.participants[0]).value !== 'none'" class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md ui-panel" style="background-color: var(--color-bg-primary);">
-                        <div class="w-8 h-8 rounded flex items-center justify-center overflow-hidden pokemon-image-bg">
+                      <div v-if="assignmentDetails(form.participants[0]).isPokemon && assignmentDetails(form.participants[0]).value !== 'none'" class="flex flex-col gap-2 sm:flex-row sm:items-center px-2.5 py-2 rounded-md ui-panel max-w-full" style="background-color: var(--color-bg-primary);">
+                        <div class="w-9 h-9 sm:w-8 sm:h-8 shrink-0 rounded flex items-center justify-center overflow-hidden pokemon-image-bg self-start sm:self-center">
                           <img
                             v-if="assignmentDetails(form.participants[0]).spriteUrl"
                             :src="assignmentDetails(form.participants[0]).spriteUrl"
@@ -398,12 +394,12 @@
                           />
                           <span v-else class="text-xs font-semibold">PK</span>
                         </div>
-                        <p class="text-sm">
+                        <p class="text-sm break-words min-w-0 leading-snug">
                           <span class="font-semibold">{{ assignmentDetails(form.participants[0]).label }}:</span>
                           <span class="font-semibold ml-1">{{ assignmentDetails(form.participants[0]).value }}</span>
                         </p>
                       </div>
-                      <p v-else class="text-sm">
+                      <p v-else class="text-sm break-words">
                         <span class="font-semibold">{{ assignmentDetails(form.participants[0]).label }}:</span>
                         <span class="font-semibold ml-1">{{ assignmentDetails(form.participants[0]).value }}</span>
                       </p>
@@ -414,7 +410,7 @@
 
                     <button
                       type="button"
-                      class="btn btn-h5 btn-primary md:w-36 md:mt-6"
+                      class="btn btn-h5 btn-primary w-full md:w-36 md:mt-6 shrink-0 order-2"
                       @click="assignForParticipant(form.participants[0])"
                     >
                       Assign Shared
@@ -423,7 +419,7 @@
                 </div>
               </div>
 
-              <div class="flex justify-between pt-2">
+              <div class="hidden md:flex justify-between pt-2">
                 <button class="btn btn-h3 btn-ghost" @click="prevStep">Back</button>
                 <button class="btn btn-h3 btn-primary" :disabled="!canCreate || isCreating" @click="createMasterSet">
                   {{ isCreating ? 'Creating...' : form.challengeMode === 'battle' ? 'Create Battle' : 'Create Master Set' }}
@@ -432,6 +428,54 @@
             </div>
           </div>
         </div>
+
+        <!-- Teleport: fixed inside overflow-y main breaks in WKWebView; body-fixed aligns with tab bar -->
+        <Teleport to="body">
+          <div
+            v-if="user"
+            class="fixed inset-x-0 z-40 border-t md:hidden start-flow-sticky-nav shadow-[0_-4px_12px_rgba(0,0,0,0.06)]"
+            :class="isAppShell ? 'start-flow-sticky-nav--shell' : 'start-flow-sticky-nav--browser'"
+            style="background-color: var(--color-bg-primary); border-color: var(--color-border);"
+          >
+            <div class="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3" :class="currentStep === 0 ? 'justify-end' : 'justify-between'">
+              <button
+                v-if="currentStep > 0"
+                type="button"
+                class="btn btn-h3 btn-ghost shrink-0"
+                @click="prevStep"
+              >
+                Back
+              </button>
+              <button
+                v-if="currentStep === 0"
+                type="button"
+                class="btn btn-h3 btn-primary min-w-[7rem]"
+                :disabled="!selectedType"
+                @click="nextStep"
+              >
+                Next
+              </button>
+              <button
+                v-else-if="currentStep === 1"
+                type="button"
+                class="btn btn-h3 btn-primary min-w-[7rem]"
+                :disabled="!canProceedPlayers"
+                @click="nextStep"
+              >
+                Next
+              </button>
+              <button
+                v-else
+                type="button"
+                class="btn btn-h3 btn-primary min-w-[7rem]"
+                :disabled="!canCreate || isCreating"
+                @click="createMasterSet"
+              >
+                {{ isCreating ? 'Creating...' : form.challengeMode === 'battle' ? 'Create Battle' : 'Create Master Set' }}
+              </button>
+            </div>
+          </div>
+        </Teleport>
       </div>
     </section>
 
@@ -485,13 +529,18 @@ import { useRouter } from 'vue-router'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../composables/useAuth'
-import { createMasterSet as createMasterSetUtil, createAssignment, getCardIdsForSet, getCardIdsForPokemon } from '../utils/masterSetUtils'
+import { useAppShell } from '../app/composables/useAppShell'
+import { createMasterSet as createMasterSetUtil, createAssignment, getCardIdsForSet, getCardIdsForPokemon, getCardIdsForGeneration, getCardIdsForIllustrator } from '../utils/masterSetUtils'
 import { getAllPokemonCards } from '../utils/firebasePokemon'
 import { getAllTrainers } from '../utils/firebaseTrainers'
+import { POKEMON_GENERATIONS, getGenerationById } from '../utils/pokemonGenerations'
+import { aggregateIllustratorCounts, computeTrainerCardCounts } from '../utils/cardAggregates'
 import SuccessNotification from '../components/SuccessNotification.vue'
+import IllustratorPaintBrushIcon from '../components/icons/IllustratorPaintBrushIcon.vue'
 
 const router = useRouter()
 const { user } = useAuth()
+const { isAppShell } = useAppShell()
 
 const steps = [
   { id: 'choose', label: 'Choose' },
@@ -504,7 +553,9 @@ const selectedType = ref(null)
 const challengeOptions = [
   { id: 'set', label: 'Sets', icon: '/sets.svg', short: 'Battle complete sets.', description: 'Choose or randomly pick a set and track completion for all cards in that set.' },
   { id: 'pokemon', label: 'Pokemon', icon: '/pokemon.svg', short: 'Battle a Pokemon line.', description: 'Choose or randomly pick a Pokemon and track all related cards across supported languages.' },
+  { id: 'generation', label: 'Generation', icon: '/pokeball.svg', short: 'Battle one generation / region.', description: 'Cards whose national dex falls in that generation (including multi-Pokemon cards when any dex is in range).' },
   { id: 'trainer', label: 'Trainers', icon: '/trainers.svg', short: 'Battle trainer-linked cards.', description: 'MVP: card matching is based on trainer name text in card data.' },
+  { id: 'illustrator', label: 'Illustrator', icon: null, short: 'Battle cards by illustrator.', description: 'Uses the illustrator field on English and Japanese card documents.' },
   { id: 'randomNumber', label: 'Random Number', icon: '/random.svg', short: 'Battle random-card challenges.', description: 'Pick a random pool and generate a challenge by card count.' }
 ]
 
@@ -527,6 +578,8 @@ const makeParticipant = (idx, isSelf = false) => ({
     setId: '',
     pokemonId: '',
     trainerId: '',
+    generationId: '',
+    illustratorName: '',
     randomAssigned: false
   }
 })
@@ -545,9 +598,11 @@ const maxParticipants = 8
 const availableSets = ref([])
 const availablePokemon = ref([])
 const availableTrainers = ref([])
+const availableIllustrators = ref([])
 const isLoadingSets = ref(false)
 const isLoadingPokemon = ref(false)
 const isLoadingTrainers = ref(false)
+const isLoadingIllustrators = ref(false)
 const isCreating = ref(false)
 const showSuccessNotification = ref(false)
 
@@ -570,7 +625,25 @@ const canCreate = computed(() => {
     if (form.value.collaborationMode === 'together') return true
     if (selectedType.value === 'set') return Boolean(slot.assignment.setId)
     if (selectedType.value === 'pokemon') return Boolean(slot.assignment.pokemonId)
-    if (selectedType.value === 'trainer') return Boolean(slot.assignment.trainerId)
+    if (selectedType.value === 'generation') return Boolean(slot.assignment.generationId)
+    if (selectedType.value === 'trainer') {
+      if (!slot.assignment.trainerId) return false
+      if (form.value.cardCountMode === 'fixed') {
+        const n = form.value.fixedCardCount
+        const row = availableTrainers.value.find((x) => x.id === slot.assignment.trainerId)
+        if (!row || (row.cardCount || 0) < n) return false
+      }
+      return true
+    }
+    if (selectedType.value === 'illustrator') {
+      if (!slot.assignment.illustratorName) return false
+      if (form.value.cardCountMode === 'fixed') {
+        const n = form.value.fixedCardCount
+        const row = availableIllustrators.value.find((x) => x.id === slot.assignment.illustratorName)
+        if (!row || row.cardCount < n) return false
+      }
+      return true
+    }
     return Boolean(slot.assignment.randomAssigned)
   })
 
@@ -580,7 +653,25 @@ const canCreate = computed(() => {
     const first = form.value.participants[0]
     if (selectedType.value === 'set') return Boolean(first?.assignment?.setId)
     if (selectedType.value === 'pokemon') return Boolean(first?.assignment?.pokemonId)
-    if (selectedType.value === 'trainer') return Boolean(first?.assignment?.trainerId)
+    if (selectedType.value === 'generation') return Boolean(first?.assignment?.generationId)
+    if (selectedType.value === 'trainer') {
+      if (!first?.assignment?.trainerId) return false
+      if (form.value.cardCountMode === 'fixed') {
+        const n = form.value.fixedCardCount
+        const row = availableTrainers.value.find((x) => x.id === first.assignment.trainerId)
+        if (!row || (row.cardCount || 0) < n) return false
+      }
+      return true
+    }
+    if (selectedType.value === 'illustrator') {
+      if (!first?.assignment?.illustratorName) return false
+      if (form.value.cardCountMode === 'fixed') {
+        const n = form.value.fixedCardCount
+        const row = availableIllustrators.value.find((x) => x.id === first.assignment.illustratorName)
+        if (!row || row.cardCount < n) return false
+      }
+      return true
+    }
     return Boolean(first?.assignment?.randomAssigned)
   }
 
@@ -653,8 +744,52 @@ const pickRandomPokemon = () => {
 
 const pickRandomTrainer = () => {
   if (availableTrainers.value.length === 0) return null
-  const chosen = toShuffled(availableTrainers.value)[0]
-  return chosen.id
+  const needed = form.value.cardCountMode === 'fixed' ? form.value.fixedCardCount : null
+  let pool = [...availableTrainers.value]
+  if (needed != null && needed > 0) {
+    const filtered = pool.filter((x) => (x.cardCount || 0) >= needed)
+    if (filtered.length > 0) pool = filtered
+  } else {
+    const counts = pool.map((x) => x.cardCount || 0).filter((c) => c > 0).sort((a, b) => a - b)
+    if (counts.length > 0) {
+      const mid = counts[Math.floor(counts.length / 2)]
+      const lo = mid * 0.4
+      const hi = mid * 2.5
+      const band = pool.filter((x) => {
+        const c = x.cardCount || 0
+        return c >= lo && c <= hi
+      })
+      if (band.length > 0) pool = band
+    }
+  }
+  const chosen = toShuffled(pool)[0]
+  return chosen?.id || null
+}
+
+const pickRandomGeneration = () => {
+  if (POKEMON_GENERATIONS.length === 0) return null
+  return toShuffled([...POKEMON_GENERATIONS])[0].id
+}
+
+const pickRandomIllustrator = () => {
+  if (availableIllustrators.value.length === 0) return null
+  const needed = form.value.cardCountMode === 'fixed' ? form.value.fixedCardCount : null
+  let pool = [...availableIllustrators.value]
+  if (needed != null && needed > 0) {
+    const filtered = pool.filter((x) => x.cardCount >= needed)
+    if (filtered.length > 0) pool = filtered
+  } else {
+    const counts = pool.map((x) => x.cardCount).filter((c) => c > 0).sort((a, b) => a - b)
+    if (counts.length > 0) {
+      const mid = counts[Math.floor(counts.length / 2)]
+      const lo = mid * 0.4
+      const hi = mid * 2.5
+      const band = pool.filter((x) => x.cardCount >= lo && x.cardCount <= hi)
+      if (band.length > 0) pool = band
+    }
+  }
+  const chosen = toShuffled(pool)[0]
+  return chosen?.id || null
 }
 
 const resolveLanguages = () => {
@@ -745,6 +880,8 @@ const setSelectionMode = (mode) => {
     slot.assignment.setId = ''
     slot.assignment.pokemonId = ''
     slot.assignment.trainerId = ''
+    slot.assignment.generationId = ''
+    slot.assignment.illustratorName = ''
     slot.assignment.randomAssigned = false
   })
 }
@@ -848,7 +985,9 @@ const assignForParticipant = (slot) => {
     assignToSlots.forEach((targetSlot) => {
       if (selectedType.value === 'set') targetSlot.assignment.setId = pickRandomSet() || ''
       if (selectedType.value === 'pokemon') targetSlot.assignment.pokemonId = pickRandomPokemon() || ''
+      if (selectedType.value === 'generation') targetSlot.assignment.generationId = pickRandomGeneration() || ''
       if (selectedType.value === 'trainer') targetSlot.assignment.trainerId = pickRandomTrainer() || ''
+      if (selectedType.value === 'illustrator') targetSlot.assignment.illustratorName = pickRandomIllustrator() || ''
       if (selectedType.value === 'randomNumber') targetSlot.assignment.randomAssigned = true
     })
     return
@@ -887,7 +1026,22 @@ const modalItems = computed(() => {
     return availableTrainers.value
       .filter((x) => !q || (x.trainerName || '').toLowerCase().includes(q))
       .slice(0, 40)
-      .map((x) => ({ id: x.id, label: x.trainerName, subLabel: 'MVP trainer name matching' }))
+      .map((x) => ({ id: x.id, label: x.trainerName, subLabel: `${x.cardCount ?? 0} matched cards` }))
+  }
+  if (selectedType.value === 'generation') {
+    return POKEMON_GENERATIONS.filter((x) => !q || x.label.toLowerCase().includes(q) || x.region.toLowerCase().includes(q))
+      .slice(0, 40)
+      .map((x) => ({
+        id: x.id,
+        label: x.label,
+        subLabel: `#${x.minNationalDex}–#${x.maxNationalDex}`
+      }))
+  }
+  if (selectedType.value === 'illustrator') {
+    return availableIllustrators.value
+      .filter((x) => !q || (x.label || '').toLowerCase().includes(q))
+      .slice(0, 40)
+      .map((x) => ({ id: x.id, label: x.label, subLabel: `${x.cardCount} cards` }))
   }
   return []
 })
@@ -899,7 +1053,9 @@ const selectModalItem = (item) => {
   applyToSlots.forEach((targetSlot) => {
     if (selectedType.value === 'set') targetSlot.assignment.setId = item.id
     if (selectedType.value === 'pokemon') targetSlot.assignment.pokemonId = item.id
+    if (selectedType.value === 'generation') targetSlot.assignment.generationId = item.id
     if (selectedType.value === 'trainer') targetSlot.assignment.trainerId = item.id
+    if (selectedType.value === 'illustrator') targetSlot.assignment.illustratorName = item.id
   })
   closeAssignModal()
 }
@@ -929,6 +1085,25 @@ const assignmentDetails = (slot) => {
   if (selectedType.value === 'trainer') {
     const trainer = availableTrainers.value.find((x) => x.id === slot.assignment.trainerId)
     return { label: 'Assigned target', value: trainer ? trainer.trainerName : 'none', isPokemon: false, spriteUrl: null }
+  }
+  if (selectedType.value === 'generation') {
+    const gen = getGenerationById(slot.assignment.generationId)
+    return {
+      label: 'Assigned target',
+      value: gen ? gen.label : 'none',
+      isPokemon: false,
+      spriteUrl: null
+    }
+  }
+  if (selectedType.value === 'illustrator') {
+    const name = slot.assignment.illustratorName
+    const row = name ? availableIllustrators.value.find((x) => x.id === name) : null
+    return {
+      label: 'Assigned target',
+      value: name ? `${name}${row ? ` (${row.cardCount} cards)` : ''}` : 'none',
+      isPokemon: false,
+      spriteUrl: null
+    }
   }
   if (selectedType.value === 'randomNumber') {
     if (!slot.assignment.randomAssigned) return { label: 'Assigned target', value: 'none', isPokemon: false, spriteUrl: null }
@@ -961,6 +1136,20 @@ const getCardsForParticipant = async (slot, languages) => {
     return sampleCardIds(ids)
   }
 
+  if (selectedType.value === 'generation') {
+    const gen = getGenerationById(slot.assignment.generationId)
+    if (!gen) return { card_en: [], card_ja: [] }
+    const ids = await getCardIdsForGeneration(gen.minNationalDex, gen.maxNationalDex, languages)
+    return sampleCardIds(ids)
+  }
+
+  if (selectedType.value === 'illustrator') {
+    const name = slot.assignment.illustratorName
+    if (!name) return { card_en: [], card_ja: [] }
+    const ids = await getCardIdsForIllustrator(name, languages)
+    return sampleCardIds(ids)
+  }
+
   return getRandomCards(languages)
 }
 
@@ -979,6 +1168,8 @@ const createMasterSet = async () => {
     const firstSet = availableSets.value.find((x) => x.id === first.assignment.setId)
     const firstPokemon = availablePokemon.value.find((x) => x.id === first.assignment.pokemonId)
     const firstTrainer = availableTrainers.value.find((x) => x.id === first.assignment.trainerId)
+    const firstGen = getGenerationById(first.assignment.generationId)
+    const firstIllustratorName = first.assignment.illustratorName || null
 
     const knownMemberIds = form.value.participants
       .map((slot) => (slot.isSelf ? user.value.uid : slot.userId))
@@ -999,9 +1190,18 @@ const createMasterSet = async () => {
       targetSetCollection: firstSet ? `set_${firstSet.language || 'en'}` : null,
       targetSetName: firstSet?.name || null,
       targetPokemonId: firstPokemon ? String(firstPokemon.nationalDexNumber || firstPokemon.id) : null,
-      targetPokemonName: firstPokemon ? (firstPokemon.displayName || firstPokemon.name) : (firstTrainer?.trainerName || null),
+      targetPokemonName: firstPokemon
+        ? (firstPokemon.displayName || firstPokemon.name)
+        : (firstGen
+          ? firstGen.label
+          : (firstIllustratorName || firstTrainer?.trainerName || null)),
       targetTrainerId: firstTrainer?.id || null,
       targetTrainerName: firstTrainer?.trainerName || null,
+      targetGenerationKey: firstGen?.id || null,
+      generationMinNationalDex: firstGen ? firstGen.minNationalDex : null,
+      generationMaxNationalDex: firstGen ? firstGen.maxNationalDex : null,
+      generationRegionLabel: firstGen?.region || null,
+      targetIllustratorName: firstIllustratorName,
       randomScope: selectedType.value === 'randomNumber' ? form.value.randomScope : null,
       battleOwnerId: user.value.uid,
       battleOpponentId: form.value.participants.length > 1 ? (form.value.participants[1]?.userId || null) : null,
@@ -1017,11 +1217,19 @@ const createMasterSet = async () => {
     if (!created.success) throw new Error(created.error || 'Failed to create master set')
     const masterSetId = created.data.id
 
+    const mapAssignmentType = (ct) => {
+      if (ct === 'random') return 'set'
+      if (ct === 'trainer') return 'pokemon'
+      return ct
+    }
+
     if (form.value.collaborationMode === 'together') {
       const sharedSlot = form.value.participants[0]
       const sharedSetObj = availableSets.value.find((x) => x.id === sharedSlot.assignment.setId)
       const sharedPokemonObj = availablePokemon.value.find((x) => x.id === sharedSlot.assignment.pokemonId)
       const sharedTrainerObj = availableTrainers.value.find((x) => x.id === sharedSlot.assignment.trainerId)
+      const sharedGenObj = getGenerationById(sharedSlot.assignment.generationId)
+      const sharedIllustratorName = sharedSlot.assignment.illustratorName || null
       const sharedCards = await getCardsForParticipant(sharedSlot, languages)
       const pendingMemberEmails = form.value.participants
         .filter((slot) => !slot.isSelf && !slot.userId)
@@ -1044,11 +1252,18 @@ const createMasterSet = async () => {
         userName: user.value.displayName || user.value.email,
         card_en: sharedCards.card_en,
         card_ja: sharedCards.card_ja,
-        type: challengeType === 'random' ? 'set' : challengeType === 'trainer' ? 'pokemon' : challengeType,
+        type: mapAssignmentType(challengeType),
         setId: sharedSetObj?.id || null,
         setName: sharedSetObj?.name || null,
         pokemonId: sharedPokemonObj ? String(sharedPokemonObj.nationalDexNumber || sharedPokemonObj.id) : (sharedTrainerObj?.id || null),
-        pokemonName: sharedPokemonObj ? (sharedPokemonObj.displayName || sharedPokemonObj.name) : (sharedTrainerObj?.trainerName || null),
+        pokemonName: sharedPokemonObj
+          ? (sharedPokemonObj.displayName || sharedPokemonObj.name)
+          : (sharedGenObj
+            ? sharedGenObj.label
+            : (sharedIllustratorName || sharedTrainerObj?.trainerName || null)),
+        generationKey: sharedGenObj?.id || null,
+        generationLabel: sharedGenObj?.label || null,
+        illustratorName: sharedIllustratorName,
         status: 'accepted',
         createdBy: user.value.uid
       })
@@ -1058,6 +1273,8 @@ const createMasterSet = async () => {
         const setObj = availableSets.value.find((x) => x.id === slot.assignment.setId)
         const pokemonObj = availablePokemon.value.find((x) => x.id === slot.assignment.pokemonId)
         const trainerObj = availableTrainers.value.find((x) => x.id === slot.assignment.trainerId)
+        const genObj = getGenerationById(slot.assignment.generationId)
+        const illName = slot.assignment.illustratorName || null
         const cardsByLang = await getCardsForParticipant(slot, languages)
 
         if ((cardsByLang.card_en.length + cardsByLang.card_ja.length) === 0) {
@@ -1072,11 +1289,16 @@ const createMasterSet = async () => {
           userName: slot.isSelf ? (user.value.displayName || user.value.email) : (slot.userName || null),
           card_en: cardsByLang.card_en,
           card_ja: cardsByLang.card_ja,
-          type: challengeType === 'random' ? 'set' : challengeType === 'trainer' ? 'pokemon' : challengeType,
+          type: mapAssignmentType(challengeType),
           setId: setObj?.id || null,
           setName: setObj?.name || null,
           pokemonId: pokemonObj ? String(pokemonObj.nationalDexNumber || pokemonObj.id) : (trainerObj?.id || null),
-          pokemonName: pokemonObj ? (pokemonObj.displayName || pokemonObj.name) : (trainerObj?.trainerName || null),
+          pokemonName: pokemonObj
+            ? (pokemonObj.displayName || pokemonObj.name)
+            : (genObj ? genObj.label : (illName || trainerObj?.trainerName || null)),
+          generationKey: genObj?.id || null,
+          generationLabel: genObj?.label || null,
+          illustratorName: illName,
           status: slot.isSelf ? 'accepted' : 'pending',
           createdBy: user.value.uid
         })
@@ -1095,6 +1317,12 @@ const createMasterSet = async () => {
   }
 }
 
+const isAutoGeneratedChallengeName = (name) => {
+  const t = (name || '').trim()
+  if (!t) return true
+  return challengeOptions.some((o) => t === `${o.label} Challenge`)
+}
+
 const selectType = (type) => {
   selectedType.value = type
   const isRandomNumber = type === 'randomNumber'
@@ -1105,7 +1333,7 @@ const selectType = (type) => {
   }
   form.value.collaborationMode = 'race'
   form.value.participants = [makeParticipant(1, true)]
-  if (!form.value.challengeName.trim()) {
+  if (isAutoGeneratedChallengeName(form.value.challengeName)) {
     const label = challengeOptions.find((x) => x.id === type)?.label || 'Master Set'
     form.value.challengeName = `${label} Challenge`
   }
@@ -1163,11 +1391,23 @@ const loadPokemon = async () => {
 const loadTrainers = async () => {
   isLoadingTrainers.value = true
   try {
-    availableTrainers.value = await getAllTrainers()
+    const list = await getAllTrainers()
+    availableTrainers.value = await computeTrainerCardCounts(list)
   } catch (error) {
     console.error('Error loading trainers:', error)
   } finally {
     isLoadingTrainers.value = false
+  }
+}
+
+const loadIllustrators = async () => {
+  isLoadingIllustrators.value = true
+  try {
+    availableIllustrators.value = await aggregateIllustratorCounts()
+  } catch (error) {
+    console.error('Error loading illustrators:', error)
+  } finally {
+    isLoadingIllustrators.value = false
   }
 }
 
@@ -1184,12 +1424,39 @@ onMounted(() => {
     loadSets()
     loadPokemon()
     loadTrainers()
+    loadIllustrators()
   }
   syncSelfParticipant()
 })
 </script>
 
 <style scoped>
+/* Mobile wizard: leave room for sticky actions + (in app) bottom tab bar */
+.start-flow-wizard-pad--browser {
+  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+.start-flow-wizard-pad--shell {
+  padding-bottom: calc(9.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .start-flow-wizard-pad--browser,
+  .start-flow-wizard-pad--shell {
+    padding-bottom: 0;
+  }
+}
+
+/* Sticky nav: in native app, sit above AppTabBar (~56px + safe padding) — not viewport bottom */
+.start-flow-sticky-nav--shell {
+  bottom: calc(3.75rem + max(0.5rem, env(safe-area-inset-bottom, 0px)));
+}
+
+.start-flow-sticky-nav--browser {
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .flat-option-btn,
 .flat-option-btn:hover,
 .flat-option-btn:focus,
@@ -1231,6 +1498,193 @@ onMounted(() => {
   background-color: rgba(30, 90, 158, 0.14) !important;
   border: 1px solid rgba(30, 90, 158, 0.32) !important;
   color: #2f4b6b !important;
+}
+
+/* Pill stepper (Choose → Players → Configure) */
+.start-flow-stepper {
+  --start-flow-track-bg: #ffffff;
+  --start-flow-active-bg: #12233b;
+  --start-flow-strong-text: #12233b;
+  --start-flow-todo-circle: #e2e8f0;
+  --start-flow-todo-num: #64748b;
+  --start-flow-todo-text: #a0aec0;
+}
+
+.start-flow-stepper-kicker {
+  text-align: center;
+  font-size: 0.625rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin: 0 0 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .start-flow-stepper-kicker {
+    font-size: 0.6875rem;
+    margin-bottom: 0.625rem;
+  }
+}
+
+.start-flow-stepper-track {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.125rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-lg);
+  background-color: var(--start-flow-track-bg);
+  border: 1px solid rgba(18, 35, 59, 0.08);
+}
+
+.start-flow-stepper-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.start-flow-stepper-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 9999px;
+  background-color: var(--start-flow-active-bg);
+  color: #ffffff;
+  max-width: 100%;
+  box-shadow: 0 1px 2px rgba(18, 35, 59, 0.12);
+}
+
+.start-flow-stepper-active-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.22);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.start-flow-stepper-active-label {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 640px) {
+  .start-flow-stepper-active {
+    padding: 0.5rem 0.85rem;
+    gap: 0.625rem;
+  }
+
+  .start-flow-stepper-active-label {
+    font-size: 0.9375rem;
+  }
+}
+
+.start-flow-stepper-done {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.start-flow-stepper-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background-color: var(--start-flow-active-bg);
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.start-flow-stepper-check-icon {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+.start-flow-stepper-done-label {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  color: var(--start-flow-strong-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 640px) {
+  .start-flow-stepper-done-label {
+    font-size: 0.9375rem;
+  }
+}
+
+.start-flow-stepper-todo {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.start-flow-stepper-todo-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background-color: var(--start-flow-todo-circle);
+  color: var(--start-flow-todo-num);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.start-flow-stepper-todo-label {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  color: var(--start-flow-todo-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 640px) {
+  .start-flow-stepper-todo-label {
+    font-size: 0.875rem;
+  }
+}
+
+:global(html.dark) .start-flow-stepper {
+  --start-flow-track-bg: rgba(255, 255, 255, 0.06);
+  --start-flow-active-bg: #2b4a7a;
+  --start-flow-strong-text: #e8f0fa;
+  --start-flow-todo-circle: rgba(255, 255, 255, 0.1);
+  --start-flow-todo-num: #8a9db8;
+  --start-flow-todo-text: #8a9db8;
+}
+
+:global(html.dark) .start-flow-stepper-track {
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {

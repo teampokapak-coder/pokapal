@@ -20,6 +20,84 @@ import { db } from '../config/firebase'
 import { getAllPokemonCards } from './firebasePokemon'
 
 /**
+ * True if a card belongs to a national dex range (direct dex or multi-Pokemon dex arrays).
+ */
+export function cardMatchesNationalDexRange (card, minDex, maxDex) {
+  const lo = Number(minDex)
+  const hi = Number(maxDex)
+  if (Number.isNaN(lo) || Number.isNaN(hi)) return false
+  const direct = card?.nationalDexNumber
+  if (direct != null && !Number.isNaN(Number(direct))) {
+    const n = Number(direct)
+    if (n >= lo && n <= hi) return true
+  }
+  const arr = card?.dexId
+  if (Array.isArray(arr)) {
+    return arr.some((d) => typeof d === 'number' && d >= lo && d <= hi)
+  }
+  return false
+}
+
+/**
+ * Card IDs per language for all cards in a generation (national dex range).
+ */
+export const getCardIdsForGeneration = async (minDex, maxDex, languages = ['en', 'ja']) => {
+  try {
+    const result = await getAllPokemonCards({ language: 'all' })
+    if (!result.success || !result.data) {
+      return { card_en: [], card_ja: [] }
+    }
+    const card_en = []
+    const card_ja = []
+    result.data.forEach((card) => {
+      if (!cardMatchesNationalDexRange(card, minDex, maxDex)) return
+      const cardId = card.cardId || card.id || card.apiId
+      if (!cardId) return
+      if (card.language === 'en' && languages.includes('en')) card_en.push(cardId)
+      else if (card.language === 'ja' && languages.includes('ja')) card_ja.push(cardId)
+    })
+    return { card_en, card_ja }
+  } catch (error) {
+    console.error('Error getting card IDs for generation:', error)
+    return { card_en: [], card_ja: [] }
+  }
+}
+
+/**
+ * Card IDs where illustrator field matches exactly (trimmed). Queries card_en / card_ja.
+ */
+export const getCardIdsForIllustrator = async (illustratorName, languages = ['en', 'ja']) => {
+  const name = (illustratorName || '').trim()
+  if (!name) return { card_en: [], card_ja: [] }
+  try {
+    const card_en = []
+    const card_ja = []
+    if (languages.includes('en')) {
+      const qEn = query(collection(db, 'card_en'), where('illustrator', '==', name))
+      const snapEn = await getDocs(qEn)
+      snapEn.docs.forEach((d) => {
+        const data = d.data()
+        const cardId = data.cardId || data.id || data.apiId
+        if (cardId) card_en.push(cardId)
+      })
+    }
+    if (languages.includes('ja')) {
+      const qJa = query(collection(db, 'card_ja'), where('illustrator', '==', name))
+      const snapJa = await getDocs(qJa)
+      snapJa.docs.forEach((d) => {
+        const data = d.data()
+        const cardId = data.cardId || data.id || data.apiId
+        if (cardId) card_ja.push(cardId)
+      })
+    }
+    return { card_en, card_ja }
+  } catch (error) {
+    console.error('Error getting card IDs for illustrator:', error)
+    return { card_en: [], card_ja: [] }
+  }
+}
+
+/**
  * Create a master set
  * @param {Object} masterSetData - Master set data
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
