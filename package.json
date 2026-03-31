@@ -13,6 +13,7 @@
     "deploy": "source ~/.nvm/nvm.sh && nvm use 22 && npm run build && firebase deploy --only hosting",
     "deploy:hosting": "source ~/.nvm/nvm.sh && nvm use 22 && npm run build && firebase deploy --only hosting",
     "cap:sync": "source ~/.nvm/nvm.sh && nvm use 22 && npx cap sync ios",
+    "ios:fix-spm-artifacts": "bash scripts/ios-unzip-capacitor-spm-artifacts.sh",
     "ios:open": "source ~/.nvm/nvm.sh && nvm use 22 && npx cap open ios",
     "ios:run": "source ~/.nvm/nvm.sh && nvm use 22 && npm run build && npx cap run ios",
     "ios:targets": "source ~/.nvm/nvm.sh && nvm use 22 && npx cap run ios --list",
