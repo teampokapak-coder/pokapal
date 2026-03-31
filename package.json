@@ -16,7 +16,7 @@
     "ios:open": "source ~/.nvm/nvm.sh && nvm use 22 && npx cap open ios",
     "ios:run": "source ~/.nvm/nvm.sh && nvm use 22 && npm run build && npx cap run ios",
     "ios:targets": "source ~/.nvm/nvm.sh && nvm use 22 && npx cap run ios --list",
-    "assets:ios": "source ~/.nvm/nvm.sh && nvm use 22 && npx @capacitor/assets generate --ios"
+    "assets:ios": "source ~/.nvm/nvm.sh && nvm use 22 && npx @capacitor/assets generate --ios --iconBackgroundColor '#2563eb' --iconBackgroundColorDark '#1e40af'"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.1",
