@@ -20,43 +20,41 @@
         <div v-else>
           <!-- Header -->
           <div class="section-header mb-6">
-            <div class="sm:hidden mb-3">
-              <div class="flex items-center justify-between gap-2 mobile-header-actions">
-                <router-link to="/profile" class="btn btn-h5 btn-ghost shrink-0">
-                  ← Back
-                </router-link>
-                <!-- min-w-0 + flex-1 so this column can shrink under overflow-x-hidden (MobileShell main); otherwise Delete clips off-screen on narrow app WebViews -->
-                <div class="flex min-w-0 flex-1 items-center justify-end gap-2 flex-wrap">
-                  <!--
-                  <button
-                    v-if="(isCreator || isAdmin) && challengeData.type === 'pokemon'"
-                    @click="syncCards"
-                    class="btn btn-h5 btn-secondary"
-                    :disabled="isSyncingCards"
-                    title="Sync cards - add any new cards that have been added for this Pokemon"
-                  >
-                    {{ isSyncingCards ? 'Syncing...' : '🔄 Sync' }}
-                  </button>
-                  -->
-                  <button
-                    v-if="isCreator"
-                    type="button"
-                    @click="showInviteModal = true"
-                    class="btn btn-h5 btn-primary shrink-0"
-                  >
-                    + Invite
-                  </button>
-                  <button
-                    v-if="isAdmin"
-                    type="button"
-                    class="btn btn-h5 challenge-detail-delete-btn shrink-0"
-                    :disabled="isDeletingChallenge"
-                    title="Delete this challenge and all related assignment data"
-                    @click="deleteChallenge"
-                  >
-                    {{ isDeletingChallenge ? 'Deleting…' : 'Delete' }}
-                  </button>
-                </div>
+            <!-- Mobile: stack Back then actions — same rules as desktop (Invite = creator, Delete = admin); avoids clipping under MobileShell overflow-x-hidden -->
+            <div class="sm:hidden mb-3 flex flex-col gap-2 mobile-header-actions">
+              <router-link to="/profile" class="btn btn-h5 btn-ghost self-start shrink-0">
+                ← Back
+              </router-link>
+              <div class="flex flex-wrap items-center justify-end gap-2">
+                <!--
+                <button
+                  v-if="(isCreator || isAdmin) && challengeData.type === 'pokemon'"
+                  @click="syncCards"
+                  class="btn btn-h5 btn-secondary"
+                  :disabled="isSyncingCards"
+                  title="Sync cards - add any new cards that have been added for this Pokemon"
+                >
+                  {{ isSyncingCards ? 'Syncing...' : '🔄 Sync' }}
+                </button>
+                -->
+                <button
+                  v-if="isCreator"
+                  type="button"
+                  @click="showInviteModal = true"
+                  class="btn btn-h5 btn-primary shrink-0"
+                >
+                  + Invite
+                </button>
+                <button
+                  v-if="isAdmin"
+                  type="button"
+                  class="btn btn-h5 challenge-detail-delete-btn shrink-0"
+                  :disabled="isDeletingChallenge"
+                  title="Delete this challenge and related battle data (not your profile card collection)"
+                  @click="deleteChallenge"
+                >
+                  {{ isDeletingChallenge ? 'Deleting…' : 'Delete' }}
+                </button>
               </div>
             </div>
             <div class="flex justify-between items-start">
@@ -160,7 +158,7 @@
                   type="button"
                   class="hidden sm:inline-flex btn btn-h4 challenge-detail-delete-btn"
                   :disabled="isDeletingChallenge"
-                  title="Delete this challenge and all related assignment data"
+                  title="Delete this challenge and related battle data (not your profile card collection)"
                   @click="deleteChallenge"
                 >
                   {{ isDeletingChallenge ? 'Deleting…' : 'Delete' }}
@@ -1161,12 +1159,15 @@ const deleteChallenge = async () => {
   if (!isAdmin.value || !challengeId) return
 
   const label = isMasterSet ? 'master set' : 'challenge'
-  const confirmed = confirm(`Delete this ${label}? This will remove assignments, invite records, and collected assignment progress. This cannot be undone.`)
+  const confirmed = confirm(
+    `Delete this ${label}? This removes the ${label}, assignments, invites, and battle progress for this ${label}. ` +
+      'Cards in your personal collection (profile) are not removed. This cannot be undone.'
+  )
   if (!confirmed) return
 
   isDeletingChallenge.value = true
   try {
-    // Remove assignments and assignment-level collected cards
+    // Remove assignments and challenge-scoped collectedCards only. userCards (global profile collection) is never deleted.
     const assignmentsRef = collection(db, 'assignments')
     const assignmentsQuery = query(
       assignmentsRef,
